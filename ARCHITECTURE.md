@@ -191,6 +191,7 @@ Each row is a choice for the 24-hour build, with the path a commercial version w
 | --- | --- | --- |
 | Merchant connection | Seeded vendors and seeded Square sandbox sellers | Self-service Square authorization and connection management |
 | Refunds | The vendor refunds in Square; the app shows refund due, then refunded | Refunds issued through the provider, with reconciliation |
+| Payment verification | Refunds are not read. A payment refunded in Square before its order is confirmed still confirms the order | Verification that reads the refunded amount, including partial refunds |
 | Attendee access | Orders stay with one browser, plus an emailed link per order | Optional accounts and order recovery across devices |
 | Hold expiry | One hold length per event | Per-vendor windows, reminders, and no-show rules |
 | Pickup | A typed code | Scanning, pickup capacity, and express stations |
