@@ -89,7 +89,7 @@ FR-03: The directory lists every booth with vendor name, booth code, and mode. A
 
 FR-04: Search matches a keyword against product name, product category, and vendor name, with an optional category filter. Each result shows the booth code and a link to the booth's position on the map.
 
-FR-05: A storefront shows each product with its image, name, short description, price, available quantity, and a sold-out state. Ordering controls appear only when the booth's mode allows orders and ordering is not paused.
+FR-05: A storefront shows each product with its image, name, short description, price, and a stock state: nothing when more than 5 are available, "Only N left" at 5 or fewer, and sold out at zero. Ordering controls appear only when the booth's mode allows orders and ordering is not paused.
 
 ### Cart (Core)
 
