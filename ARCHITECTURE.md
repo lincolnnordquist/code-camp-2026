@@ -72,6 +72,20 @@ These functions are the meeting point of the three roles. Screens build against 
 
 Every function that changes data returns either the result or a typed reason for refusal, such as `insufficient_stock` or `ordering_paused`. Screens show the reason; they never guess.
 
+### Service functions for Edge Functions
+
+Edge Functions change orders only through these database functions. Each is granted to `service_role` only. The names are proposals; the Data & vendor role sets the final names.
+
+| Function | What it does |
+| --- | --- |
+| `svc_create_pending_order` | Runs the same checks as `create_reservation` and creates a `pending_payment` order that holds stock. Returns the order, its total, and the booth's provider connection. |
+| `svc_attach_checkout` | Stores the Square checkout link id and Square order id on the order. |
+| `svc_confirm_paid_order` | Finds the order by its Square order id, marks it `confirmed`, and records the payment once per Square payment id. For an order that is `expired` or `cancelled`, it records the payment as refund due. |
+| `svc_list_overdue_checkouts` | Returns the `pending_payment` orders past their hold end. |
+| `svc_expire_checkout` | Marks one `pending_payment` order `expired` and returns its stock. |
+| `svc_mark_refunded` | Changes a payment from refund due to refunded. |
+| `svc_mark_email_sent` | Records that the confirmation email was sent, and reports whether it had been sent before. |
+
 ## Data flow
 
 ### Reservation
