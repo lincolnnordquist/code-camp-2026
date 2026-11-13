@@ -11,23 +11,23 @@ It is not a substitute for functional specifications, database design, implement
 
 ## In the demo, if time allows, and later
 
-What the Codecamp demo includes, what is added only if time allows, and what belongs to the real product later. `SPEC.md` is the source for exactly what to build: Core and Square items are in the demo, Extra items are added if time allows, and its Non-goals are later. "To decide" marks a question nobody has settled yet.
+What the Codecamp demo includes, what is added only if time allows, and what belongs to the real product later. `SPEC.md` is the source for exactly what to build: Core and Square items are in the demo, Extra items are added if time allows, and its Non-goals are later. "To decide" marks a question nobody has settled yet. The accounts and setup rows are in the demo's scope but are built after the Core and Square journeys work (`SPEC.md`, "Setup"); until then the same data is seeded.
 
 | Area | In the demo | If time allows | Later |
 | --- | --- | --- | --- |
 | Discovery | Event map, vendor directory, product search, storefronts | Better product filtering | |
-| Payment | Square sandbox prepaid checkout, and reservations paid at the booth | A second Square sandbox seller (FR-31) | Live providers beyond Square, reconciliation, taxes |
+| Payment | Square sandbox prepaid checkout, and reservations paid at the booth. Each vendor connects their own Square account, and can choose prepay only with one | A second Square sandbox seller (FR-31) | Live providers beyond Square, reconciliation, taxes |
 | Refunds | The vendor refunds in Square; the app shows refund due, then refunded | | Refunds issued through the provider |
 | Event stock | Allocated quantities with server-controlled holds | | POS stock sync and discrepancy handling |
 | Unpaid holds | One rule: 120 minutes for a reservation, 15 minutes for a checkout | | Vendor-set hold times, reminders, no-show handling |
 | Pickup | Confirmed → Ready → Collected, with a typed pickup code | QR code scanning (FR-30) | Pickup capacity, express stations, richer staff workflows |
 | Attendee orders | No account. Order list in the same browser, plus an emailed link for each order | "Find my orders" with a code sent to the order email, once agreed | Optional accounts and order recovery across devices |
 | Attendee data | Email address only | | To decide: a phone number |
-| Vendors | Seeded vendors, staff logins, and Square connections | | Invitation by the organizer, self-service onboarding, Square sign-in (OAuth) |
-| Vendor staff | Seeded logins, one booth per event | | Multi-staff permissions and staff management |
-| Vendors at several events | One seeded event | | To decide: a "My events" list for vendors |
-| Event setup | Seeded event, floor plan, and booths | | Floor-plan and booth import, self-service setup |
-| Organizer | No organizer screens | Read-only overview with one seeded login (FR-29). To decide: whether it shows sales totals | Event setup tools, inviting vendors, editing booths, reporting on event results |
+| Vendors | Seeded vendors first. Then vendor accounts: an organizer invites a vendor by email, the vendor accepts or declines, and sets up their own branding, logo, products with photos, booth mode, and Square connection in the app | | Importing a catalog from the vendor's connected system |
+| Vendor staff | One login per vendor account and one booth per event | | Employee accounts, multi-staff permissions and staff management |
+| Vendors at several events | A vendor account can be invited to several events. Its branding is shared; its products and booth are separate for each event. Pending invitations show in its account settings | | To decide: a "My events" list for vendors |
+| Event setup | Seeded event first. Then organizers create their own events, with the floor plan image optional, and a booth is created for a vendor when they accept an invitation | | Floor-plan and booth import |
+| Organizer | Organizer accounts, separate from vendor accounts. An organizer creates events and invites vendors, and sees who is in the event but not their branding or products | Read-only overview of orders (FR-29). To decide: whether it shows sales totals | Editing booths, expiring or revoking invitations, limits on organizer sign-up, reporting on event results |
 | Event end | Nothing closes; orders are kept | | To decide: closing ordering when the event ends, and how past events appear |
 | Connectivity | Offline banner, last loaded data stays viewable, ordering disabled offline | Installable app that loads offline (FR-32) | Offline recovery and provider-aware sync |
 
@@ -89,7 +89,7 @@ The map and directory are complementary, not competing navigation methods. Searc
 
 ### Vendor
 
-A merchant participates through an organizer invitation in the eventual product, with minimal setup. The merchant can appear for discovery only, maintain an event-specific catalog and manual stock allocation, or connect a supported commerce provider when that capability exists.
+A merchant participates through an organizer invitation, with minimal setup, and signs up for a vendor account to accept it. The merchant can appear for discovery only, maintain an event-specific catalog and manual stock allocation, or connect a supported commerce provider when that capability exists.
 
 A simple vendor-facing view shows incoming orders, their payment/reservation type, item details, pickup instructions, and status. Staff can mark an order ready, verify collection, and pause new orders without losing existing ones. The experience should work on a phone or tablet with large controls and few unnecessary steps.
 
@@ -99,7 +99,7 @@ For vendors without POS inventory synchronization, a specific quantity is alloca
 
 The organizer defines the event and participating booths, connects vendors to locations, and oversees readiness and fulfillment. Over time, they can import a floor plan and booth list, invite merchants, monitor integration health, and understand order volume and pickup performance.
 
-The Codecamp version may use **preconfigured event and booth information**, with at most a small read-only organizer overview if time and integration progress permit. This is a deliberate competition simplification, **not** removal of the organizer experience from the actual product.
+The Codecamp version first uses **preconfigured event and booth information**. Organizer accounts, event creation, and inviting vendors are then built on top of the working order journeys (`SPEC.md`, "Setup"). The read-only organizer overview of orders stays an extra if time and integration progress permit.
 
 ## 6. Participation and payment modes
 
@@ -154,7 +154,7 @@ This reservation flow is the **reliable baseline**, not the ultimate product pre
 
 **Actively pursue a real Square sandbox checkout early**, rather than waiting until every other screen is finished. Use a merchant-specific sandbox connection to create a hosted payment and verify the provider's result before confirming the order. Connect it to the **same attendee order-status and vendor pickup experience** as manual reservations.
 
-If progress permits, demonstrate additional independently configured sandbox merchant accounts. That can show merchant-specific payment routing, but **does not prove self-service account linking, universal POS compatibility, automatic catalog sync, or support for all real merchants**. Full OAuth onboarding is a subsequent milestone unless the team has enough verified capacity to attempt it safely.
+If progress permits, demonstrate additional independently configured sandbox merchant accounts. That can show merchant-specific payment routing, but **does not prove self-service account linking, universal POS compatibility, automatic catalog sync, or support for all real merchants**. Each vendor connecting their own Square account in the app is part of the Setup phase and is built after the first payment pathway is credible; how it is done is for the Payments role to confirm.
 
 The Square track has explicit progress assessments and may be reduced or isolated if it threatens the working demonstration. It is a high-priority intended feature, **not an unconditional guarantee of completion**.
 
