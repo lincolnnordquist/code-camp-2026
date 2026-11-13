@@ -1,19 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2.119.0";
-import {
-  createSquareProvider,
-  type SquareEnvironment,
-} from "../_shared/providers/square.ts";
+import { providerFromEnvironment } from "../_shared/providers/index.ts";
 import { handleCreateCheckout, json } from "./handler.ts";
 
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`${name} is not set`);
   return value;
-}
-
-const squareEnvironment = requiredEnv("SQUARE_ENVIRONMENT");
-if (squareEnvironment !== "sandbox" && squareEnvironment !== "production") {
-  throw new Error("SQUARE_ENVIRONMENT must be sandbox or production");
 }
 
 const admin = createClient(
@@ -32,7 +24,7 @@ const deps = {
     if (error) throw new Error(`${name} failed: ${error.message}`);
     return data;
   },
-  provider: createSquareProvider(squareEnvironment as SquareEnvironment),
+  provider: providerFromEnvironment((name) => Deno.env.get(name)),
   readSecret: (name: string) => Deno.env.get(name),
   appUrl: requiredEnv("APP_URL"),
 };
