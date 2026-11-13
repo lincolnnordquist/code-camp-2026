@@ -162,13 +162,7 @@ export async function handleCreateCheckout(
     p_email: checkout.email,
     p_request_id: checkout.requestId,
   }) as PendingOrder | ServiceRefusal;
-  if (!order.ok) {
-    return json(200, {
-      ok: false,
-      reason: order.reason,
-      productIds: order.productIds,
-    });
-  }
+  if (!order.ok) return json(200, order);
 
   const {
     connection,
@@ -224,11 +218,26 @@ export async function handleCreateCheckout(
     );
   }
 
-  const attached = await deps.rpc("svc_attach_checkout", {
-    p_order_id: order.orderId,
-    p_checkout_link_id: checkoutResult.checkoutLinkId,
-    p_provider_order_id: checkoutResult.providerOrderId,
-  }) as { ok: boolean; reason?: string };
+  // A link the order does not store is closed by nothing else, and the order's
+  // stock can be released while that link is still payable.
+  const closeLink = () =>
+    closeUnattachedLink(
+      deps,
+      { accessToken, locationId: connection.locationId },
+      checkoutResult.checkoutLinkId,
+      order.orderId,
+    );
+  let attached: { ok: boolean; reason?: string };
+  try {
+    attached = await deps.rpc("svc_attach_checkout", {
+      p_order_id: order.orderId,
+      p_checkout_link_id: checkoutResult.checkoutLinkId,
+      p_provider_order_id: checkoutResult.providerOrderId,
+    }) as { ok: boolean; reason?: string };
+  } catch (error) {
+    await closeLink();
+    throw error;
+  }
   if (!attached.ok) {
     console.error(JSON.stringify({
       event: "checkout_not_attached",
@@ -236,16 +245,7 @@ export async function handleCreateCheckout(
       reason: attached.reason,
       checkoutLinkId: checkoutResult.checkoutLinkId,
     }));
-    // The order was released while the link was being created, so its stock may
-    // already be sold again. The link must not stay payable.
-    if (attached.reason === "not_pending") {
-      await closeUnattachedLink(
-        deps,
-        { accessToken, locationId: connection.locationId },
-        checkoutResult.checkoutLinkId,
-        order.orderId,
-      );
-    }
+    await closeLink();
     return refuse("checkout_unavailable");
   }
 

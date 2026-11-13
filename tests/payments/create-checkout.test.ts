@@ -330,13 +330,38 @@ test("a link created for an order released meanwhile is closed and not returned"
   }]);
 });
 
-test("a link the database refuses to attach is not returned", async () => {
+test("a link the database refuses to attach is closed and not returned", async () => {
   vi.spyOn(console, "error").mockImplementation(() => {});
+  const closed: string[] = [];
   const { deps } = setup({
     replies: { svc_attach_checkout: { ok: false, reason: "already_attached" } },
+    closeCheckout(_connection, linkId) {
+      closed.push(linkId);
+      return Promise.resolve(null);
+    },
   });
   const { body } = await call(post(requestBody), deps);
   assert.deepEqual(body, { ok: false, reason: "checkout_unavailable" });
+  assert.deepEqual(closed, ["LINK_1"]);
+});
+
+test("a link is closed when attaching it fails with an error", async () => {
+  const closed: string[] = [];
+  const { deps } = setup({
+    closeCheckout(_connection, linkId) {
+      closed.push(linkId);
+      return Promise.resolve(null);
+    },
+  });
+  deps.rpc = (name) =>
+    name === "svc_attach_checkout"
+      ? Promise.reject(new Error("database unreachable"))
+      : Promise.resolve(pendingOrder());
+  await assert.rejects(
+    handleCreateCheckout(post(requestBody), deps),
+    /database unreachable/,
+  );
+  assert.deepEqual(closed, ["LINK_1"]);
 });
 
 test("the browser's preflight request is answered without a session", async () => {

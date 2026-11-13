@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { afterEach, test, vi } from "vitest";
-import { createClient } from "@supabase/supabase-js";
 import {
   admin,
-  authOptions,
+  newAttendeeClient,
   newBooth,
-  stack,
   stockOf,
 } from "../db/support";
 import {
@@ -19,10 +17,9 @@ import {
   ProviderError,
 } from "../../supabase/functions/_shared/providers/types";
 
-const userIds: string[] = [];
-
 function depsWith(
   createCheckout: PaymentProvider["createCheckout"],
+  closeCheckout?: PaymentProvider["closeCheckout"],
 ): CreateCheckoutDeps {
   const unused = () => Promise.reject(new Error("not used by create-checkout"));
   return {
@@ -39,7 +36,7 @@ function depsWith(
       webhookSignatureHeaderName: "x-test-signature",
       createCheckout,
       getPayment: unused,
-      closeCheckout: unused,
+      closeCheckout: closeCheckout ?? unused,
       getRefund: unused,
       verifyWebhookSignature: unused,
     },
@@ -50,10 +47,8 @@ function depsWith(
 }
 
 async function attendeeToken(): Promise<string> {
-  const client = createClient(stack.url, stack.publishableKey, authOptions);
-  const { data, error } = await client.auth.signInAnonymously();
-  assert.equal(error, null);
-  userIds.push(data.user!.id);
+  const { client } = await newAttendeeClient();
+  const { data } = await client.auth.getSession();
   return data.session!.access_token;
 }
 
@@ -61,6 +56,7 @@ function checkoutRequest(
   token: string,
   boothId: string,
   productId: string,
+  requestId: string = randomUUID(),
 ) {
   return new Request("http://localhost/create-checkout", {
     method: "POST",
@@ -72,7 +68,7 @@ function checkoutRequest(
       boothId,
       items: [{ productId, quantity: 2 }],
       email: "attendee@squareup.com",
-      requestId: randomUUID(),
+      requestId,
     }),
   });
 }
@@ -86,9 +82,8 @@ async function onlyOrderAt(boothId: string) {
   return data![0];
 }
 
-afterEach(async () => {
+afterEach(() => {
   vi.restoreAllMocks();
-  for (const id of userIds.splice(0)) await admin.auth.admin.deleteUser(id);
 });
 
 test("a created checkout holds the stock and is stored on the order", async () => {
@@ -133,6 +128,99 @@ test("a failed Square call releases the stock right away", async () => {
     ok: false,
     reason: "checkout_unavailable",
   });
+  assert.deepEqual(await onlyOrderAt(boothId), {
+    status: "expired",
+    checkout_link_id: null,
+    provider_order_id: null,
+  });
+  assert.equal(await stockOf(mugId), 5);
+});
+
+function newLink(): Checkout {
+  return {
+    url: `https://sandbox.square.link/u/${randomUUID()}`,
+    checkoutLinkId: `LINK_${randomUUID()}`,
+    providerOrderId: `ORDER_${randomUUID()}`,
+  };
+}
+
+const squareDown = () =>
+  Promise.reject(new ProviderError("unavailable", "SERVICE_UNAVAILABLE", "down"));
+
+test("a failed Square call on a retry keeps the stored link and the stock", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const { boothId, mugId } = await newBooth();
+  const token = await attendeeToken();
+  const requestId = randomUUID();
+  const link = newLink();
+
+  const first = await handleCreateCheckout(
+    checkoutRequest(token, boothId, mugId, requestId),
+    depsWith(() => Promise.resolve(link)),
+  );
+  assert.equal((await first.json()).ok, true);
+
+  const retry = await handleCreateCheckout(
+    checkoutRequest(token, boothId, mugId, requestId),
+    depsWith(squareDown),
+  );
+
+  assert.deepEqual(await retry.json(), {
+    ok: false,
+    reason: "checkout_unavailable",
+  });
+  assert.deepEqual(await onlyOrderAt(boothId), {
+    status: "pending_payment",
+    checkout_link_id: link.checkoutLinkId,
+    provider_order_id: link.providerOrderId,
+  });
+  assert.equal(await stockOf(mugId), 3);
+});
+
+test("a double submit where the second call fails releases the stock and closes the first call's link", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const { boothId, mugId } = await newBooth();
+  const token = await attendeeToken();
+  const requestId = randomUUID();
+  const link = newLink();
+  const closed: string[] = [];
+  let squareAnswersFirst!: () => void;
+  let firstReachedSquare!: () => void;
+  const firstAtSquare = new Promise<void>((resolve) => {
+    firstReachedSquare = resolve;
+  });
+
+  const first = handleCreateCheckout(
+    checkoutRequest(token, boothId, mugId, requestId),
+    depsWith(
+      () =>
+        new Promise<Checkout>((resolve) => {
+          squareAnswersFirst = () => resolve(link);
+          firstReachedSquare();
+        }),
+      (_connection, linkId) => {
+        closed.push(linkId);
+        return Promise.resolve(link.providerOrderId);
+      },
+    ),
+  );
+  await firstAtSquare;
+
+  const second = await handleCreateCheckout(
+    checkoutRequest(token, boothId, mugId, requestId),
+    depsWith(squareDown),
+  );
+  squareAnswersFirst();
+
+  assert.deepEqual(await second.json(), {
+    ok: false,
+    reason: "checkout_unavailable",
+  });
+  assert.deepEqual(await (await first).json(), {
+    ok: false,
+    reason: "checkout_unavailable",
+  });
+  assert.deepEqual(closed, [link.checkoutLinkId]);
   assert.deepEqual(await onlyOrderAt(boothId), {
     status: "expired",
     checkout_link_id: null,
