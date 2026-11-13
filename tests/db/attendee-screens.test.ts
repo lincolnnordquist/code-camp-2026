@@ -48,6 +48,26 @@ test("the demo images are served from the public storage bucket", async () => {
   assert.match(response.headers.get("content-type") ?? "", /svg/);
 });
 
+test("every image path in the seed is served from the public storage bucket", async () => {
+  const { data: vendors } = await admin
+    .from("vendors")
+    .select("logo_path, banner_path");
+  const { data: products } = await admin.from("products").select("image_path");
+  const paths = [
+    ...(vendors ?? []).flatMap((v) => [v.logo_path, v.banner_path]),
+    ...(products ?? []).map((p) => p.image_path),
+  ];
+  assert.ok(paths.length > 0);
+  for (const path of new Set(paths as string[])) {
+    // Test fixtures use a path of their own; only the seeded vendors are checked.
+    if (!/^(vendors|products)\//.test(path)) continue;
+    const response = await fetch(
+      `${stack.url}/storage/v1/object/public/assets/${path}`,
+    );
+    assert.equal(response.status, 200, `${path} is missing from the bucket`);
+  }
+});
+
 test("vendor branding, product photos and descriptions, and the venue name are required", async () => {
   const { vendorId } = await newBooth();
   const branding = {

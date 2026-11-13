@@ -24,12 +24,12 @@ Each feature area carries one of three labels.
 | **Core** | The reservation baseline. It must work at the demo. |
 | **Square** | Prepaid checkout. It is built in parallel with Core from the first hour and may be reduced if it threatens the demo. |
 | **Extra** | Taken on as progress permits. |
+| **Setup** | Accounts, invitations, and vendor setup. Required, but built after the Core and Square journeys work. Until then the same data is seeded. |
 
 ## Non-goals
 
 - A cart or payment that spans several vendors. Each order belongs to one booth.
-- Self-service vendor onboarding or Square account linking. Vendors and their Square sandbox connections are seeded.
-- Organizer setup tools. The event, floor plan, and booths are seeded.
+- More than one login per vendor, expiring or revoking invitations, and organizers editing a vendor's content.
 - Issuing refunds from the app, dispute handling, tax handling, or payment reconciliation. The vendor makes a refund in Square, and the app shows its status.
 - Text message notifications.
 - Ticketing, schedules, indoor navigation, recommendations, social features, and food preparation workflows.
@@ -45,13 +45,15 @@ Each feature area carries one of three labels.
 ### Vendor staff
 
 - One or two people at a busy booth, using a phone or tablet between walk-up customers.
-- Sign in with a seeded email and password.
+- Have one vendor account with one login, and no employee accounts. Until the Setup phase the account is seeded; after it the vendor signs up or accepts an invitation.
+- Set up their own branding, products, booth mode, and Square connection (FR-34 to FR-43).
 - Need to see new orders, set items aside, hand them over, and stop new orders when overloaded.
 
 ### Organizer
 
-- Runs the event. The event data is seeded for the competition.
-- A read-only overview is an Extra (FR-29).
+- Has an organizer account, which is never also a vendor account.
+- Creates events and invites vendors to them (FR-35 to FR-37). Until the Setup phase the event is seeded.
+- A read-only overview of an event's orders is an Extra (FR-29).
 
 ## Terms
 
@@ -163,13 +165,37 @@ FR-27: Every screen has loading, empty, error, and offline states.
 
 FR-28: Status and payment wording comes from one shared label module. A reservation is never labelled paid, and a pending payment is never labelled complete.
 
+### Accounts and setup (Setup)
+
+Built after the Core and Square journeys work. Until then the same rows are seeded, so the later screens create what the seed creates.
+
+FR-34: A person signs up as a vendor or as an organizer. An account is one or the other. A vendor account has one login and no employees.
+
+FR-35: An organizer creates events with a name, venue name, link, and currency, and optionally a floor plan image.
+
+FR-36: An organizer invites a vendor to an event by email, and sees who is invited and who has accepted. An invitation does not expire and cannot be revoked. An organizer sees who is in the event, not the vendor's branding or products.
+
+FR-37: A vendor with an account sees pending event invitations in their account settings and accepts or declines each. A vendor without an account signs up with the invited email address to answer it. Only the account with the invited, verified email can answer.
+
+FR-38: Accepting an invitation adds the vendor to the event with a booth. Declining records the answer and changes nothing else. An invitation is answered once.
+
+FR-39: A vendor sets their branding once: name, logo, slogan, and banner. It is the same at every event. Images are uploaded in the app.
+
+FR-40: A vendor sets up the products of each event separately: name, category, description, photo, price, per-order maximum, and stock. A removed product is hidden, so past orders keep their items and prices.
+
+FR-41: A vendor chooses one mode for their booth at each event: `reservation`, `prepay`, or `discovery`. `prepay` can be chosen only while the vendor has a connected Square account.
+
+FR-42: A vendor connects their own Square account in the app, and their prepaid payments go to it.
+
+FR-43: A vendor can upload images only into their own folder, and only PNG, JPEG, or WebP files within the size limit.
+
 ### Extra
 
 FR-29: An organizer signs in and sees a read-only overview of booths, their modes, active orders, and collected orders.
 
 FR-30: Staff scan a QR code shown on the attendee's order page as an alternative to typing the pickup code.
 
-FR-31: A second booth is connected to a separate Square sandbox seller, and each booth's payments go to its own seller.
+FR-31: A second booth is connected to a separate Square sandbox seller, and each booth's payments go to its own seller. FR-42 makes this the normal case.
 
 FR-32: The app installs to the home screen and its screens load offline from a cached copy.
 
@@ -227,4 +253,7 @@ The tables are described in `ARCHITECTURE.md`, "Database design". The functions 
 
 - [ ] The hold lengths used in the demo. A shorter reservation hold on one seeded booth would let expiry be shown live.
 - [ ] Whether one Square webhook subscription covers every seeded sandbox seller, or each seller needs its own.
+- [ ] Booth code and map position. The code is assigned automatically when the booth is created (when an invitation is accepted, since a vendor has a different booth at each event). How a booth gets its map position is not decided; the map is not designed yet.
+- [ ] How a vendor's Square connection is made: the authorization flow, and where each vendor's token is kept (see ARCHITECTURE.md, "Accounts, invitations, and setup"). Owned by the Payments role.
+- [ ] Limits on organizer sign-up and invitation emails. For now anyone may sign up as an organizer; a limit is added later so invitations cannot be used for spam.
 - [ ] The sending domain for confirmation email (see `.env.example`). Resend needs a registered domain with its DNS records verified. The domain needs no website and does not have to match the product's final name, so any domain registered tonight works.
