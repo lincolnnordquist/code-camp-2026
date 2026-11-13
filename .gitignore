@@ -1,0 +1,19 @@
+# Secrets and local environment files. .env.example is the only one tracked.
+.env
+.env.*
+!.env.example
+supabase/functions/.env
+
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Local tool state
+supabase/.temp/
+supabase/.branches/
+.wrangler/
+*.log
+
+# Operating system files
+.DS_Store
