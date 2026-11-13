@@ -1,0 +1,231 @@
+# Event Commerce Platform — Product spec
+
+`CONCEPT.md` sets the product direction and wins where this spec differs from it. `ARCHITECTURE.md` describes how the system is built. `TEAM-PLAN.md` says who builds what.
+
+## Purpose
+
+Attendees at conventions cannot easily find which booth sells an item, whether it is in stock, or how long buying it takes. This app lets an attendee open an event from a link, find a product, secure it, and collect it at the booth with a pickup code. Vendors keep their own payment setup. The build succeeds when the full journey works on phones at the demo: find, secure, vendor marks ready, attendee collects.
+
+## Goals
+
+- [ ] An attendee finds a product by search or on the map and reaches its storefront without an account.
+- [ ] An attendee reserves limited stock and collects it with a pickup code (the reservation path).
+- [ ] An attendee prepays through Square sandbox checkout, and the order is confirmed only after the server verifies the payment (the prepaid path).
+- [ ] Vendor staff run their orders from a phone: mark ready, collect, cancel, adjust stock, pause ordering.
+- [ ] Two attendees cannot both get the last item.
+- [ ] The app is deployed and works on the phones used for the demo.
+
+## Priorities
+
+Each feature area carries one of three labels.
+
+| Label | Meaning |
+| --- | --- |
+| **Core** | The reservation baseline. It must work at the demo. |
+| **Square** | Prepaid checkout. It is built in parallel with Core from the first hour and may be reduced if it threatens the demo. |
+| **Extra** | Taken on as progress permits. |
+
+## Non-goals
+
+- A cart or payment that spans several vendors. Each order belongs to one booth.
+- Self-service vendor onboarding or Square account linking. Vendors and their Square sandbox connections are seeded.
+- Organizer setup tools. The event, floor plan, and booths are seeded.
+- Issuing refunds from the app, dispute handling, tax handling, or payment reconciliation. The vendor makes a refund in Square, and the app shows its status.
+- Text message notifications.
+- Ticketing, schedules, indoor navigation, recommendations, social features, and food preparation workflows.
+
+## Users
+
+### Attendee
+
+- A visitor on a phone at the venue, often on a congested network, with little time.
+- Opens the event from a QR code or link and never creates an account.
+- Needs to find an item, secure it, and know where and when to collect it.
+
+### Vendor staff
+
+- One or two people at a busy booth, using a phone or tablet between walk-up customers.
+- Sign in with a seeded email and password.
+- Need to see new orders, set items aside, hand them over, and stop new orders when overloaded.
+
+### Organizer
+
+- Runs the event. The event data is seeded for the competition.
+- A read-only overview is an Extra (FR-29).
+
+## Terms
+
+| Term | Meaning |
+| --- | --- |
+| Booth | One vendor's place at the event, with a location on the floor plan and a catalog. |
+| Mode | How a booth takes part: `prepay`, `reservation`, or `discovery` (listing only). |
+| Reservation | An unpaid order. Stock is held and the attendee pays the vendor at pickup. |
+| Prepaid order | An order paid online through the vendor's Square account before pickup. |
+| Hold | The period during which stock is kept for an unpaid reservation or an unfinished checkout. |
+| Pickup code | A short code the attendee shows at the booth. Staff enter it to hand over the order. |
+
+## Order statuses
+
+An order has a type (`reservation` or `prepaid`) and one status. The type decides the payment wording; the status never implies payment.
+
+| Status | Meaning | Can move to |
+| --- | --- | --- |
+| `pending_payment` | Prepaid only. Stock is held while the attendee is in Square checkout. | `confirmed`, `expired` |
+| `confirmed` | The order is accepted. A reservation is unpaid; a prepaid order is verified as paid. | `ready`, `collected`, `cancelled`, `expired` (reservation only) |
+| `ready` | Staff have set the items aside. | `collected`, `cancelled`, `expired` (reservation only) |
+| `collected` | Handed over. Final. | none |
+| `cancelled` | Cancelled by the attendee or the vendor. Final. | none |
+| `expired` | The hold ran out. Final. | none |
+
+## Functional requirements
+
+### Discovery (Core)
+
+FR-01: The event opens at `/e/:eventSlug` without sign-in and shows the event name, search, the floor-plan map, and the vendor directory.
+
+FR-02: The map shows the event's floor plan image with every booth drawn on it at its seeded position. Tapping a booth opens its storefront.
+
+FR-03: The directory lists every booth with vendor name, booth code, and mode. A `discovery` booth is never shown as accepting orders.
+
+FR-04: Search matches a keyword against product name, product category, and vendor name, with an optional category filter. Each result shows the booth code and a link to the booth's position on the map.
+
+FR-05: A storefront shows each product with its image, name, short description, price, available quantity, and a sold-out state. Ordering controls appear only when the booth's mode allows orders and ordering is not paused.
+
+### Cart (Core)
+
+FR-06: The cart holds items from one booth. Adding an item from another booth asks the attendee to replace the cart. A quantity cannot exceed the product's per-order maximum or its available quantity.
+
+### Reservation (Core)
+
+FR-07: Submitting a reservation with an email address and cart items creates the order on the server in one step that also deducts stock. The total is calculated from catalog prices. Outcomes:
+
+- Accepted: the order is `confirmed` with a pickup code and a hold end time.
+- Rejected with a reason: not enough stock (naming the items), over the per-order maximum, ordering paused, or the booth does not take reservations. No stock changes.
+
+FR-08: Submitting the same request twice, for example after a retry on a poor connection, returns the first order and creates no second one.
+
+FR-09: A reservation that is not collected by its hold end becomes `expired` and its stock returns to the product. The hold length is an event setting with a default of 120 minutes.
+
+FR-10: An attendee can cancel their own reservation while it is `confirmed` or `ready`. The stock returns to the product.
+
+### Prepaid checkout (Square)
+
+FR-11: Starting checkout creates a `pending_payment` order that holds stock for 15 minutes, then creates a Square hosted checkout for that booth's seller with the server-calculated total. The attendee is sent to the Square page.
+
+FR-12: A prepaid order becomes `confirmed` only after the server fetches the payment from Square and matches seller, provider order, amount, currency, and completed status. A browser redirect or a webhook message only triggers that check.
+
+FR-13: Confirmations that arrive twice, late, or out of order confirm the order once and record each Square payment once.
+
+FR-14: When a `pending_payment` order reaches its hold end, the server looks the payment up in Square once more. Outcomes:
+
+- Payment completed: the order becomes `confirmed`, as in FR-12.
+- No completed payment: the server deletes the Square checkout link. When Square confirms that it cancelled the order, the order becomes `expired` and its stock returns. When Square does not confirm it, the order was paid in the meantime, and the server verifies the payment as in FR-12.
+
+A paid order never expires.
+
+FR-15: A payment verified after its order is `expired` or `cancelled` does not reactivate the order. The payment is recorded as refund due, and both the attendee and the vendor see that a refund is owed.
+
+FR-33: The server receives Square's webhook messages about payments and refunds and rejects any message with an invalid signature. Each accepted message triggers a lookup of that payment or refund in Square. When Square reports a completed refund, the payment changes from refund due to refunded, and the attendee and the vendor see it.
+
+### Attendee orders (Core)
+
+FR-16: Placing a first order signs the browser in anonymously. The attendee sees a list of their orders across booths in that browser, and no one else's.
+
+FR-17: The order page shows status, order type with its payment wording, items, total, pickup code, booth location, pickup instructions, and the hold end time where one applies. It updates without a refresh when the order changes.
+
+FR-18: When an order is confirmed, the attendee receives an email with the pickup code and a private link. The link opens that one order on any device. A failed email does not change the order.
+
+### Vendor (Core)
+
+FR-19: Vendor staff sign in with email and password at `/vendor` and see only their own booth's orders and products.
+
+FR-20: The queue lists active orders with type, items, pickup status, and payment wording. A new order appears without a refresh.
+
+FR-21: Staff mark a `confirmed` order as `ready`.
+
+FR-22: Staff enter a pickup code to hand over an order. A `confirmed` or `ready` order of that booth becomes `collected`; for a reservation the action states that payment was taken at the booth. Other outcomes change nothing:
+
+- Unknown code, or a code from another booth: "not found".
+- Already collected: the collection time is shown.
+- Cancelled or expired: that status is shown.
+
+FR-23: Staff cancel a `confirmed` or `ready` order with a reason, which the attendee sees. Stock is not returned automatically. A cancelled prepaid order is marked refund due.
+
+FR-24: Staff set the available quantity of a product. Stock already held by existing orders is unaffected.
+
+FR-25: Staff pause and resume ordering for their booth. Existing orders continue while paused.
+
+### Connectivity and states (Core)
+
+FR-26: When the device is offline, a banner says so, the last loaded catalog and orders stay viewable, and ordering actions are disabled. No action is shown as accepted before the server responds.
+
+FR-27: Every screen has loading, empty, error, and offline states.
+
+FR-28: Status and payment wording comes from one shared label module. A reservation is never labelled paid, and a pending payment is never labelled complete.
+
+### Extra
+
+FR-29: An organizer signs in and sees a read-only overview of booths, their modes, active orders, and collected orders.
+
+FR-30: Staff scan a QR code shown on the attendee's order page as an alternative to typing the pickup code.
+
+FR-31: A second booth is connected to a separate Square sandbox seller, and each booth's payments go to its own seller.
+
+FR-32: The app installs to the home screen and its screens load offline from a cached copy.
+
+## Non-functional requirements
+
+NFR-01: Stock changes and the order change that caused them happen in one database transaction, so concurrent orders cannot oversell a product.
+
+NFR-02: Access is enforced in the database. An attendee reads only their own orders, and vendor staff read and change only their own booth's data.
+
+NFR-03: Square tokens, the webhook signature key, the Resend key, and the Supabase service-role key exist only on the server. None appears in browser code, `VITE_` variables, or git.
+
+NFR-04: Money is stored and calculated as integer cents with a currency code.
+
+NFR-05: `collected`, `cancelled`, and `expired` orders never change status again.
+
+NFR-06: Screens are designed at phone width first (360 px), with touch targets of at least 44 px and text contrast meeting WCAG AA.
+
+NFR-07: The only attendee data stored is the email address given at ordering.
+
+## User flows
+
+### Reservation
+
+1. The attendee opens the event link and searches for a product.
+2. The result shows the booth; the attendee opens the storefront and adds the product to the cart.
+3. The attendee enters an email address and reserves. The order page shows `confirmed`, the pickup code, and the hold end time.
+4. Staff see the order in the queue, set the item aside, and mark it `ready`. The attendee's page updates.
+5. At the booth the attendee shows the code and pays the vendor. Staff enter the code and the order becomes `collected`.
+
+### Prepaid
+
+1. Steps 1 and 2 are the same, at a booth in `prepay` mode.
+2. The attendee enters an email address and starts checkout. The app sends them to Square's page.
+3. After paying, the attendee returns to the order page, which shows `pending_payment` until the server has verified the payment, then `confirmed` and paid.
+4. Pickup continues as in the reservation flow, without payment at the booth.
+
+## Data model and shared functions
+
+The tables are described in `ARCHITECTURE.md`, "Database design". The functions screens call are listed in `ARCHITECTURE.md`, "Shared API".
+
+## Verification
+
+- Discovery (FR-01 to FR-05): on a phone, open the event link in a private window, search for a seeded product, and reach its storefront and map position.
+- Reservation (FR-07 to FR-10): a test in `tests/` reserves stock, repeats the request, lets a hold expire, and cancels, checking order status and product stock after each step.
+- Last item (NFR-01): a test sends two reservations for a product with one unit at the same time. One is confirmed, one is rejected, and stock is zero.
+- Prepaid (FR-11 to FR-15): complete a test payment in Square's sandbox testing panel and see the order confirmed. A test with a mismatched amount leaves the order unconfirmed, and a repeated confirmation changes nothing. After a checkout hold ends unpaid, the Square page for that order can no longer be paid.
+- Webhook (FR-33): close the browser tab after paying in the sandbox, and the order is still confirmed. Refund the payment in the Square sandbox dashboard, and the order shows refunded. A test sends a message with a wrong signature, and nothing changes.
+- Access (NFR-02): a test signs in as a second attendee and as staff of another booth, and neither can read or change the first attendee's order.
+- Vendor (FR-19 to FR-25): on two phones, place an order on one and see it appear, become ready, and be collected on the other.
+- Pickup (FR-22): a test collects an order, tries the same code again, and tries a code from another booth.
+- Email (FR-18): place an order with a real address, then open the emailed link on a different device.
+- Offline (FR-26): switch the phone to airplane mode. The banner shows, orders stay readable, and the reserve button is disabled.
+
+## Open questions
+
+- [ ] The hold lengths used in the demo. A shorter reservation hold on one seeded booth would let expiry be shown live.
+- [ ] Whether one Square webhook subscription covers every seeded sandbox seller, or each seller needs its own.
+- [ ] What a sandbox checkout link shows on a phone that is not signed in to a Square developer account. In the sandbox the link opens Square's testing panel, not a card form, so test it on a demo phone before planning the prepaid part of the demo.
+- [ ] The sending domain for confirmation email (see `.env.example`). Resend needs a registered domain with its DNS records verified. The domain needs no website and does not have to match the product's final name, so any domain registered tonight works.
