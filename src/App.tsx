@@ -4,5 +4,5 @@ export default function App() {
       <h1>Event Commerce Platform</h1>
       <p>Placeholder page. The real screens are built on top of this.</p>
     </main>
-  )
+  );
 }

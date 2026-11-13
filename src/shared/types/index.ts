@@ -1,105 +1,106 @@
 // The shared contract between screens and src/shared/api. Changes go through the Data & vendor role.
 // Money is always integer cents with a currency code.
 
-export type BoothMode = 'prepay' | 'reservation' | 'discovery'
-export type OrderType = 'reservation' | 'prepaid'
+export type BoothMode = "prepay" | "reservation" | "discovery";
+export type OrderType = "reservation" | "prepaid";
 export type OrderStatus =
-  | 'pending_payment'
-  | 'confirmed'
-  | 'ready'
-  | 'collected'
-  | 'cancelled'
-  | 'expired'
+  | "pending_payment"
+  | "confirmed"
+  | "ready"
+  | "collected"
+  | "cancelled"
+  | "expired";
 // Whether money is owed back to the attendee. Separate from the order status.
-export type RefundStatus = 'none' | 'due' | 'refunded'
+export type OrderRefundStatus = "none" | "due" | "refunded";
 
-export interface Event {
-  id: string
-  slug: string
-  name: string
-  currency: string
-  floorPlanUrl: string
-  reservationHoldMinutes: number
-}
+export type Event = {
+  id: string;
+  slug: string;
+  name: string;
+  currency: string;
+  floorPlanUrl: string;
+  reservationHoldMinutes: number;
+};
 
-export interface Booth {
-  id: string
-  vendorName: string
-  code: string
-  mode: BoothMode
-  orderingPaused: boolean
+export type Booth = {
+  id: string;
+  vendorName: string;
+  code: string;
+  mode: BoothMode;
+  orderingPaused: boolean;
   // Position on the floor plan image, as a fraction (0 to 1) of its width and height.
-  mapX: number
-  mapY: number
-  pickupInstructions: string
-}
+  mapX: number;
+  mapY: number;
+  pickupInstructions: string;
+};
 
-export interface Product {
-  id: string
-  boothId: string
-  name: string
-  category: string
-  priceCents: number
-  availableQty: number
-  maxPerOrder: number
-}
+export type Product = {
+  id: string;
+  boothId: string;
+  name: string;
+  category: string;
+  priceCents: number;
+  availableQty: number;
+  maxPerOrder: number;
+};
 
-export interface EventCatalog {
-  event: Event
-  booths: Booth[]
-  products: Product[]
-}
+export type EventCatalog = {
+  event: Event;
+  booths: Booth[];
+  products: Product[];
+};
 
-export interface OrderItem {
-  productId: string
-  name: string
-  quantity: number
-  unitPriceCents: number
-}
+export type OrderItem = {
+  productId: string;
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+};
 
-export interface Order {
-  id: string
-  boothId: string
-  type: OrderType
-  status: OrderStatus
-  items: OrderItem[]
-  totalCents: number
-  currency: string
-  pickupCode: string
-  holdEndsAt: string | null
-  createdAt: string
-  collectedAt: string | null
-  cancelReason: string | null
-  refundStatus: RefundStatus
-}
+export type Order = {
+  id: string;
+  boothId: string;
+  type: OrderType;
+  status: OrderStatus;
+  items: OrderItem[];
+  totalCents: number;
+  currency: string;
+  pickupCode: string;
+  holdEndsAt: string | null;
+  createdAt: string;
+  collectedAt: string | null;
+  cancelReason: string | null;
+  refundStatus: OrderRefundStatus;
+};
 
-export interface CartItem {
-  productId: string
-  quantity: number
-}
+export type CartItem = {
+  productId: string;
+  quantity: number;
+};
 
 // Every function that changes data returns a result or a typed reason for refusal.
 export type Result<T, R extends string> =
   | { ok: true; value: T }
-  | { ok: false; reason: R; productIds?: string[]; at?: string }
+  | { ok: false; reason: R; productIds?: string[]; at?: string };
 
 export type OrderRequestRefusal =
-  | 'insufficient_stock'
-  | 'over_max_per_order'
-  | 'ordering_paused'
-  | 'booth_not_accepting_orders'
-  | 'empty_cart'
+  | "insufficient_stock"
+  | "over_max_per_order"
+  | "ordering_paused"
+  | "booth_not_accepting_orders"
+  | "empty_cart";
 
-export interface OrderRequest {
-  boothId: string
-  items: CartItem[]
-  email: string
+export type OrderRequest = {
+  boothId: string;
+  items: CartItem[];
+  email: string;
   // Generated in the browser so a retried request returns the first order.
-  requestId: string
-}
+  requestId: string;
+};
 
-export type OrderLookupRefusal = 'order_not_found'
-export type OrderChangeRefusal = 'order_not_found' | 'not_allowed_in_status'
-export type CollectRefusal = 'not_found' | 'already_collected' | 'cancelled' | 'expired'
-export type ConfirmCheckoutRefusal = 'order_not_found' | 'payment_not_verified'
-export type StartCheckoutRefusal = OrderRequestRefusal | 'checkout_unavailable'
+export type OrderLookupRefusal = "order_not_found";
+export type OrderChangeRefusal = "order_not_found" | "not_allowed_in_status";
+export type CollectRefusal =
+  "not_found" | "already_collected" | "cancelled" | "expired";
+export type ConfirmCheckoutRefusal = "order_not_found" | "payment_not_verified";
+export type StartCheckoutRefusal = OrderRequestRefusal | "checkout_unavailable";
