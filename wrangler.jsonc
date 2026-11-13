@@ -6,5 +6,7 @@
     "directory": "./dist",
     // Unknown paths such as /e/:eventSlug fall back to index.html so React handles the route.
     "not_found_handling": "single-page-application"
-  }
+  },
+  // Required by `wrangler preview`, which Cloudflare runs for branch and pull request builds.
+  "previews": {}
 }
