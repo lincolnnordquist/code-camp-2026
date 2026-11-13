@@ -227,5 +227,4 @@ The tables are described in `ARCHITECTURE.md`, "Database design". The functions 
 
 - [ ] The hold lengths used in the demo. A shorter reservation hold on one seeded booth would let expiry be shown live.
 - [ ] Whether one Square webhook subscription covers every seeded sandbox seller, or each seller needs its own.
-- [ ] What a sandbox checkout link shows on a phone that is not signed in to a Square developer account. In the sandbox the link opens Square's testing panel, not a card form, so test it on a demo phone before planning the prepaid part of the demo.
 - [ ] The sending domain for confirmation email (see `.env.example`). Resend needs a registered domain with its DNS records verified. The domain needs no website and does not have to match the product's final name, so any domain registered tonight works.

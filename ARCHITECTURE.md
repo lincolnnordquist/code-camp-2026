@@ -115,7 +115,7 @@ Each point was checked against the Square sandbox.
 - Deleting the link of an unpaid order returns `cancelled_order_id` and sets that order to `CANCELED`.
 - Deleting the link of a paid order succeeds but returns no `cancelled_order_id`. The order and its payment are unchanged.
 - A paid checkout order is in state `OPEN`, not `COMPLETED`. Its tender carries the `payment_id`, and that payment has status `COMPLETED`. Verification reads the payment status, not the order state.
-- In the sandbox the hosted page's card form is disabled. A payment is simulated in the Checkout API Sandbox Testing Panel and has source type `EXTERNAL`.
+- In the sandbox the hosted page's card form is disabled. A payment is simulated in the Checkout API Sandbox Testing Panel and has source type `EXTERNAL`. The panel opens without a Square sign-in, so a test payment can be completed on any phone.
 
 ## Auth and security model
 
