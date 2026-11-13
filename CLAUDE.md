@@ -4,7 +4,7 @@ Instructions for every coding agent working in this repository. `AGENTS.md` poin
 
 A 24-hour competition build by three developers. Favor working, readable code over process. Judges read the source.
 
-**State:** no application code exists yet. The folders and commands below are the planned layout, created when the project is scaffolded at the start of the competition. If a folder or script is missing, it has not been created; do not assume it is broken.
+**State:** the app is scaffolded and deployed with a placeholder page. `src/shared/api/` and `src/shared/live/` return sample data. `supabase/migrations/` holds the tables and the checkout service functions, and `supabase/seed.sql` holds the demo event. The payment provider module and payment verification are in `supabase/functions/_shared/`. Not created: the screens, the components in `src/shared/ui/`, the order functions that users call, and the Edge Functions. If a folder or script is missing, it has not been created; do not assume it is broken.
 
 ## Documents
 
@@ -19,9 +19,9 @@ Do not implement behavior that `SPEC.md` does not describe without raising it wi
 
 ## Stack
 
-React + TypeScript (strict) + Vite. Supabase: Postgres, Auth, Realtime, Edge Functions. Square sandbox for prepaid checkout. Resend for email. Cloudflare Pages for hosting. Vitest for tests. npm.
+React + TypeScript (strict) + Vite. Supabase: Postgres, Auth, Realtime, Edge Functions. Square sandbox for prepaid checkout. Resend for email. Cloudflare Workers static assets for hosting. Vitest for tests. npm.
 
-## Commands (planned)
+## Commands
 
 ```bash
 npm run dev              # Vite dev server, http://localhost:5173
@@ -34,7 +34,7 @@ supabase db reset        # re-apply all migrations and seed.sql to the local dat
 supabase functions serve # run Edge Functions locally
 ```
 
-## Structure (planned)
+## Structure
 
 ```text
 src/features/      screens, one folder per area: discover, order, vendor, organizer

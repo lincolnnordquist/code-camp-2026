@@ -10,7 +10,7 @@ This is a 24-hour competition build by three developers working with coding agen
 
 ## Status
 
-Planning is complete and no application code exists yet. The steps under "Getting started" apply once the project is scaffolded at the start of the competition.
+The app is scaffolded and deployed with a placeholder page. The shared API in `src/shared/api/` returns sample data. The database migrations create the tables and the checkout service functions, and `supabase/seed.sql` adds the demo event. The payment provider module and payment verification are in `supabase/functions/_shared/`. The screens, the order functions that users call, and the Edge Functions are not built.
 
 ## Docs
 
@@ -26,7 +26,7 @@ New to the project? Read this page, then `TEAM-PLAN.md`, then the parts of `SPEC
 
 ## Prerequisites
 
-- Node.js 20 or later, with npm
+- Node.js 22 or later, with npm
 - Docker, for the local Supabase
 - Supabase CLI
 - Accounts: Supabase, Cloudflare, Square developer (sandbox), Resend

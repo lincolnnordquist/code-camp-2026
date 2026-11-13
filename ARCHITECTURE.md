@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: planned.** No application code exists yet. This document describes the design the build starts from. Update it when a module's job, a shared function, or a rule changes.
+**Status: partly built.** Built: the app scaffold, the shared API and live module returning sample data, the shared types, the database tables with the checkout service functions and the demo event seed, and the payment provider module with payment verification. Planned: the order functions that users call, the remaining service functions, the Edge Functions, and the screens. Update this document when a module's job, a shared function, or a rule changes.
 
 ## Overview
 
@@ -10,7 +10,7 @@ The app is a single-page web app that talks to Supabase. The database holds the 
 
 ```text
 Attendee phone ─┐
-                ├─ Web app (React, served by Cloudflare Pages)
+                ├─ Web app (React, served by a Cloudflare Worker)
 Vendor phone  ──┘        │
                          │  src/shared/api
                          ▼
@@ -35,7 +35,7 @@ Square sandbox ──► Edge Function `square-webhook` (a trigger to re-check a
 | Server code | Supabase Edge Functions | Square and Resend secrets stay off the browser. |
 | Payments | Square sandbox, hosted checkout | The seller's own Square account takes the payment. |
 | Email | Resend | One API call sends the confirmation. It needs a verified sending domain. |
-| Hosting | Cloudflare Pages | Serves the built app and redeploys on every push to `main`. |
+| Hosting | Cloudflare Workers static assets | Serves the built app and redeploys on every push to `main`. |
 | Tests | Vitest against a local Supabase | Order functions and access rules are tested where they run. |
 
 ## Codemap
@@ -135,7 +135,7 @@ Stock is released after the link is closed, so a released item cannot be paid fo
 | --- | --- | --- |
 | Square sandbox | Hosted checkout and payment lookup, per seller | Called from Edge Functions through `_shared/providers/`. Each seller's access token is an Edge Function secret. |
 | Resend | Confirmation email | Called from `send-order-email` with a server-side key. |
-| Cloudflare Pages | Hosting | Builds `main` and serves the static app. Only `VITE_` variables are set there. |
+| Cloudflare Workers | Hosting | Builds `main` and serves the static app. Only `VITE_` variables are set there. |
 
 ### Square behavior the design relies on
 
@@ -144,7 +144,12 @@ Each point was checked against the Square sandbox.
 - The order behind a checkout link is in state `DRAFT` until it is paid. It cannot be paid through the Payments API, only through the hosted page.
 - Deleting the link of an unpaid order returns `cancelled_order_id` and sets that order to `CANCELED`.
 - Deleting the link of a paid order succeeds but returns no `cancelled_order_id`. The order and its payment are unchanged.
+- Deleting a link that was already deleted also succeeds and returns no `cancelled_order_id`. The order state tells the two cases apart: `CANCELED` for the deleted link, `OPEN` for the paid one.
+- A repeated create request with the same idempotency key returns the same link. The same key with a different request body is refused with `IDEMPOTENCY_KEY_REUSED`.
+- Square validates the pre-filled buyer email. It refuses `buyer@example.com` with `INVALID_EMAIL_ADDRESS` and creates no link.
 - A paid checkout order is in state `OPEN`, not `COMPLETED`. Its tender carries the `payment_id`, and that payment has status `COMPLETED`. Verification reads the payment status, not the order state.
+- A card payment sends the webhook `payment.created` with payment status `APPROVED`, then `payment.updated` with `COMPLETED`.
+- A refund's `order_id` names a different order from the one that was paid. Its `payment_id` names the refunded payment, and that payment keeps status `COMPLETED`.
 - In the sandbox the hosted page's card form is disabled. A payment is simulated in the Checkout API Sandbox Testing Panel and has source type `EXTERNAL`. The panel opens without a Square sign-in, so a test payment can be completed on any phone.
 
 ## Auth and security model
