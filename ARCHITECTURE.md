@@ -74,15 +74,31 @@ Every function that changes data returns either the result or a typed reason for
 
 ### Service functions for Edge Functions
 
-Edge Functions change orders only through these database functions. Each is granted to `service_role` only. The names are proposals; the Data & vendor role sets the final names.
+Edge Functions change orders only through these database functions. Each is granted to `service_role` only and checks that role inside the function. Call them with the service-role client (`supabase.rpc(name, args)`).
+
+**Contract.** Every function returns JSON with `"ok": true` plus the fields below, or `"ok": false` with a `"reason"` (the function raises an error only when the caller is not `service_role`). Result fields are camelCase, matching the provider types. Arguments are named `p_...`. Money is integer cents.
+
+These four are built.
+
+| Function | Arguments | Success returns | Refusal reasons |
+| --- | --- | --- | --- |
+| `svc_create_pending_order` | `p_user_id`, `p_booth_id`, `p_items` (`[{ "productId", "quantity" }]`), `p_email`, `p_request_id` | `orderId`, `boothId`, `type`, `status`, `pickupCode`, `holdEndsAt`, `totalCents`, `currency`, `buyerEmail`, `items` (`productId`, `name`, `quantity`, `unitPriceCents`), `checkoutLinkId`, `providerOrderId`, `connection` (`tokenSecretName`, `locationId`) | `checkout_unavailable`, `booth_not_accepting_orders`, `ordering_paused`, `invalid_email`, `invalid_items`, `empty_cart`, `product_not_found`, `over_max_per_order`, `insufficient_stock` (the last three also return `productIds`) |
+| `svc_attach_checkout` | `p_order_id`, `p_checkout_link_id`, `p_provider_order_id` | nothing more | `order_not_found`, `not_pending` (with `status`), `already_attached` |
+| `svc_expire_checkout` | `p_order_id`, `p_provider_order_id` | `changed` | `order_not_found`, `not_pending` (with `status`), `hold_not_ended`, `provider_order_mismatch` |
+| `svc_list_overdue_checkouts` | `p_limit` (default 50) | `orders`: `orderId`, `checkoutLinkId`, `providerOrderId`, `totalCents`, `currency`, `connection` | none |
+
+Rules the functions keep:
+
+- `svc_create_pending_order` runs the same checks as `create_reservation` and holds the stock for `events.checkout_hold_minutes` (15 by default). The Edge Function authenticates the attendee first and passes their user id. A repeated `p_request_id` for the same user returns the first order and holds no more stock, so a retry is safe. Use the returned `orderId` as Square's idempotency key.
+- `svc_attach_checkout` repeats safely with the same ids. A different pair on an attached order is refused.
+- `svc_expire_checkout` is called only after the Square link was deleted and Square named the cancelled order. Pass that provider order id, which must equal the one stored. Pass `null` for an order whose checkout was never created (nothing attached). It refuses before the hold ends, never expires a `confirmed` order, and returns `changed: false` for an order that is already `expired`. Stock returns in the same transaction.
+- `svc_list_overdue_checkouts` returns the oldest `pending_payment` orders past their hold, with what is needed to look each up in Square. An order without `checkoutLinkId` never reached Square.
+
+Not built yet. The names are proposals; the Data & vendor role sets the final names.
 
 | Function | What it does |
 | --- | --- |
-| `svc_create_pending_order` | Runs the same checks as `create_reservation` and creates a `pending_payment` order that holds stock. Returns the order, its total, and the booth's provider connection. |
-| `svc_attach_checkout` | Stores the Square checkout link id and Square order id on the order. |
 | `svc_confirm_paid_order` | Finds the order by its Square order id, marks it `confirmed`, and records the payment once per Square payment id. For an order that is `expired` or `cancelled`, it records the payment as refund due. |
-| `svc_list_overdue_checkouts` | Returns the `pending_payment` orders past their hold end. |
-| `svc_expire_checkout` | Marks one `pending_payment` order `expired` and returns its stock. |
 | `svc_mark_refunded` | Changes a payment from refund due to refunded. |
 | `svc_mark_email_sent` | Records that the confirmation email was sent, and reports whether it had been sent before. |
 
@@ -154,7 +170,7 @@ Each point was checked against the Square sandbox.
 | `orders` | One attendee's order at one booth: the attendee's user id, the request id, type, status, total, pickup code, email, private link token, hold end time, cancellation reason, and the times it was collected and its email was sent. A prepaid order also stores its Square checkout link id and Square order id. |
 | `order_items` | The products and quantities in an order, with the price at the time of ordering. |
 | `payments` | One row per verified Square payment: provider ids, amount, currency, verified time, and refund status (none, due, or refunded). |
-| `provider_connections` | Which payment provider and seller location a vendor uses, and the name of the secret holding its token. |
+| `provider_connections` | Which payment provider and seller location id a vendor uses, and the name of the secret holding its token. |
 
 Notes on meaning:
 

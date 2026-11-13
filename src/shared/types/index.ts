@@ -88,7 +88,10 @@ export type OrderRequestRefusal =
   | "over_max_per_order"
   | "ordering_paused"
   | "booth_not_accepting_orders"
-  | "empty_cart";
+  | "empty_cart"
+  | "invalid_items"
+  | "invalid_email"
+  | "product_not_found";
 
 export type OrderRequest = {
   boothId: string;
