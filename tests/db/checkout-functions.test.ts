@@ -1,151 +1,21 @@
 // Tests the schema and the checkout service functions against the local Supabase.
-// Start it first with `supabase start`. Each test builds its own booth, so tests do not
-// depend on the seed or on each other, and everything created here is removed afterwards.
+// Start it first with `supabase start`.
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, test } from "vitest";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
-type Reply = {
-  ok: boolean;
-  reason?: string;
-  status?: string;
-  changed?: boolean;
-  productIds?: string[];
-  orderId?: string;
-  totalCents?: number;
-  pickupCode?: string;
-  holdEndsAt?: string;
-  checkoutLinkId?: string | null;
-  providerOrderId?: string | null;
-  connection?: { tokenSecretName: string; locationId: string };
-  items?: { name: string; quantity: number; unitPriceCents: number }[];
-  orders?: { orderId: string }[];
-};
-
-function localStack(): {
-  url: string;
-  publishableKey: string;
-  serviceKey: string;
-} {
-  let status: Record<string, string>;
-  try {
-    status = JSON.parse(
-      execFileSync("supabase", ["status", "-o", "json"], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).replace(/^[^{]*/, ""),
-    );
-  } catch {
-    throw new Error(
-      "The local Supabase is not running. Start it with `supabase start`.",
-    );
-  }
-  return {
-    url: status.API_URL,
-    publishableKey: status.PUBLISHABLE_KEY,
-    serviceKey: status.SERVICE_ROLE_KEY,
-  };
-}
-
-const stack = localStack();
-const authOptions = {
-  auth: { persistSession: false, autoRefreshToken: false },
-};
-const admin: SupabaseClient = createClient(
-  stack.url,
-  stack.serviceKey,
+import { test } from "vitest";
+import { createClient } from "@supabase/supabase-js";
+import {
+  admin,
   authOptions,
-);
-
-const eventId = randomUUID();
-const vendorIds: string[] = [];
-const boothIds: string[] = [];
-const userIds: string[] = [];
-
-async function newUser(): Promise<string> {
-  const { data, error } = await admin.auth.admin.createUser({
-    email: `${randomUUID()}@example.com`,
-    email_confirm: true,
-  });
-  assert.equal(error, null);
-  userIds.push(data.user!.id);
-  return data.user!.id;
-}
-
-// A browser client: the publishable key plus an anonymous session, as an attendee gets.
-async function newAttendeeClient(): Promise<{
-  client: SupabaseClient;
-  userId: string;
-}> {
-  const client = createClient(stack.url, stack.publishableKey, authOptions);
-  const { data, error } = await client.auth.signInAnonymously();
-  assert.equal(error, null);
-  userIds.push(data.user!.id);
-  return { client, userId: data.user!.id };
-}
-
-async function insert(
-  table: string,
-  row: Record<string, unknown>,
-): Promise<string> {
-  const { data, error } = await admin
-    .from(table)
-    .insert(row)
-    .select("id")
-    .single();
-  assert.equal(error, null, error?.message ?? "");
-  return data!.id as string;
-}
-
-// One booth with a limited product (1 unit) and an ordinary one (5 units, max 2 per order).
-async function newBooth(options: { mode?: string; connection?: boolean } = {}) {
-  const vendorId = await insert("vendors", { name: "Test vendor" });
-  vendorIds.push(vendorId);
-  const boothId = await insert("booths", {
-    event_id: eventId,
-    vendor_id: vendorId,
-    code: randomUUID().slice(0, 8),
-    mode: options.mode ?? "prepay",
-    map_x: 0.5,
-    map_y: 0.5,
-  });
-  boothIds.push(boothId);
-  if (options.connection !== false) {
-    await insert("provider_connections", {
-      vendor_id: vendorId,
-      location_id: "LOCATION_TEST",
-      token_secret_name: "SQUARE_ACCESS_TOKEN_TEST",
-    });
-  }
-  const limitedId = await insert("products", {
-    booth_id: boothId,
-    name: "Limited print",
-    category: "Art",
-    price_cents: 2500,
-    available_qty: 1,
-    max_per_order: 2,
-  });
-  const mugId = await insert("products", {
-    booth_id: boothId,
-    name: "Mug",
-    category: "Ceramics",
-    price_cents: 3200,
-    available_qty: 5,
-    max_per_order: 2,
-  });
-  return { vendorId, boothId, limitedId, mugId };
-}
-
-async function call(
-  name: string,
-  args: Record<string, unknown>,
-): Promise<Reply> {
-  const { data, error } = await admin.rpc(name, args);
-  assert.equal(error, null, error?.message ?? "");
-  return data as Reply;
-}
+  call,
+  newAttendeeClient,
+  newBooth,
+  newUser,
+  ordersAt,
+  type Reply,
+  stack,
+  stockOf,
+} from "./support";
 
 function createPending(
   userId: string,
@@ -162,41 +32,6 @@ function createPending(
     p_request_id: requestId,
   });
 }
-
-async function stockOf(productId: string): Promise<number> {
-  const { data } = await admin
-    .from("products")
-    .select("available_qty")
-    .eq("id", productId)
-    .single();
-  return data!.available_qty as number;
-}
-
-async function ordersAt(boothId: string): Promise<number> {
-  const { count } = await admin
-    .from("orders")
-    .select("id", { count: "exact", head: true })
-    .eq("booth_id", boothId);
-  return count ?? 0;
-}
-
-beforeAll(async () => {
-  await admin.from("events").insert({
-    id: eventId,
-    slug: `test-${eventId}`,
-    name: "Test event",
-    floor_plan_url: "/x.png",
-  });
-});
-
-afterAll(async () => {
-  if (boothIds.length > 0)
-    await admin.from("orders").delete().in("booth_id", boothIds);
-  await admin.from("events").delete().eq("id", eventId);
-  if (vendorIds.length > 0)
-    await admin.from("vendors").delete().in("id", vendorIds);
-  for (const id of userIds) await admin.auth.admin.deleteUser(id);
-});
 
 test("creates a pending order that holds stock, with a 15 minute hold and the seller connection", async () => {
   const { boothId, mugId } = await newBooth();
@@ -538,8 +373,16 @@ test("only the service role can call the service functions", async () => {
   const { client } = await newAttendeeClient();
   const anon = createClient(stack.url, stack.publishableKey, authOptions);
   for (const browser of [anon, client]) {
-    const { error } = await browser.rpc("svc_list_overdue_checkouts", {});
-    assert.ok(error, "a browser client called a service function");
+    for (const [name, args] of [
+      ["svc_list_overdue_checkouts", {}],
+      [
+        "svc_release_checkout",
+        { p_order_id: randomUUID(), p_provider_order_id: null },
+      ],
+    ] as const) {
+      const { error } = await browser.rpc(name, args);
+      assert.ok(error, `a browser client called ${name}`);
+    }
   }
 });
 
@@ -627,4 +470,115 @@ test("staff read their own booth's orders and no other booth's", async () => {
   const ids = (visible.data ?? []).map((o) => o.id);
   assert.ok(ids.includes(myOrder.orderId));
   assert.ok(!ids.includes(theirOrder.orderId));
+});
+
+test("releases the stock at once when Square refused to create the checkout", async () => {
+  const { boothId, limitedId } = await newBooth();
+  const userId = await newUser();
+  const order = await createPending(userId, boothId, [
+    { productId: limitedId, quantity: 1 },
+  ]);
+  assert.equal(await stockOf(limitedId), 0);
+
+  // Nothing was attached, so there is no Square link to close: pass null.
+  assert.deepEqual(
+    await call("svc_release_checkout", {
+      p_order_id: order.orderId,
+      p_provider_order_id: null,
+    }),
+    { ok: true, changed: true },
+  );
+  assert.equal(await stockOf(limitedId), 1);
+
+  // The last item can be ordered again straight away.
+  const retry = await createPending(await newUser(), boothId, [
+    { productId: limitedId, quantity: 1 },
+  ]);
+  assert.equal(retry.ok, true);
+
+  // Releasing twice returns the stock once.
+  assert.deepEqual(
+    await call("svc_release_checkout", {
+      p_order_id: order.orderId,
+      p_provider_order_id: null,
+    }),
+    { ok: true, changed: false },
+  );
+  assert.equal(await stockOf(limitedId), 0);
+});
+
+test("releases an attached checkout only when the closed Square order matches", async () => {
+  const { boothId, mugId } = await newBooth();
+  const order = await createPending(await newUser(), boothId, [
+    { productId: mugId, quantity: 2 },
+  ]);
+  await call("svc_attach_checkout", {
+    p_order_id: order.orderId,
+    p_checkout_link_id: "LINK_R",
+    p_provider_order_id: "SQ_R",
+  });
+
+  // Releasing without proof that the link was closed is refused, with the hold still open.
+  for (const wrong of [null, "OTHER"]) {
+    const refused = await call("svc_release_checkout", {
+      p_order_id: order.orderId,
+      p_provider_order_id: wrong,
+    });
+    assert.equal(refused.reason, "provider_order_mismatch");
+  }
+  assert.equal(await stockOf(mugId), 3);
+
+  assert.deepEqual(
+    await call("svc_release_checkout", {
+      p_order_id: order.orderId,
+      p_provider_order_id: "SQ_R",
+    }),
+    { ok: true, changed: true },
+  );
+  assert.equal(await stockOf(mugId), 5);
+
+  // A checkout created after the release cannot be attached to the expired order.
+  const late = await call("svc_attach_checkout", {
+    p_order_id: order.orderId,
+    p_checkout_link_id: "LINK_LATE",
+    p_provider_order_id: "SQ_LATE",
+  });
+  assert.equal(late.reason, "not_pending");
+});
+
+test("a paid order is never released", async () => {
+  const { boothId, mugId } = await newBooth();
+  const order = await createPending(await newUser(), boothId, [
+    { productId: mugId, quantity: 1 },
+  ]);
+  await admin
+    .from("orders")
+    .update({ status: "confirmed" })
+    .eq("id", order.orderId!);
+
+  const refused = await call("svc_release_checkout", {
+    p_order_id: order.orderId,
+    p_provider_order_id: null,
+  });
+  assert.equal(refused.reason, "not_pending");
+  assert.equal(refused.status, "confirmed");
+  assert.equal(await stockOf(mugId), 4);
+});
+
+test("an order with no hold end is not expired as overdue", async () => {
+  const { boothId, mugId } = await newBooth();
+  const order = await createPending(await newUser(), boothId, [
+    { productId: mugId, quantity: 1 },
+  ]);
+  await admin
+    .from("orders")
+    .update({ hold_ends_at: null })
+    .eq("id", order.orderId!);
+
+  const refused = await call("svc_expire_checkout", {
+    p_order_id: order.orderId,
+    p_provider_order_id: null,
+  });
+  assert.equal(refused.reason, "hold_not_ended");
+  assert.equal(await stockOf(mugId), 4);
 });

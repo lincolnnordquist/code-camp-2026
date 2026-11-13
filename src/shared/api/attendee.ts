@@ -72,6 +72,9 @@ function placeOrder(
   const order: Order = {
     id: crypto.randomUUID(),
     boothId: booth.id,
+    eventId: catalog.event.id,
+    boothCode: booth.code,
+    boothName: booth.vendorName,
     type,
     status: type === "prepaid" ? "pending_payment" : "confirmed",
     items: orderItems,
@@ -129,16 +132,18 @@ export async function confirmCheckout(
   return { ok: true, value: structuredClone(order) };
 }
 
-export async function cancelReservation(
+// Cancels the attendee's own order, unpaid or prepaid. A cancelled prepaid order is owed a
+// refund, which the vendor makes in Square.
+export async function cancelMyOrder(
   orderId: string,
 ): Promise<Result<Order, OrderChangeRefusal>> {
-  const order = orders.find(
-    (o) => o.id === orderId && o.type === "reservation",
-  );
+  const order = orders.find((o) => o.id === orderId);
   if (!order) return { ok: false, reason: "order_not_found" };
   if (order.status !== "confirmed" && order.status !== "ready")
     return { ok: false, reason: "not_allowed_in_status" };
   order.status = "cancelled";
+  order.cancelReason = "Cancelled by the attendee";
+  if (order.type === "prepaid") order.refundStatus = "due";
   for (const item of order.items) {
     const product = catalog.products.find((p) => p.id === item.productId);
     if (product) product.availableQty += item.quantity;

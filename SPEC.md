@@ -83,13 +83,13 @@ An order has a type (`reservation` or `prepaid`) and one status. The type decide
 
 FR-01: The event opens at `/e/:eventSlug` without sign-in and shows the event name, search, the floor-plan map, and the vendor directory.
 
-FR-02: The map shows the event's floor plan image with every booth drawn on it at its seeded position. Tapping a booth opens its storefront.
+FR-02: The map shows every booth at its seeded position. It is drawn on the event's floor plan image when the event has one; the image is optional. Tapping a booth opens its storefront.
 
-FR-03: The directory lists every booth with vendor name, booth code, and mode. A `discovery` booth is never shown as accepting orders.
+FR-03: The directory lists every booth with vendor name, logo, booth code, and mode. A `discovery` booth is never shown as accepting orders.
 
 FR-04: Search matches a keyword against product name, product category, and vendor name, with an optional category filter. Each result shows the booth code and a link to the booth's position on the map.
 
-FR-05: A storefront shows each product with its image, name, short description, price, and a stock state: nothing when more than 5 are available, "Only N left" at 5 or fewer, and sold out at zero. Ordering controls appear only when the booth's mode allows orders and ordering is not paused.
+FR-05: A storefront shows the vendor's logo, slogan, and banner, and each product with its image, name, short description, price, and a stock state: nothing when more than 5 are available, "Only N left" at 5 or fewer, and sold out at zero. Ordering controls appear only when the booth's mode allows orders and ordering is not paused.
 
 ### Cart (Core)
 
@@ -106,7 +106,7 @@ FR-08: Submitting the same request twice, for example after a retry on a poor co
 
 FR-09: A reservation that is not collected by its hold end becomes `expired` and its stock returns to the product. The hold length is an event setting with a default of 120 minutes.
 
-FR-10: An attendee can cancel their own reservation while it is `confirmed` or `ready`. The stock returns to the product.
+FR-10: An attendee can cancel their own order, reservation or prepaid, while it is `confirmed` or `ready`. The stock returns to the product. A cancelled prepaid order is marked refund due, and the vendor refunds it in Square (FR-33).
 
 ### Prepaid checkout (Square)
 
@@ -131,7 +131,7 @@ FR-33: The server receives Square's webhook messages about payments and refunds 
 
 FR-16: Placing a first order signs the browser in anonymously. The attendee sees a list of their orders across booths in that browser, and no one else's.
 
-FR-17: The order page shows status, order type with its payment wording, items, total, pickup code, booth location, pickup instructions, and the hold end time where one applies. It updates without a refresh when the order changes.
+FR-17: The order page shows status, order type with its payment wording, items, total, pickup code, booth name and number, booth location, pickup instructions, and the hold end time where one applies. It updates without a refresh when the order changes.
 
 FR-18: When an order is confirmed, the attendee receives an email with the pickup code and a private link. The link opens that one order on any device. A failed email does not change the order.
 

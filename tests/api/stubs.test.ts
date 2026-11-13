@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
-  cancelReservation,
+  cancelMyOrder,
   collectOrder,
   createReservation,
   getEventCatalog,
@@ -24,6 +24,19 @@ test("returns the demo event with booths and products", async () => {
   if (result.ok) {
     assert.equal(result.value.booths.length, 3);
     assert.ok(result.value.products.length > 0);
+  }
+});
+
+test("catalog items carry photos, descriptions and vendor branding", async () => {
+  const result = await getEventCatalog("demo");
+  assert.ok(result.ok);
+  assert.equal(result.value.event.floorPlanUrl, null);
+  assert.ok(result.value.event.venueName);
+  for (const booth of result.value.booths) {
+    assert.ok(booth.logoUrl && booth.slogan && booth.bannerUrl);
+  }
+  for (const product of result.value.products) {
+    assert.ok(product.imageUrl && product.description);
   }
 });
 
@@ -105,7 +118,7 @@ test("returns stock when a reservation is cancelled", async () => {
     requestId: "cancel-1",
   });
   assert.ok(reserved.ok);
-  const cancelled = await cancelReservation(reserved.value.id);
+  const cancelled = await cancelMyOrder(reserved.value.id);
   assert.ok(cancelled.ok);
   assert.equal(cancelled.value.status, "cancelled");
   const catalog = await getEventCatalog("demo");

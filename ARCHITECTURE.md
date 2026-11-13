@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: partly built.** Built: the app scaffold, the shared API and live module returning sample data, the shared types, the database tables with the checkout service functions and the demo event seed, and the payment provider module with payment verification. Planned: the order functions that users call, the remaining service functions, the Edge Functions, and the screens. Update this document when a module's job, a shared function, or a rule changes.
+**Status: partly built.** Built: the app scaffold, the shared API and live module returning sample data, the shared types, the database tables with the checkout service functions and the demo event seed, and the payment provider module with payment verification. Built: the order functions that users call, and reservation expiry. Planned: the remaining service functions, the Edge Functions, and the screens. Update this document when a module's job, a shared function, or a rule changes.
 
 ## Overview
 
@@ -65,12 +65,31 @@ These functions are the meeting point of the three roles. Screens build against 
 | Area | Functions |
 | --- | --- |
 | Catalog | `getEventCatalog(eventSlug)` returns the event, its booths, and their products. |
-| Attendee orders | `createReservation`, `startCheckout`, `confirmCheckout`, `cancelReservation`, `listMyOrders`, `getOrder`, `getOrderByToken` |
+| Attendee orders | `createReservation`, `startCheckout`, `confirmCheckout`, `cancelMyOrder`, `listMyOrders`, `getOrder`, `getOrderByToken` |
 | Vendor | `signInVendor`, `signOut`, `getMyBooth`, `listBoothOrders`, `markOrderReady`, `collectOrder`, `cancelOrder`, `setProductStock`, `setOrderingPaused` |
 | Live | `subscribeToMyOrders`, `subscribeToBoothOrders`, `useOnlineStatus` (in `src/shared/live/`) |
 | Organizer (Extra) | `getEventOverview` |
 
 Every function that changes data returns either the result or a typed reason for refusal, such as `insufficient_stock` or `ordering_paused`. Screens show the reason; they never guess.
+
+### Database functions the browser calls
+
+These are the functions behind `src/shared/api/`. Each is granted to signed-in users only (attendees are anonymous sessions) and authorizes with `auth.uid()` inside the function. Like the service functions, they return JSON with `"ok": true` plus fields, or `"ok": false` with a `"reason"`. A function never says whether an order that is not yours exists: that case returns `order_not_found`.
+
+| Function | For | What it does | Refusal reasons |
+| --- | --- | --- | --- |
+| `create_reservation(p_booth_id, p_items, p_email, p_request_id)` | Attendee | Deducts stock and creates a `confirmed` reservation with a pickup code and a hold end. A repeated `p_request_id` returns the first order. | The checkout reasons from `svc_create_pending_order`, except `checkout_unavailable`; also `not_signed_in` |
+| `cancel_my_order(p_order_id)` | Attendee | Cancels their own `confirmed` or `ready` order, reservation or prepaid, and returns the stock. A prepaid order's payment becomes refund due. | `order_not_found`, `not_allowed_in_status` |
+| `get_order_by_token(p_token)` | Anyone, no session | Opens one order from the private link in its confirmation email. Returns the attendee's view of the order, with no email address, token or provider ids. An unknown token gets the same `order_not_found`. | `order_not_found` |
+| `mark_order_ready(p_order_id)` | Staff | `confirmed` to `ready`. | `order_not_found`, `not_allowed_in_status` |
+| `collect_order(p_booth_id, p_pickup_code)` | Staff | Hands over a `confirmed` or `ready` order of that booth. | `not_found`, `already_collected` (with `at`), `cancelled`, `expired` |
+| `cancel_order(p_order_id, p_reason)` | Staff | Cancels a `confirmed` or `ready` order with a reason. Stock is not returned. A prepaid order's payment becomes refund due. | `order_not_found`, `reason_required`, `not_allowed_in_status` |
+| `set_product_stock(p_product_id, p_available_qty)` | Staff | Sets the quantity open to new orders. | `product_not_found`, `invalid_quantity` |
+| `set_ordering_paused(p_booth_id, p_paused)` | Staff | Pauses or resumes new orders for a booth. | `booth_not_found` |
+
+Reads need no function. `order_details` is a view that gives each order with its event, booth number, vendor name, and a refund state read from its payments (owed, refunded, or none), without the email address or the private token; it applies the access rules of the caller. The catalog is read straight from the tables, which anyone may read. Order results use the same fields as `svc_create_pending_order` (`orderId`, `status`, `pickupCode`, `holdEndsAt`, `totalCents`, `items`, and so on); `src/shared/api/` maps them to the `Order` type.
+
+Reservation expiry is a database job, `private.expire_reservations()`, scheduled by `pg_cron` every minute. It expires reservations whose hold has ended and returns their stock in one transaction. It never touches a prepaid order.
 
 ### Service functions for Edge Functions
 
@@ -78,13 +97,14 @@ Edge Functions change orders only through these database functions. Each is gran
 
 **Contract.** Every function returns JSON with `"ok": true` plus the fields below, or `"ok": false` with a `"reason"` (the function raises an error only when the caller is not `service_role`). Result fields are camelCase, matching the provider types. Arguments are named `p_...`. Money is integer cents.
 
-These four are built.
+These five are built.
 
 | Function | Arguments | Success returns | Refusal reasons |
 | --- | --- | --- | --- |
 | `svc_create_pending_order` | `p_user_id`, `p_booth_id`, `p_items` (`[{ "productId", "quantity" }]`), `p_email`, `p_request_id` | `orderId`, `boothId`, `type`, `status`, `pickupCode`, `holdEndsAt`, `totalCents`, `currency`, `buyerEmail`, `items` (`productId`, `name`, `quantity`, `unitPriceCents`), `checkoutLinkId`, `providerOrderId`, `connection` (`tokenSecretName`, `locationId`) | `checkout_unavailable`, `booth_not_accepting_orders`, `ordering_paused`, `invalid_email`, `invalid_items`, `empty_cart`, `product_not_found`, `over_max_per_order`, `insufficient_stock` (the last three also return `productIds`) |
 | `svc_attach_checkout` | `p_order_id`, `p_checkout_link_id`, `p_provider_order_id` | nothing more | `order_not_found`, `not_pending` (with `status`), `already_attached` |
 | `svc_expire_checkout` | `p_order_id`, `p_provider_order_id` | `changed` | `order_not_found`, `not_pending` (with `status`), `hold_not_ended`, `provider_order_mismatch` |
+| `svc_release_checkout` | `p_order_id`, `p_provider_order_id` | `changed` | `order_not_found`, `not_pending` (with `status`), `provider_order_mismatch` |
 | `svc_list_overdue_checkouts` | `p_limit` (default 50) | `orders`: `orderId`, `checkoutLinkId`, `providerOrderId`, `totalCents`, `currency`, `connection` | none |
 
 Rules the functions keep:
@@ -92,6 +112,7 @@ Rules the functions keep:
 - `svc_create_pending_order` runs the same checks as `create_reservation` and holds the stock for `events.checkout_hold_minutes` (15 by default). The Edge Function authenticates the attendee first and passes their user id. A repeated `p_request_id` for the same user returns the first order and holds no more stock, so a retry is safe. Use the returned `orderId` as Square's idempotency key.
 - `svc_attach_checkout` repeats safely with the same ids. A different pair on an attached order is refused.
 - `svc_expire_checkout` is called only after the Square link was deleted and Square named the cancelled order. Pass that provider order id, which must equal the one stored. Pass `null` for an order whose checkout was never created (nothing attached). It refuses before the hold ends, never expires a `confirmed` order, and returns `changed: false` for an order that is already `expired`. Stock returns in the same transaction.
+- `svc_release_checkout` frees the stock of an unpaid checkout now, without waiting for its hold. It follows the same proof rule as `svc_expire_checkout`: pass the provider order id that Square reported as cancelled after the link was deleted, or `null` when no checkout was ever attached. Call it when Square refuses to create the checkout, and when a checkout is closed after a failed payment. Stock never returns while the Square link can still be paid. If `svc_attach_checkout` answers `not_pending`, the order was released while the link was being created: delete that link. The order ends `expired`, the same as a hold that ran out.
 - `svc_list_overdue_checkouts` returns the oldest `pending_payment` orders past their hold, with what is needed to look each up in Square. An order without `checkoutLinkId` never reached Square.
 
 Not built yet. The names are proposals; the Data & vendor role sets the final names.
@@ -101,6 +122,10 @@ Not built yet. The names are proposals; the Data & vendor role sets the final na
 | `svc_confirm_paid_order` | Finds the order by its Square order id, marks it `confirmed`, and records the payment once per Square payment id. For an order that is `expired` or `cancelled`, it records the payment as refund due. |
 | `svc_mark_refunded` | Changes a payment from refund due to refunded. |
 | `svc_mark_email_sent` | Records that the confirmation email was sent, and reports whether it had been sent before. |
+
+### Images
+
+Product photos and vendor logos and banners are files in the public Supabase Storage bucket `assets`. The database stores only the path inside the bucket (`image_path`, `logo_path`, `banner_path`), which is the same on every project; `src/shared/api/` builds the public address, so screens receive `imageUrl`, `logoUrl`, and `bannerUrl`. The demo images are placeholders in `supabase/seed-assets/`, uploaded with `supabase seed buckets`. Only the service role and the dashboard can upload.
 
 ## Data flow
 
@@ -167,11 +192,11 @@ Each point was checked against the Square sandbox.
 
 | Table | Holds |
 | --- | --- |
-| `events` | The event, its link slug, currency, reservation hold length, floor plan image, and organizer. |
-| `vendors` | The merchant's identity, independent of any one event. |
+| `events` | The event, its link slug, venue name, currency, reservation hold length, optional floor plan image, and organizer. |
+| `vendors` | The merchant's identity, independent of any one event, with its logo, slogan, and banner. |
 | `booths` | A vendor's place at an event: booth code, map position, mode, pause flag, pickup instructions. |
 | `vendor_staff` | Which signed-in users may act for which vendor. |
-| `products` | A booth's catalog: name, short description, image, price in cents, category, available quantity, per-order maximum. |
+| `products` | A booth's catalog: name, short description, image path, price in cents, category, available quantity, per-order maximum. |
 | `orders` | One attendee's order at one booth: the attendee's user id, the request id, type, status, total, pickup code, email, private link token, hold end time, cancellation reason, and the times it was collected and its email was sent. A prepaid order also stores its Square checkout link id and Square order id. |
 | `order_items` | The products and quantities in an order, with the price at the time of ordering. |
 | `payments` | One row per verified Square payment: provider ids, amount, currency, verified time, and refund status (none, due, or refunded). |

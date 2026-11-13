@@ -17,14 +17,20 @@ export type Event = {
   id: string;
   slug: string;
   name: string;
+  venueName: string;
   currency: string;
-  floorPlanUrl: string;
+  // The map image is optional: the hall may be drawn in the app instead.
+  floorPlanUrl: string | null;
   reservationHoldMinutes: number;
 };
 
 export type Booth = {
   id: string;
   vendorName: string;
+  // Branding belongs to the vendor and is the same at every event. Public image addresses.
+  logoUrl: string;
+  slogan: string;
+  bannerUrl: string;
   code: string;
   mode: BoothMode;
   orderingPaused: boolean;
@@ -39,6 +45,9 @@ export type Product = {
   boothId: string;
   name: string;
   category: string;
+  description: string;
+  // Public image address.
+  imageUrl: string;
   priceCents: number;
   availableQty: number;
   maxPerOrder: number;
@@ -60,6 +69,10 @@ export type OrderItem = {
 export type Order = {
   id: string;
   boothId: string;
+  eventId: string;
+  // The booth's number and the vendor's name, so an order shows where to collect it.
+  boothCode: string;
+  boothName: string;
   type: OrderType;
   status: OrderStatus;
   items: OrderItem[];

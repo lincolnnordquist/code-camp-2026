@@ -1,20 +1,25 @@
 // Sample data used until the real Supabase calls replace each stub. Held in memory, so a
 // page refresh resets it. Delete this file once nothing imports it.
 import type { EventCatalog, Order } from "../types";
+import { publicAssetUrl } from "./storage";
 
 export const catalog: EventCatalog = {
   event: {
     id: "evt-1",
     slug: "demo",
     name: "Demo Convention 2026",
+    venueName: "Demo Convention Center",
     currency: "USD",
-    floorPlanUrl: "/floor-plan.png",
+    floorPlanUrl: null,
     reservationHoldMinutes: 120,
   },
   booths: [
     {
       id: "booth-a",
       vendorName: "Pixel Prints",
+      logoUrl: publicAssetUrl("placeholders/logo.svg"),
+      slogan: "Art you can hold",
+      bannerUrl: publicAssetUrl("placeholders/banner.svg"),
       code: "A1",
       mode: "reservation",
       orderingPaused: false,
@@ -25,6 +30,9 @@ export const catalog: EventCatalog = {
     {
       id: "booth-b",
       vendorName: "Moon Ceramics",
+      logoUrl: publicAssetUrl("placeholders/logo.svg"),
+      slogan: "Handmade, one at a time",
+      bannerUrl: publicAssetUrl("placeholders/banner.svg"),
       code: "B4",
       mode: "prepay",
       orderingPaused: false,
@@ -35,6 +43,9 @@ export const catalog: EventCatalog = {
     {
       id: "booth-c",
       vendorName: "Old Maps Co",
+      logoUrl: publicAssetUrl("placeholders/logo.svg"),
+      slogan: "Every place has a story",
+      bannerUrl: publicAssetUrl("placeholders/banner.svg"),
       code: "C2",
       mode: "discovery",
       orderingPaused: false,
@@ -49,6 +60,9 @@ export const catalog: EventCatalog = {
       boothId: "booth-a",
       name: "Dragon Print",
       category: "Art",
+      description:
+        "A signed print of a dragon over the mountains. One of a kind.",
+      imageUrl: publicAssetUrl("placeholders/product.svg"),
       priceCents: 2500,
       availableQty: 1,
       maxPerOrder: 2,
@@ -58,6 +72,8 @@ export const catalog: EventCatalog = {
       boothId: "booth-a",
       name: "Sticker Pack",
       category: "Stickers",
+      description: "Five weatherproof vinyl stickers.",
+      imageUrl: publicAssetUrl("placeholders/product.svg"),
       priceCents: 800,
       availableQty: 20,
       maxPerOrder: 5,
@@ -67,6 +83,8 @@ export const catalog: EventCatalog = {
       boothId: "booth-b",
       name: "Mug",
       category: "Ceramics",
+      description: "A hand-thrown stoneware mug with a glazed handle.",
+      imageUrl: publicAssetUrl("placeholders/product.svg"),
       priceCents: 3200,
       availableQty: 6,
       maxPerOrder: 2,
@@ -76,6 +94,8 @@ export const catalog: EventCatalog = {
       boothId: "booth-c",
       name: "City Map Poster",
       category: "Art",
+      description: "A reproduction of an old city map, printed on heavy paper.",
+      imageUrl: publicAssetUrl("placeholders/product.svg"),
       priceCents: 1800,
       availableQty: 0,
       maxPerOrder: 1,

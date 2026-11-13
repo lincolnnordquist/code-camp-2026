@@ -119,12 +119,13 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
-# Uncomment to configure local storage buckets
-# [storage.buckets.images]
-# public = false
-# file_size_limit = "50MiB"
-# allowed_mime_types = ["image/png", "image/jpeg"]
-# objects_path = "./images"
+# Product photos and vendor branding. The bucket is also created by a migration; this
+# entry only adds the demo images: `supabase seed buckets` uploads ./seed-assets to it.
+[storage.buckets.assets]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"]
+objects_path = "./seed-assets"
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
