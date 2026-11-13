@@ -125,7 +125,7 @@ Not built yet. The names are proposals; the Data & vendor role sets the final na
 
 ### Images
 
-Product photos and vendor logos and banners are files in the public Supabase Storage bucket `assets`. The database stores only the path inside the bucket (`image_path`, `logo_path`, `banner_path`), which is the same on every project; `src/shared/api/` builds the public address, so screens receive `imageUrl`, `logoUrl`, and `bannerUrl`. The demo images are placeholders in `supabase/seed-assets/`, uploaded with `supabase seed buckets`. Only the service role and the dashboard can upload.
+Product photos and vendor logos and banners are files in the public Supabase Storage bucket `assets`. The database stores only the path inside the bucket (`image_path`, `logo_path`, `banner_path`), which is the same on every project; `src/shared/api/` builds the public address, so screens receive `imageUrl`, `logoUrl`, and `bannerUrl`. Paths follow one folder per vendor, named by a lowercase slug: `vendors/<vendor-slug>/logo.<ext>` and `banner.<ext>`, and `products/<vendor-slug>/<product-slug>.<ext>`. To replace an image, upload it under a new file name and update the path, because the same path can stay cached. The demo images are placeholders in `supabase/seed-assets/`, uploaded with `supabase seed buckets`; the generic `placeholders/` files are a fallback. Only the service role and the dashboard can upload.
 
 ## Data flow
 
@@ -180,8 +180,8 @@ Each point was checked against the Square sandbox.
 ## Auth and security model
 
 - **Attendees** are signed in anonymously at their first order. The session is stored in the browser, so orders stay with that browser. The emailed private link opens one order on any device.
-- **Vendor staff** sign in with email and password. A staff row links a user to one vendor.
-- **Organizer** is a seeded account used only by the Extra overview. The event row names its organizer.
+- **Vendor staff** sign in with email and password. A staff row links a user to one vendor. The account is seeded until the Setup phase, which adds sign-up and invitations.
+- **Organizer** is a seeded account used only by the Extra overview. The event row names its organizer. The Setup phase makes organizers real accounts that create events.
 - **Access rules** are row-level security policies on every table. The catalog is readable by anyone. Orders are readable by their attendee and by staff of their booth.
 - **Writes** to orders, order items, and stock happen only inside database functions. The browser has no insert, update, or delete permission on those tables.
 - **User-called functions** check `auth.uid()` inside the function. **Service functions** (`svc_*`) are called only by Edge Functions, are granted to `service_role` only, and check that role inside the function.
@@ -229,20 +229,67 @@ Notes on meaning:
 - **Participation and booth are one table.** A vendor at an event has exactly one booth in this build. `vendors` stays separate so a vendor can appear at more events later.
 - **Search runs in the browser.** The seeded event has a few booths and a few dozen products, so the catalog is loaded once and filtered locally. Search then works offline. A large event needs search on the server (see "Intentional simplifications").
 
+## Accounts, invitations, and setup (planned)
+
+Not built. This is the plan for the Setup phase (SPEC.md, FR-34 to FR-43), built after the Core and Square journeys work. Everything below adds to the tables that exist; nothing built so far changes except where noted. Until then the same rows are seeded, so the seed and the later screens create the same data.
+
+### Accounts
+
+- An account is a vendor or an organizer, never both. The type is stored on a profile row per user (`profiles`: user id, type) and checked inside each function with `auth.uid()`.
+- A vendor account is one user linked to one vendor through `vendor_staff`, with one user per vendor.
+- An organizer owns the events they create (`events.organizer_id`). The event row names its organizer, as the Extra overview already assumes.
+- Sign-up and invitation emails need real email sending. Supabase's built-in mailer is limited, so authentication emails go through Resend as the project's SMTP, on the verified sending domain.
+
+### Invitations
+
+An `invitations` table holds the event, the invited email address, a status (`pending`, `accepted`, `declined`), who invited, and when it was answered. One invitation per email per event. There is no expiry and no revoking.
+
+- An organizer invites an email address. The Edge Function that sends the email belongs with the Payments role's other email code.
+- A vendor sees invitations whose email matches their verified account email. The email address is the credential, so a link alone is not enough to accept.
+- Accepting creates the booth for that vendor at that event in one transaction and marks the invitation accepted. Declining only marks it declined. An answered invitation cannot be answered again.
+- A vendor without an account opens the emailed link, signs up with that same email address, and then sees the invitation.
+
+### Vendor setup
+
+- **Branding** (`vendors`: name, logo, slogan, banner) is entered once and is the same at every event.
+- **Products** stay on the booth, so a vendor enters them per event. A removed product is hidden (`archived`), not deleted, because past orders point to it.
+- **Mode** stays one value per booth: `reservation`, `prepay`, or `discovery`. The database refuses `prepay` for a vendor with no Square connection, and refuses a Square disconnect while a booth is on `prepay`.
+- Required branding fields mean a new vendor has none yet. The plan is a `published` state on the booth that becomes true only when the required fields are filled in, so attendees never see a half-finished booth. A booth stays hidden from attendees until it is published.
+- A booth's code is assigned automatically when the booth is created, that is, when an invitation is accepted.
+- Organizers read who is in their event (booths and vendor names), not the vendor's branding or products.
+
+### Image uploads
+
+Uploads come from the vendor's browser straight to the `assets` bucket with the user's own session. A storage rule allows writing only into the caller's own folder, `vendors/<vendor id>/...` and `products/<vendor id>/...`, with PNG, JPEG, or WebP files up to the bucket's size limit. SVG is removed from the allowed types before this opens, because an SVG can carry scripts. A database function checks that a path it is given starts with the caller's own vendor id before it saves the path. The seeded demo keeps its slug folders. The app shrinks large photos in the browser before uploading.
+
+### Square connection per vendor
+
+Today the token of a seeded seller is an Edge Function secret named in `provider_connections`. A vendor who connects their own account cannot be given a hand-set secret, so the token is stored per vendor. The plan is Supabase Vault, which the project already uses, with `provider_connections` pointing to the Vault entry instead of an Edge Function secret name. Square's authorization flow runs in an Edge Function in the Payments role's folder. The shape of this change is for the Payments role to confirm.
+
+### Order of work
+
+1. Core and Square journeys on seeded data (in progress).
+2. Accounts, profiles, and events created by organizers.
+3. Vendor setup: branding, products, mode, uploads.
+4. Square connection per vendor.
+5. Invitations.
+
+Each step works without the next. The first step's seeded vendor, booth, and organizer rows are the same rows the later steps create.
+
 ## Intentional simplifications
 
 Each row is a choice for the 24-hour build, with the path a commercial version would take. Add a row when a shortcut changes behavior.
 
 | Area | This build | Later |
 | --- | --- | --- |
-| Merchant connection | Seeded vendors and seeded Square sandbox sellers | Self-service Square authorization and connection management |
+| Merchant connection | Seeded vendors and seeded Square sandbox sellers, until the Setup phase | Self-service Square authorization and connection management (planned: see "Accounts, invitations, and setup") |
 | Refunds | The vendor refunds in Square; the app shows refund due, then refunded | Refunds issued through the provider, with reconciliation |
 | Payment verification | Refunds are not read. A payment refunded in Square before its order is confirmed still confirms the order | Verification that reads the refunded amount, including partial refunds |
 | Attendee access | Orders stay with one browser, plus an emailed link per order | Optional accounts and order recovery across devices |
 | Hold expiry | One hold length per event | Per-vendor windows, reminders, and no-show rules |
 | Pickup | A typed code | Scanning, pickup capacity, and express stations |
-| Event setup | Seeded event, floor plan, and booths | Floor-plan and booth import, vendor invitations |
-| Vendor catalog | Seeded products; a vendor cannot add or edit them | An optional onboarding step that imports items from the vendor's connected system, so they are not entered one by one |
+| Event setup | Seeded event, floor plan, and booths, until the Setup phase | Organizers create events and invite vendors (planned); floor-plan and booth import |
+| Vendor catalog | Seeded products until the Setup phase, which lets a vendor add and edit them per event | An optional onboarding step that imports items from the vendor's connected system, so they are not entered one by one |
 | Stock | A manually set quantity per product | Sync with the vendor's point-of-sale stock |
 | Staff access | One staff role per vendor | Multiple staff roles and permissions |
 | Search | The whole catalog is loaded and filtered in the browser | Search in the database, returning one page of results at a time |
