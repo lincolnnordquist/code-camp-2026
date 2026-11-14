@@ -24,6 +24,9 @@ export type Reply = {
   orders?: { orderId: string }[];
   at?: string | null;
   type?: string;
+  outcome?: string;
+  privateToken?: string;
+  buyerEmail?: string;
   refundStatus?: string;
   boothCode?: string;
   boothName?: string;

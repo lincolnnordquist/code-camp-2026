@@ -115,13 +115,25 @@ Rules the functions keep:
 - `svc_release_checkout` frees the stock of an unpaid checkout now, without waiting for its hold. It follows the same proof rule as `svc_expire_checkout`: pass the provider order id that Square reported as cancelled after the link was deleted, or `null` when no checkout was ever attached. Call it when Square refuses to create the checkout, and when a checkout is closed after a failed payment. Stock never returns while the Square link can still be paid. If `svc_attach_checkout` answers `not_pending`, the order was released while the link was being created: delete that link. The order ends `expired`, the same as a hold that ran out.
 - `svc_list_overdue_checkouts` returns the oldest `pending_payment` orders past their hold, with what is needed to look each up in Square. An order without `checkoutLinkId` never reached Square.
 
-Not built yet. The names are proposals; the Data & vendor role sets the final names.
+#### Confirming a payment, refunds, and the confirmation email
 
-| Function | What it does |
-| --- | --- |
-| `svc_confirm_paid_order` | Finds the order by its Square order id, marks it `confirmed`, and records the payment once per Square payment id. For an order that is `expired` or `cancelled`, it records the payment as refund due. |
-| `svc_mark_refunded` | Changes a payment from refund due to refunded. |
-| `svc_mark_email_sent` | Records that the confirmation email was sent, and reports whether it had been sent before. |
+These are built too. The Edge Function has already fetched the payment from Square and verified it with `verifyPayment`; these functions trust that and add a second check against our own order.
+
+| Function | Arguments | Success returns | Refusal reasons |
+| --- | --- | --- | --- |
+| `svc_get_checkout` | `p_order_id`, `p_user_id` | `orderId`, `status`, `checkoutLinkId`, `providerOrderId`, `totalCents`, `currency`, `connection` | `order_not_found` (also when the order is not that user's, or is not prepaid) |
+| `svc_get_checkout_by_provider_order` | `p_provider_order_id` | the same fields | `order_not_found` |
+| `svc_confirm_paid_order` | `p_provider_order_id`, `p_provider_payment_id`, `p_amount_cents`, `p_currency`, `p_location_id` | the order (as for `svc_create_pending_order`, with `buyerEmail`), `outcome`, `changed` | `order_not_found`, `location_mismatch`, `currency_mismatch`, `amount_mismatch`, `payment_belongs_to_other_order` |
+| `svc_mark_refunded` | `p_provider_payment_id`, `p_provider_refund_id` | `changed` | `payment_not_found`, `invalid_refund_id` |
+| `svc_mark_email_sent` | `p_order_id`, `p_user_id` (optional) | `outcome`: `first_time` (with the order, `buyerEmail`, `pickupCode`, `boothCode`, `boothName`, and `privateToken`) or `repeat` | `order_not_found`, `not_confirmed` (with `status`) |
+| `svc_clear_email_sent` | `p_order_id`, `p_user_id` (optional) | nothing more | `order_not_found` |
+
+Rules the functions keep:
+
+- `svc_confirm_paid_order` finds the order by `p_provider_order_id` and locks it, so the return page and the webhook arriving together confirm it once (FR-13). It refuses, and changes nothing, when the amount, the currency, or the seller location does not match our order and the booth's `provider_connections`.
+- `outcome` is `confirmed` (the order was `pending_payment` and is now `confirmed`, even when its hold has ended but the expiry job has not run yet), `already_confirmed` (the same payment id again: no second payment row), or `refund_due`. `refund_due` means the money is owed back: the order was `expired` or `cancelled`, or it was already paid by a different payment. The payment is recorded as refund due and the order is left unchanged, with stock untouched (FR-15). The same payment id repeated never records a second row.
+- `svc_mark_refunded` finds the payment by its Square payment id and marks it `refunded` for any completed refund, partial or not, and whether or not the payment was refund due. The refund id is recorded, so a repeated refund message returns `changed: false`.
+- `svc_mark_email_sent` is a claim made **before** sending: it sets `email_sent_at` only when empty, and the Edge Function sends only on `first_time`. If the send fails, it calls `svc_clear_email_sent` so the next trigger retries; a failed email never changes the order (FR-18). `p_user_id` is passed when the caller is an attendee session (a reservation) and must own the order; the webhook has no user and passes nothing.
 
 ### Images
 
@@ -186,6 +198,7 @@ Each point was checked against the Square sandbox.
 - **Writes** to orders, order items, and stock happen only inside database functions. The browser has no insert, update, or delete permission on those tables.
 - **User-called functions** check `auth.uid()` inside the function. **Service functions** (`svc_*`) are called only by Edge Functions, are granted to `service_role` only, and check that role inside the function.
 - **Edge Functions** authenticate their caller first: a session token for `create-checkout`, `confirm-checkout`, and `send-order-email`, Square's signature for `square-webhook`, and the service key for the scheduled `expire-checkouts`.
+- **Table privileges** are stated in a migration (`table_grants`), not left to Supabase's defaults, which differ between project versions. Anonymous users may read the catalog, signed-in users may read what the access rules allow, nothing is writable from the browser, and only the service role reaches `provider_connections` and `payment_refunds`.
 - **Secrets** are Edge Function secrets, plus the one key in Supabase Vault that the scheduled call uses. The browser receives only the Supabase URL and the public key.
 
 ## Database design
