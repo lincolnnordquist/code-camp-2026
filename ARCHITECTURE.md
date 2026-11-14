@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: partly built.** Built: the app scaffold, the attendee screens, the shared types, the shared API and live module calling Supabase (reads, reservations, cancelling, the private order link, vendor functions, and Realtime), the database tables with the order, vendor, checkout, payment, refund, and email functions and the demo event seed, the payment provider module with payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, and `send-order-email`. Planned: the vendor screens, the `square-webhook` Edge Function, the scheduled call to `expire-checkouts`, and the Setup phase below. Update this document when a module's job, a shared function, or a rule changes.
+**Status: partly built.** Built: the app scaffold, the attendee screens, the shared types, the shared API and live module calling Supabase (reads, reservations, cancelling, the private order link, vendor functions, and Realtime), the database tables with the order, vendor, checkout, payment, refund, and email functions and the demo event seed, the payment provider module with payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, `send-order-email`, and `square-webhook`. Planned: the vendor screens, the scheduled call to `expire-checkouts`, and the Setup phase below. Update this document when a module's job, a shared function, or a rule changes.
 
 ## Overview
 
