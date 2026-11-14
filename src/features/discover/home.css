@@ -1191,3 +1191,8 @@ img.active-order__plate {
 .shelf .skeleton--heading {
   margin-block: 8px;
 }
+
+/* The search field's placeholder takes the pill shape of the real field. */
+.discover .skeleton--field {
+  border-radius: var(--radius-full);
+}
