@@ -398,6 +398,11 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Square calls this function without a Supabase session; the function verifies
+# Square's signature instead.
+[functions.square-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
