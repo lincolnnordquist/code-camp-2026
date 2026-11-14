@@ -130,7 +130,8 @@ export function QrScanner({ onCode, onClose, holdRef }: QrScannerProps) {
       setPhase(name === "NotAllowedError" || name === "SecurityError" ? "denied" : name === "NotFoundError" || name === "OverconstrainedError" ? "no_camera" : "failed");
       return;
     }
-    if (run !== runRef.current || doneRef.current || !rootRef.current) {
+    // A tab hidden while the browser was still opening the camera gets it again when shown.
+    if (run !== runRef.current || doneRef.current || !rootRef.current || document.hidden) {
       stream.getTracks().forEach((track) => track.stop());
       return;
     }
@@ -151,6 +152,8 @@ export function QrScanner({ onCode, onClose, holdRef }: QrScannerProps) {
     const tick = async () => {
       if (run !== runRef.current || doneRef.current || !streamRef.current || !videoRef.current) return;
       const payload = await detect(videoRef.current);
+      // Closing the scanner while a detect call is out must not collect an order afterwards.
+      if (run !== runRef.current || doneRef.current || !streamRef.current) return;
       const frame = readScanFrame(holdRef.current, payload, Date.now());
       holdRef.current = frame.hold;
       if (frame.kind === "code") {
