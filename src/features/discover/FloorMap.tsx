@@ -16,7 +16,21 @@ import {
 import type { Booth } from '../../shared/types'
 import { boothBadgeLabel, isPaused } from './boothLabel'
 import { rowTop, type FloorLayout } from './catalogExtras'
-import { centreOnPlate, drawnAspectRatio, drawnWidth, ROW_LABEL_GUTTER, scrollToPin, viewCentre, visibleFraction, type MapPosition, type PlanPoint } from './mapGeometry'
+import {
+  centreOnPlate,
+  clampScroll,
+  drawnAspectRatio,
+  drawnWidth,
+  flickVelocity,
+  pinchScale,
+  ROW_LABEL_GUTTER,
+  scrollToPin,
+  viewCentre,
+  visibleFraction,
+  type MapPosition,
+  type PanSample,
+  type PlanPoint,
+} from './mapGeometry'
 import './map.css'
 
 /** What a page can ask of the interactive map. */
@@ -72,6 +86,25 @@ const TAP_MOVE_PX = 10
 /** Double-tap-and-drag (one-finger zoom, as in Apple Maps): dragging this far down doubles the scale. */
 const TAP_DRAG_PX_PER_DOUBLING = 100
 const ZOOM_ANIMATION_MS = 200
+/** A wheel's line step, in px, for mice that report lines. */
+const WHEEL_LINE_PX = 16
+/** Ctrl and wheel (or a trackpad pinch): each px of wheel scales by e^(px * this), so 100 px is about 2x. */
+const WHEEL_ZOOM_PER_PX = 0.007
+/** A wheel zoom is settled (laid out and announced) once the wheel has rested this long. */
+const WHEEL_SETTLE_MS = 150
+/** Arrow keys pan the zoomed map by this much. */
+const KEY_PAN_PX = 40
+const ARROW_PAN = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as const
+/** The glide after a flick: its speed comes from the last this-many ms of the pan. */
+const GLIDE_SAMPLE_MS = 80
+/** A release slower than this, in px per ms, does not glide. */
+const GLIDE_MIN_SPEED = 0.05
+/** The glide slows by e every this-many ms, close to a native scroll's deceleration. */
+const GLIDE_TIME_CONSTANT_MS = 325
+const GLIDE_MAX_STEP_MS = 32
+const GLIDE_STOP_PX = 0.05
+
+const reducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 /** Remembers that this viewer has seen the "pinch to zoom" tip. */
 const HINT_SEEN_KEY = 'map.zoomHintSeen'
 
@@ -337,10 +370,13 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
   const frame = useRef(0)
   const pending = useRef<{ scale: number; anchor: Anchor; viewX: number; viewY: number } | null>(null)
   const animation = useRef(0)
-  const pointers = useRef(new Map<number, { x: number; y: number }>())
-  const pinch = useRef<{ distance: number; scale: number; anchor: Anchor } | null>(null)
-  // iOS Safari pinches arrive as gesture events; once one is seen, the pointer pinch stays out of the way.
-  const gestureSeen = useRef(false)
+  // The glide after a flicked one-finger pan.
+  const glide = useRef(0)
+  // Fingers on the map right now (touch events), so a WebKit gesture event never zooms over a touch pinch.
+  const touchCount = useRef(0)
+  // Pointers down on the map, and whether this press has had more than one (a pinch).
+  const pointers = useRef(new Set<number>())
+  const multiPress = useRef(false)
   const press = useRef<{ x: number; y: number; moved: boolean } | null>(null)
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null)
   // The second press of a double-tap, held: vertical movement zooms around where it landed.
@@ -490,11 +526,14 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
   )
 
   // Applies a resize still waiting for its frame, so a release that beats the frame keeps the last movement.
-  const flushPending = () => {
+  const flushPending = useCallback(() => {
+    cancelAnimationFrame(frame.current)
+    frame.current = 0
     const p = pending.current
+    pending.current = null
     if (p) applyScale(p.scale, p.anchor, p.viewX, p.viewY)
     return liveScale.current
-  }
+  }, [applyScale])
 
   const applyPin = useCallback(() => {
     const s = scrollerRef.current
@@ -525,6 +564,8 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       pendingPin.current = pin ?? null
       applyPin()
       setZoom(settled)
+      // animateTo adds is-zoomed directly; React won't remove it if zoom was already 1, and the class sets touch-action.
+      scrollerRef.current?.classList.toggle('is-zoomed', settled > MIN_SCALE)
       setAnnouncement(message ?? `Map zoomed to ${scaleName(settled)}`)
       if (settled > MIN_SCALE) hideHint()
     },
@@ -537,11 +578,9 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     pendingPin.current = null
   }, [zoom, applyPin])
 
-  const reducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
   // Buttons, keys, double-tap and "Centre on booth": a short eased zoom around one plan point, which
   // also slides from where it is on screen to `to`. Instant under reduced motion.
-  const animateTo = (
+  const animateTo = useCallback((
     target: number,
     anchor: Anchor,
     to = { x: anchor.viewX, y: anchor.viewY },
@@ -550,6 +589,7 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     pin: { point: PlanPoint; viewX: number; viewY: number } = { point: anchor, viewX: to.x, viewY: to.y },
   ) => {
     cancelAnimationFrame(animation.current)
+    cancelAnimationFrame(glide.current)
     const from = liveScale.current
     const still = Math.abs(target - from) < SCALE_EPSILON && Math.hypot(to.x - anchor.viewX, to.y - anchor.viewY) < 1
     if (reducedMotion() || still) {
@@ -570,7 +610,34 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       else commit(target, message, pin)
     }
     animation.current = requestAnimationFrame(step)
-  }
+  }, [applyScale, commit])
+
+  // A flicked one-finger pan carries on and slows to a stop, as a native scroll would have.
+  // Stops at the edge of the scroll range; none under reduced motion.
+  const startGlide = useCallback(
+    (velocity: { x: number; y: number }) => {
+      const s = scrollerRef.current
+      const c = canvasRef.current
+      if (!s || !c || reducedMotion()) return
+      let v = velocity
+      let at = { left: s.scrollLeft, top: s.scrollTop }
+      let last = performance.now()
+      const step = (now: number) => {
+        const dt = Math.min(GLIDE_MAX_STEP_MS, now - last)
+        last = now
+        const decay = Math.exp(-dt / GLIDE_TIME_CONSTANT_MS)
+        v = { x: v.x * decay, y: v.y * decay }
+        const max = { left: s.scrollWidth - s.clientWidth, top: s.scrollHeight - s.clientHeight }
+        const next = clampScroll({ left: at.left - v.x * dt, top: at.top - v.y * dt }, max)
+        const moved = Math.hypot(next.left - at.left, next.top - at.top)
+        at = next
+        scrollExactly(s, c, next.left, next.top)
+        if (moved > GLIDE_STOP_PX && Math.hypot(v.x, v.y) > GLIDE_MIN_SPEED) glide.current = requestAnimationFrame(step)
+      }
+      glide.current = requestAnimationFrame(step)
+    },
+    [],
+  )
 
   useImperativeHandle(ref, () => ({
     centreOnBooth: (boothId: string) => {
@@ -623,21 +690,105 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     animateTo(clampScale(liveScale.current * factor, liveScale.current), buttonAnchor(), viewMiddlePoint())
   }
 
-  // iOS Safari: two-finger touches and WebKit gesture events, all non-passive so preventDefault
-  // reaches Safari before it commits the pinch to page zoom. One finger is left alone for native pan.
+  // Touch, on iOS Safari and Chromium alike: two fingers pinch around their midpoint, which the map
+  // follows as they move; one finger pans the zoomed map. The map scroller does not scroll natively
+  // (map.css), so every movement is a scroll this code writes, in the same frame as the zoom it goes
+  // with: no native scroll or momentum can race it and move the map after the fingers lift. Whenever
+  // the number of fingers changes, the anchor is read again under the fingers still down, so lifting
+  // one finger of a pinch carries on as a pan from where that finger is, with no jump. All listeners
+  // are non-passive so preventDefault reaches Safari before it commits a pinch to page zoom.
   useEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return
-    let start: { scale: number; anchor: Anchor } | null = null
-    const view = (g: WebKitGestureEvent, fallback: Anchor) => {
-      const r = scroller.getBoundingClientRect()
-      return Number.isFinite(g.clientX) && Number.isFinite(g.clientY)
-        ? { x: g.clientX - r.left, y: g.clientY - r.top }
-        : { x: fallback.viewX, y: fallback.viewY }
+    // This touch sequence moves the map: it is zoomed, or a second finger made it a pinch.
+    let owned = false
+    let pinched = false
+    let pinchStart: { distance: number; scale: number; anchor: Anchor } | null = null
+    let panStart: { scale: number; anchor: Anchor } | null = null
+    let lastMiddle = { x: 0, y: 0 }
+    let samples: PanSample[] = []
+    const twoFingers = (list: TouchList) => {
+      const [a, b] = [list[0], list[1]]
+      return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) }
     }
-    // Two fingers are a pinch; one finger in double-tap-and-drag is a zoom. Anything else pans natively.
-    const onMultiTouch = (e: TouchEvent) => {
-      if (e.touches.length > 1 || (e.type === 'touchmove' && tapDrag.current)) e.preventDefault()
+    const rebase = (list: TouchList) => {
+      // A frame still waiting would be applied against the old anchor; apply it first.
+      flushPending()
+      pinchStart = null
+      panStart = null
+      samples = []
+      if (list.length >= 2) {
+        const m = twoFingers(list)
+        // At one point two touches give no distance; the next move starts the pinch.
+        if (m.distance >= MIN_PINCH_DISTANCE_PX) pinchStart = { distance: m.distance, scale: liveScale.current, anchor: anchorAt(m.x, m.y) }
+        lastMiddle = { x: m.x, y: m.y }
+      } else if (list.length === 1) {
+        panStart = { scale: liveScale.current, anchor: anchorAt(list[0].clientX, list[0].clientY) }
+        lastMiddle = { x: list[0].clientX, y: list[0].clientY }
+      }
+    }
+    const onTouchStart = (e: TouchEvent) => {
+      touchCount.current = e.touches.length
+      cancelAnimationFrame(glide.current)
+      if (tapDrag.current) return
+      if (e.touches.length >= 2) {
+        e.preventDefault()
+        cancelAnimationFrame(animation.current)
+        owned = true
+        pinched = true
+        lastTap.current = null
+      } else if (liveScale.current > MIN_SCALE + SCALE_EPSILON) {
+        // A press is a tap until it moves, so its click still selects a plate; only the moves are held.
+        cancelAnimationFrame(animation.current)
+        owned = true
+      }
+      if (owned) rebase(e.touches)
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      if (tapDrag.current) {
+        e.preventDefault()
+        return
+      }
+      if (!owned) return
+      e.preventDefault()
+      const r = scroller.getBoundingClientRect()
+      if (e.touches.length >= 2) {
+        if (!pinchStart) rebase(e.touches)
+        const start = pinchStart
+        if (!start) return
+        const m = twoFingers(e.touches)
+        lastMiddle = { x: m.x, y: m.y }
+        scheduleScale(pinchScale(start.scale, start.distance, m.distance, MIN_SCALE, MAX_SCALE), start.anchor, m.x - r.left, m.y - r.top)
+      } else if (panStart && e.touches.length === 1) {
+        const t = e.touches[0]
+        lastMiddle = { x: t.clientX, y: t.clientY }
+        const now = performance.now()
+        samples.push({ t: now, x: t.clientX, y: t.clientY })
+        while (samples.length > 1 && now - samples[0].t > GLIDE_SAMPLE_MS) samples.shift()
+        scheduleScale(panStart.scale, panStart.anchor, t.clientX - r.left, t.clientY - r.top)
+      }
+    }
+    const onTouchEnd = (e: TouchEvent) => {
+      touchCount.current = e.touches.length
+      if (!owned) return
+      if (e.touches.length > 0) {
+        rebase(e.touches)
+        return
+      }
+      const flick = flickVelocity(samples, performance.now(), GLIDE_SAMPLE_MS, GLIDE_MIN_SPEED)
+      owned = false
+      pinchStart = null
+      panStart = null
+      samples = []
+      const scale = flushPending()
+      if (!pinched) {
+        if (flick) startGlide(flick)
+        return
+      }
+      pinched = false
+      // A pinch let go a hair above fit eases the last bit down to fit rather than snapping there.
+      if (scale !== MIN_SCALE && scale < MIN_SCALE + SCALE_EPSILON) animateTo(MIN_SCALE, anchorAt(lastMiddle.x, lastMiddle.y))
+      else commit(scale)
     }
     const onClickCapture = (e: MouseEvent) => {
       if (!swallowClick.current) return
@@ -645,10 +796,19 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       e.preventDefault()
       e.stopPropagation()
     }
+    // WebKit gesture events: always cancelled, so iOS Safari never zooms the page from the map. They zoom
+    // the map only with no finger down, which is a Mac trackpad pinch in Safari (iOS pinches are touches,
+    // handled above, since iOS gesture events carry no position to anchor on).
+    let start: { scale: number; anchor: Anchor } | null = null
+    const view = (g: WebKitGestureEvent, fallback: Anchor) => {
+      const r = scroller.getBoundingClientRect()
+      return Number.isFinite(g.clientX) && Number.isFinite(g.clientY)
+        ? { x: g.clientX - r.left, y: g.clientY - r.top }
+        : { x: fallback.viewX, y: fallback.viewY }
+    }
     const onStart = (e: Event) => {
       e.preventDefault()
-      gestureSeen.current = true
-      pinch.current = null
+      if (touchCount.current > 0) return
       cancelAnimationFrame(animation.current)
       const g = e as WebKitGestureEvent
       const r = scroller.getBoundingClientRect()
@@ -675,33 +835,65 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       start = null
       commit(final)
     }
+    // Wheel and trackpad. Ctrl (a trackpad pinch in Chromium and Firefox, or Ctrl and the wheel) zooms
+    // around the cursor; a plain wheel or two-finger swipe pans the zoomed map. At fit, or once the map
+    // cannot move further that way, the wheel is left to scroll the page.
+    let wheelCommit = 0
+    const onWheel = (e: WheelEvent) => {
+      const unit = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? WHEEL_LINE_PX : e.deltaMode === WheelEvent.DOM_DELTA_PAGE ? scroller.clientHeight : 1
+      if (e.ctrlKey) {
+        e.preventDefault()
+        cancelAnimationFrame(animation.current)
+        cancelAnimationFrame(glide.current)
+        const from = flushPending()
+        const r = scroller.getBoundingClientRect()
+        const scale = clampScale(from * Math.exp(-e.deltaY * unit * WHEEL_ZOOM_PER_PX), from)
+        scheduleScale(scale, anchorAt(e.clientX, e.clientY), e.clientX - r.left, e.clientY - r.top)
+        window.clearTimeout(wheelCommit)
+        wheelCommit = window.setTimeout(() => commit(flushPending()), WHEEL_SETTLE_MS)
+        return
+      }
+      if (liveScale.current <= MIN_SCALE + SCALE_EPSILON) return
+      const { scrollLeft, scrollTop } = scroller
+      scroller.scrollLeft = scrollLeft + e.deltaX * unit
+      scroller.scrollTop = scrollTop + e.deltaY * unit
+      if (scroller.scrollLeft !== scrollLeft || scroller.scrollTop !== scrollTop) e.preventDefault()
+    }
     const passive = { passive: false }
-    scroller.addEventListener('touchstart', onMultiTouch, passive)
-    scroller.addEventListener('touchmove', onMultiTouch, passive)
+    scroller.addEventListener('touchstart', onTouchStart, passive)
+    scroller.addEventListener('touchmove', onTouchMove, passive)
+    scroller.addEventListener('touchend', onTouchEnd, passive)
+    scroller.addEventListener('touchcancel', onTouchEnd, passive)
+    scroller.addEventListener('wheel', onWheel, passive)
     scroller.addEventListener('gesturestart', onStart, passive)
     scroller.addEventListener('gesturechange', onChange, passive)
     scroller.addEventListener('gestureend', onEnd, passive)
     scroller.addEventListener('click', onClickCapture, true)
     return () => {
+      window.clearTimeout(wheelCommit)
       scroller.removeEventListener('click', onClickCapture, true)
-      scroller.removeEventListener('touchstart', onMultiTouch)
-      scroller.removeEventListener('touchmove', onMultiTouch)
+      scroller.removeEventListener('touchstart', onTouchStart)
+      scroller.removeEventListener('touchmove', onTouchMove)
+      scroller.removeEventListener('touchend', onTouchEnd)
+      scroller.removeEventListener('touchcancel', onTouchEnd)
+      scroller.removeEventListener('wheel', onWheel)
       scroller.removeEventListener('gesturestart', onStart)
       scroller.removeEventListener('gesturechange', onChange)
       scroller.removeEventListener('gestureend', onEnd)
     }
     // Bound once per mounted scroller: every helper above is stable, and the handlers read refs, not render state.
-  }, [interactive, anchorAt, applyScale, commit, scheduleScale])
+  }, [interactive, anchorAt, animateTo, applyScale, commit, flushPending, scheduleScale, startGlide])
 
   useEffect(
     () => () => {
       cancelAnimationFrame(frame.current)
       cancelAnimationFrame(animation.current)
+      cancelAnimationFrame(glide.current)
     },
     [],
   )
 
-  // Scrolling (native pan and momentum) only reads: it moves the overview rectangle and notes the middle.
+  // Scrolling (a pan, a glide, a focused plate brought into view) only reads: it moves the overview rectangle and notes the middle.
   // A resize (rotation, split view) puts the noted middle back in the middle, since the canvas width is a
   // percentage of the scroller. The scroll the browser fires while clamping during that resize is ignored:
   // it comes from the new width, before the observer has run.
@@ -759,11 +951,7 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     s.scrollTo({ ...target, behavior: reducedMotion() ? 'auto' : 'smooth' })
   }
 
-  // Chromium and Android: two pointers pinch. Every pointer type: double-tap, and double-tap-and-drag.
-  const midpoint = () => {
-    const [a, b] = [...pointers.current.values()]
-    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, distance: Math.hypot(a.x - b.x, a.y - b.y) }
-  }
+  // Every pointer type: tap, double-tap, and double-tap-and-drag. Pinch and pan are the touch handlers above.
   const isSecondTap = (x: number, y: number) => {
     const prev = lastTap.current
     return Boolean(prev && performance.now() - prev.t < DOUBLE_TAP_MS && Math.hypot(x - prev.x, y - prev.y) < DOUBLE_TAP_SLOP_PX)
@@ -772,7 +960,10 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     press.current = { x: e.clientX, y: e.clientY, moved: false }
     // A dragged press fires no click, so a pending swallow must not outlive it and eat the next real tap.
     swallowClick.current = false
-    if (pointers.current.size === 0 && !tapDrag.current && isSecondTap(e.clientX, e.clientY)) {
+    pointers.current.add(e.pointerId)
+    // A press while another is down is part of a pinch: neither finger's lift is then a tap.
+    if (pointers.current.size > 1) multiPress.current = true
+    if (pointers.current.size === 1 && !tapDrag.current && isSecondTap(e.clientX, e.clientY)) {
       // Second tap of a double-tap, on a plate or not: this press zooms, and its click is swallowed.
       window.clearTimeout(pendingClear.current)
       lastTap.current = null
@@ -786,16 +977,6 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       }
       return
     }
-    if (e.pointerType !== 'touch' || gestureSeen.current || tapDrag.current) return
-    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-    if (pointers.current.size === 2) startPinch()
-  }
-  // Starts a pinch once the two touches are apart; at one point their distance gives 0/0.
-  const startPinch = () => {
-    const m = midpoint()
-    if (m.distance < MIN_PINCH_DISTANCE_PX) return
-    cancelAnimationFrame(animation.current)
-    pinch.current = { distance: m.distance, scale: liveScale.current, anchor: anchorAt(m.x, m.y) }
   }
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
     const p = press.current
@@ -808,20 +989,10 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       // Down zooms in, up zooms out, like Apple Maps.
       const scale = clampScale(drag.scale * 2 ** (dy / TAP_DRAG_PX_PER_DOUBLING), liveScale.current)
       scheduleScale(scale, drag.anchor, drag.anchor.viewX, drag.anchor.viewY)
-      return
     }
-    if (!pointers.current.has(e.pointerId)) return
-    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-    if (pointers.current.size === 2 && !pinch.current) startPinch()
-    const start = pinch.current
-    if (!start || pointers.current.size !== 2) return
-    const m = midpoint()
-    const r = scrollerRef.current?.getBoundingClientRect()
-    if (!r) return
-    scheduleScale(clampScale(start.scale * (m.distance / start.distance), liveScale.current), start.anchor, m.x - r.left, m.y - r.top)
   }
   // If the scroller loses its captured tap-drag pointer without a release, end the zoom there,
-  // so native panning is not blocked afterwards. Implicit captures on other elements are ignored.
+  // so panning is not blocked afterwards. Implicit captures on other elements are ignored.
   const onLostCapture = (e: PointerEvent<HTMLDivElement>) => {
     const drag = tapDrag.current
     if (!drag || drag.pointerId !== e.pointerId || e.target !== e.currentTarget) return
@@ -831,6 +1002,9 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
   }
 
   const onPointerEnd = (e: PointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(e.pointerId)
+    const multi = multiPress.current
+    if (pointers.current.size === 0) multiPress.current = false
     const drag = tapDrag.current
     if (drag && drag.pointerId === e.pointerId) {
       tapDrag.current = null
@@ -840,19 +1014,10 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       else animateTo(liveScale.current > MIN_SCALE + SCALE_EPSILON ? MIN_SCALE : DOUBLE_TAP_SCALE, anchorAt(e.clientX, e.clientY))
       return
     }
-    pointers.current.delete(e.pointerId)
-    if (pinch.current) {
-      if (pointers.current.size < 2) {
-        pinch.current = null
-        lastTap.current = null
-        commit(flushPending())
-      }
-      return
-    }
     const p = press.current
     press.current = null
     // A tap (on a plate it is also that booth's click) may be the first half of a double-tap.
-    const tapped = e.type === 'pointerup' && p && !p.moved
+    const tapped = e.type === 'pointerup' && p && !p.moved && !multi
     lastTap.current = tapped ? { t: performance.now(), x: e.clientX, y: e.clientY } : null
     // A tap on empty map (not a plate, not a control) deselects, once no second tap has followed.
     if (tapped && highlightedBoothId && onClearSelection && !(e.target as Element).closest('.floor-map__booth, button')) {
@@ -909,6 +1074,12 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     } else if (e.key === '0') {
       e.preventDefault()
       if (canZoomOut) animateTo(MIN_SCALE, buttonAnchor(), viewMiddlePoint())
+    } else if (canZoomOut && e.key in ARROW_PAN && e.target === e.currentTarget) {
+      // The map does not scroll natively (map.css), so the arrows pan it, as they scrolled it before.
+      e.preventDefault()
+      const [dx, dy] = ARROW_PAN[e.key as keyof typeof ARROW_PAN]
+      const s = e.currentTarget
+      s.scrollBy({ left: dx * KEY_PAN_PX, top: dy * KEY_PAN_PX, behavior: reducedMotion() ? 'auto' : 'smooth' })
     }
   }
 
