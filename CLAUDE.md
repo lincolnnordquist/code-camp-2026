@@ -4,7 +4,7 @@ Instructions for every coding agent working in this repository. `AGENTS.md` poin
 
 A 24-hour competition build by three developers. Favor working, readable code over process. Judges read the source.
 
-**State:** the app is scaffolded and deployed, with the attendee screens built. `src/shared/api/` and `src/shared/live/` call Supabase; a network failure is thrown, and a refusal is returned as a typed result. `supabase/migrations/` holds the tables, the order, vendor, checkout, payment, refund, and email functions, and the table privileges; `supabase/seed.sql` holds the demo event. The payment provider module, payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, `send-order-email`, and `square-webhook` are in `supabase/functions/`. Not created: the vendor screens and the scheduled call to `expire-checkouts`. If a folder or script is missing, it has not been created; do not assume it is broken.
+**State:** the app is scaffolded and deployed, with the attendee screens built. `src/shared/api/` and `src/shared/live/` call Supabase; a network failure is thrown, and a refusal is returned as a typed result. `supabase/migrations/` holds the tables, the order, vendor, checkout, payment, refund, and email functions, and the table privileges; `supabase/seed.sql` holds the demo event. The payment provider module, payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, `send-order-email`, and `square-webhook` are in `supabase/functions/`. The vendor screens are built in `src/features/vendor/`. Not created: the scheduled call to `expire-checkouts`. If a folder or script is missing, it has not been created; do not assume it is broken.
 
 ## Documents
 
