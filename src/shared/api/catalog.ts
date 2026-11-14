@@ -4,6 +4,7 @@ import { check } from "./errors";
 import {
   boothFromRow,
   eventFromRow,
+  PRODUCT_COLUMNS,
   productFromRow,
   type BoothRow,
   type EventRow,
@@ -41,9 +42,7 @@ export async function getEventCatalog(
     ? check(
         await supabase
           .from("products")
-          .select(
-            "id, booth_id, name, category, description, image_path, image_paths, price_cents, available_qty, max_per_order",
-          )
+          .select(PRODUCT_COLUMNS)
           .in("booth_id", boothIds)
           .order("name")
           .returns<ProductRow[]>(),

@@ -8,15 +8,16 @@ import {
   call,
   newBooth,
   newAttendeeClient,
+  newStaffClient,
   newUser,
   stockOf,
   type Reply,
 } from "./support";
 
 // A prepaid order with its Square checkout attached, waiting for payment.
-async function pendingOrder(quantity = 2) {
+async function pendingOrder(quantity = 2, existingUserId?: string) {
   const booth = await newBooth({ mode: "prepay" });
-  const userId = await newUser();
+  const userId = existingUserId ?? (await newUser());
   const providerOrderId = `SQ_${randomUUID()}`;
   const order = await call("svc_create_pending_order", {
     p_user_id: userId,
@@ -45,6 +46,33 @@ const confirm = (
     p_location_id: "LOCATION_TEST",
     ...overrides,
   });
+
+const refund = (
+  paymentId: string,
+  refundId: string,
+  amountCents: number | null = 6400,
+  currency = "USD",
+): Promise<Reply> =>
+  call("svc_mark_refunded", {
+    p_provider_payment_id: paymentId,
+    p_provider_refund_id: refundId,
+    p_amount_cents: amountCents,
+    p_currency: currency,
+  });
+
+async function refundsOf(paymentId: string) {
+  const { data: payment } = await admin
+    .from("payments")
+    .select("id")
+    .eq("provider_payment_id", paymentId)
+    .single();
+  const { data } = await admin
+    .from("payment_refunds")
+    .select("provider_refund_id, amount_cents")
+    .eq("payment_id", payment!.id)
+    .order("provider_refund_id");
+  return data ?? [];
+}
 
 async function paymentsOf(orderId: string) {
   const { data } = await admin
@@ -272,46 +300,132 @@ test("any completed refund marks its payment refunded, and a repeated refund id 
   await confirm(providerOrderId, { p_provider_payment_id: "PAY_REFUND" });
 
   // Refunded without being refund due first, and by a partial refund.
-  const first = await call("svc_mark_refunded", {
-    p_provider_payment_id: "PAY_REFUND",
-    p_provider_refund_id: "REFUND_1",
-  });
+  const first = await refund("PAY_REFUND", "REFUND_1", 1000);
   assert.deepEqual(first, { ok: true, changed: true });
   assert.equal((await paymentsOf(order.orderId!))[0].refund_status, "refunded");
 
-  const repeat = await call("svc_mark_refunded", {
-    p_provider_payment_id: "PAY_REFUND",
-    p_provider_refund_id: "REFUND_1",
-  });
+  // The same refund id again changes nothing, even with a different amount.
+  const repeat = await refund("PAY_REFUND", "REFUND_1", 5000);
   assert.deepEqual(repeat, { ok: true, changed: false });
+  assert.deepEqual(await refundsOf("PAY_REFUND"), [
+    { provider_refund_id: "REFUND_1", amount_cents: 1000 },
+  ]);
 
   // A second refund of the same payment is a new refund id.
-  const another = await call("svc_mark_refunded", {
-    p_provider_payment_id: "PAY_REFUND",
-    p_provider_refund_id: "REFUND_2",
-  });
+  const another = await refund("PAY_REFUND", "REFUND_2", 500);
   assert.equal(another.changed, true);
 
-  const unknown = await call("svc_mark_refunded", {
-    p_provider_payment_id: "PAY_NONE",
-    p_provider_refund_id: "REFUND_3",
+  assert.equal(
+    (await refund("PAY_NONE", "REFUND_3")).reason,
+    "payment_not_found",
+  );
+  assert.equal((await refund("PAY_REFUND", " ")).reason, "invalid_refund_id");
+});
+
+test("a refund's amount is stored with it, and a bad amount or currency is refused", async () => {
+  const { order, providerOrderId } = await pendingOrder();
+  await confirm(providerOrderId, { p_provider_payment_id: "PAY_AMOUNT" });
+
+  for (const amount of [null, 0, -1]) {
+    const refused = await refund("PAY_AMOUNT", "REFUND_BAD", amount);
+    assert.equal(refused.reason, "invalid_amount", String(amount));
+  }
+  const wrongCurrency = await refund("PAY_AMOUNT", "REFUND_BAD", 100, "EUR");
+  assert.equal(wrongCurrency.reason, "currency_mismatch");
+
+  // Nothing was recorded, and the payment is untouched.
+  assert.deepEqual(await refundsOf("PAY_AMOUNT"), []);
+  assert.equal((await paymentsOf(order.orderId!))[0].refund_status, "none");
+
+  assert.equal((await refund("PAY_AMOUNT", "REFUND_OK", 2500)).changed, true);
+  assert.deepEqual(await refundsOf("PAY_AMOUNT"), [
+    { provider_refund_id: "REFUND_OK", amount_cents: 2500 },
+  ]);
+
+  // The database refuses an amount of zero or less, whatever calls it.
+  const { error } = await admin.from("payment_refunds").insert({
+    payment_id: (
+      await admin
+        .from("payments")
+        .select("id")
+        .eq("provider_payment_id", "PAY_AMOUNT")
+        .single()
+    ).data!.id,
+    provider_refund_id: "REFUND_ZERO",
+    amount_cents: 0,
   });
-  assert.equal(unknown.reason, "payment_not_found");
-  const blank = await call("svc_mark_refunded", {
-    p_provider_payment_id: "PAY_REFUND",
-    p_provider_refund_id: " ",
+  assert.ok(error);
+});
+
+test("an order shows how much was refunded across its payments, to its attendee and to staff only", async () => {
+  const attendee = await newAttendeeClient();
+  const { order, providerOrderId, vendorId } = await pendingOrder(
+    2,
+    attendee.userId,
+  );
+  const stranger = await newAttendeeClient();
+  const staff = await newStaffClient(vendorId);
+  const id = order.orderId!;
+
+  const refunded = async (client: typeof attendee.client) =>
+    (
+      await client
+        .from("order_details")
+        .select("refund_status, refunded_cents")
+        .eq("id", id)
+    ).data;
+
+  // Nothing refunded yet.
+  assert.deepEqual(await refunded(attendee.client), [
+    { refund_status: "none", refunded_cents: 0 },
+  ]);
+
+  // Two refunds on the first payment, and one on a second (refund due) payment.
+  const paymentA = `PAY_${randomUUID()}`;
+  const paymentB = `PAY_${randomUUID()}`;
+  await confirm(providerOrderId, { p_provider_payment_id: paymentA });
+  await confirm(providerOrderId, { p_provider_payment_id: paymentB });
+  await refund(paymentA, `RF_${randomUUID()}`, 1000);
+  await refund(paymentA, `RF_${randomUUID()}`, 500);
+  await refund(paymentB, `RF_${randomUUID()}`, 700);
+
+  const expected = [{ refund_status: "refunded", refunded_cents: 2200 }];
+  assert.deepEqual(await refunded(attendee.client), expected);
+  assert.deepEqual(await refunded(staff), expected);
+  assert.deepEqual(await refunded(stranger.client), []);
+
+  // The attendee's order result and the private link carry the same total.
+  const { data: token } = await admin
+    .from("orders")
+    .select("private_token")
+    .eq("id", id)
+    .single();
+  const opened = await stranger.client.rpc("get_order_by_token", {
+    p_token: token!.private_token,
   });
-  assert.equal(blank.reason, "invalid_refund_id");
+  assert.equal(
+    (opened.data as Reply & { refundedCents: number }).refundedCents,
+    2200,
+  );
+  const viaPayload = await call("svc_get_checkout", {
+    p_order_id: id,
+    p_user_id: attendee.userId,
+  });
+  assert.equal(viaPayload.ok, true);
+
+  // The refunds themselves are readable by the same people and by nobody else.
+  const rows = async (client: typeof attendee.client) =>
+    (await client.from("payment_refunds").select("amount_cents")).data?.length;
+  assert.equal(await rows(attendee.client), 3);
+  assert.equal(await rows(staff), 3);
+  assert.equal(await rows(stranger.client), 0);
 });
 
 test("a refund due payment becomes refunded when its refund completes", async () => {
   const { order, providerOrderId } = await pendingOrder();
   await confirm(providerOrderId, { p_provider_payment_id: "PAY_A" });
   await confirm(providerOrderId, { p_provider_payment_id: "PAY_B" });
-  await call("svc_mark_refunded", {
-    p_provider_payment_id: "PAY_B",
-    p_provider_refund_id: `REFUND_${randomUUID()}`,
-  });
+  await refund("PAY_B", `REFUND_${randomUUID()}`, 6400);
 
   const payments = await paymentsOf(order.orderId!);
   assert.deepEqual(
@@ -421,7 +535,12 @@ test("browsers cannot call the payment functions", async () => {
     ],
     [
       "svc_mark_refunded",
-      { p_provider_payment_id: "P", p_provider_refund_id: "R" },
+      {
+        p_provider_payment_id: "P",
+        p_provider_refund_id: "R",
+        p_amount_cents: 100,
+        p_currency: "USD",
+      },
     ],
     ["svc_mark_email_sent", { p_order_id: randomUUID() }],
     ["svc_clear_email_sent", { p_order_id: randomUUID() }],
