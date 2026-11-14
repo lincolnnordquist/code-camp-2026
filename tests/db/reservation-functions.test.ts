@@ -197,15 +197,13 @@ test("the order moves from confirmed to ready to collected, and a repeated code 
   );
 
   // Another booth's staff cannot collect it, and a wrong code finds nothing.
-  assert.equal(
-    (
-      await callAs(other.staff, "collect_order", {
-        p_booth_id: boothId,
-        p_pickup_code: code,
-      })
-    ).reason,
-    "not_found",
-  );
+  // Another booth's staff learn nothing, not even that the order exists.
+  const foreign = await callAs(other.staff, "collect_order", {
+    p_booth_id: boothId,
+    p_pickup_code: code,
+  });
+  assert.equal(foreign.reason, "not_found");
+  assert.equal(foreign.order, undefined);
   assert.equal(
     (
       await callAs(other.staff, "collect_order", {
@@ -238,6 +236,10 @@ test("the order moves from confirmed to ready to collected, and a repeated code 
   assert.equal(again.ok, false);
   assert.equal(again.reason, "already_collected");
   assert.ok(again.at, "the collection time is returned");
+  assert.equal(again.order?.orderId, orderId, "the refusal names the order");
+  assert.equal(again.order?.pickupCode, code);
+  assert.equal(again.order?.items?.length, 1);
+  assert.equal(again.order?.totalCents, collected.totalCents);
 
   // A collected order cannot be cancelled by the attendee or the vendor.
   assert.equal(
@@ -262,15 +264,15 @@ test("collecting a cancelled or expired order shows its status", async () => {
     { productId: mugId, quantity: 1 },
   ]);
   await callAs(client, "cancel_my_order", { p_order_id: cancelled.orderId });
-  assert.equal(
-    (
-      await callAs(staff, "collect_order", {
-        p_booth_id: boothId,
-        p_pickup_code: cancelled.pickupCode,
-      })
-    ).reason,
-    "cancelled",
-  );
+  const refusedCancelled = await callAs(staff, "collect_order", {
+    p_booth_id: boothId,
+    p_pickup_code: cancelled.pickupCode,
+  });
+  assert.equal(refusedCancelled.reason, "cancelled");
+  // The refusal carries the order, so the vendor screen can show what it was and why.
+  assert.equal(refusedCancelled.order?.orderId, cancelled.orderId);
+  assert.equal(refusedCancelled.order?.cancelReason, "Cancelled by the attendee");
+  assert.equal(refusedCancelled.order?.items?.length, 1);
 
   const expired = await reserve(client, boothId, [
     { productId: mugId, quantity: 1 },
@@ -279,15 +281,12 @@ test("collecting a cancelled or expired order shows its status", async () => {
     .from("orders")
     .update({ status: "expired" })
     .eq("id", expired.orderId!);
-  assert.equal(
-    (
-      await callAs(staff, "collect_order", {
-        p_booth_id: boothId,
-        p_pickup_code: expired.pickupCode,
-      })
-    ).reason,
-    "expired",
-  );
+  const refusedExpired = await callAs(staff, "collect_order", {
+    p_booth_id: boothId,
+    p_pickup_code: expired.pickupCode,
+  });
+  assert.equal(refusedExpired.reason, "expired");
+  assert.equal(refusedExpired.order?.orderId, expired.orderId);
 });
 
 test("staff cancel an order with a reason, and the stock is not returned automatically (FR-23)", async () => {

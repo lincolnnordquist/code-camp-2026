@@ -8,12 +8,11 @@ import { VendorHeader } from "./VendorHeader";
 import { clockTime } from "./queueModel";
 import { useVendor } from "./vendorSession";
 
-// What the last code led to. A refusal carries no order, so those screens show only what
-// the server told us: the code, and the time for an order that was already collected.
+// What the last code led to. A refusal for an order that exists carries that order, so its
+// screen can show the items and the reason.
 type Outcome =
   | { kind: "collected"; order: Order }
-  | { kind: "already_collected"; code: string; at?: string }
-  | { kind: "cancelled" | "expired"; code: string };
+  | { kind: "already_collected" | "cancelled" | "expired"; code: string; order?: Order; at?: string };
 
 export function Pickup() {
   const { boothState, applyOrder } = useVendor();
@@ -43,9 +42,9 @@ export function Pickup() {
       } else if (result.reason === "not_found") {
         setError("Code not found. Check it with the customer.");
       } else if (result.reason === "already_collected") {
-        setOutcome({ kind: "already_collected", code: value, at: result.at });
+        setOutcome({ kind: "already_collected", code: value, at: result.at, order: result.order });
       } else {
-        setOutcome({ kind: result.reason, code: value });
+        setOutcome({ kind: result.reason, code: value, order: result.order });
       }
     } catch {
       setError(refusalLabels.network);
@@ -131,23 +130,7 @@ function PickupOutcome({ outcome, onAnother }: { outcome: Outcome; onAnother: ()
               </div>
             )}
           </dl>
-          <section className="vendor-section">
-            <h2 className="title-medium">Items</h2>
-            <div className="vendor-lines body-large">
-              {order.items.map((item) => (
-                <div key={item.productId}>
-                  <span>
-                    {item.quantity} × {item.name}
-                  </span>
-                  <span>{formatMoney(item.quantity * item.unitPriceCents, order.currency)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="vendor-total title-medium">
-              <span>Total</span>
-              <span>{formatMoney(order.totalCents, order.currency)}</span>
-            </div>
-          </section>
+          <OrderItems order={order} />
           <div className="vendor-actions">
             <Button variant="vendor" onClick={onAnother}>
               Enter another code
@@ -194,7 +177,14 @@ function PickupOutcome({ outcome, onAnother }: { outcome: Outcome; onAnother: ()
             <dt className="body-small">Pickup code</dt>
             <dd className="timer">{outcome.code}</dd>
           </div>
+          {outcome.kind === "cancelled" && outcome.order?.cancelReason && (
+            <div>
+              <dt className="body-small">Reason</dt>
+              <dd className="body-large">{outcome.order.cancelReason}</dd>
+            </div>
+          )}
         </dl>
+        {outcome.order && <OrderItems order={outcome.order} />}
         <div className="vendor-actions">
           <Button variant="vendor" onClick={onAnother}>
             Enter another code
@@ -202,5 +192,27 @@ function PickupOutcome({ outcome, onAnother }: { outcome: Outcome; onAnother: ()
         </div>
       </main>
     </>
+  );
+}
+
+function OrderItems({ order }: { order: Order }) {
+  return (
+    <section className="vendor-section">
+      <h2 className="title-medium">Items</h2>
+      <div className="vendor-lines body-large">
+        {order.items.map((item) => (
+          <div key={item.productId}>
+            <span>
+              {item.quantity} × {item.name}
+            </span>
+            <span>{formatMoney(item.quantity * item.unitPriceCents, order.currency)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="vendor-total title-medium">
+        <span>Total</span>
+        <span>{formatMoney(order.totalCents, order.currency)}</span>
+      </div>
+    </section>
   );
 }

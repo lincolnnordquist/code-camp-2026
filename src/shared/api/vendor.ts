@@ -1,6 +1,6 @@
 import type {
   CancelOrderRefusal,
-  CollectRefusal,
+  CollectResult,
   MyBoothRefusal,
   Order,
   OrderChangeRefusal,
@@ -24,7 +24,8 @@ import {
 } from "./mappers";
 import { readOrders } from "./orders";
 
-type OrderReply = Reply & Partial<OrderPayload> & { availableQty?: number };
+type OrderReply = Reply &
+  Partial<OrderPayload> & { availableQty?: number; order?: OrderPayload };
 
 async function rpc(name: string, args: Record<string, unknown>) {
   return check(await supabase.rpc(name, args)) as OrderReply;
@@ -146,18 +147,21 @@ export async function markOrderReady(
 export async function collectOrder(
   boothId: string,
   pickupCode: string,
-): Promise<Result<Order, CollectRefusal>> {
+): Promise<CollectResult> {
   const reply = await rpc("collect_order", {
     p_booth_id: boothId,
     p_pickup_code: pickupCode,
   });
   if (!reply.ok) {
-    return refusal(reply, [
+    const refused = refusal(reply, [
       "not_found",
       "already_collected",
       "cancelled",
       "expired",
     ] as const);
+    return reply.order
+      ? { ...refused, order: orderFromPayload(reply.order) }
+      : refused;
   }
   return { ok: true, value: orderFromPayload(reply as OrderPayload) };
 }

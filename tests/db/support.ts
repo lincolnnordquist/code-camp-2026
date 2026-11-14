@@ -23,11 +23,14 @@ export type Reply = {
   items?: { name: string; quantity: number; unitPriceCents: number }[];
   orders?: { orderId: string }[];
   at?: string | null;
+  // A refused hand-over names the order it was about (collect_order).
+  order?: Reply;
   type?: string;
   outcome?: string;
   privateToken?: string;
   buyerEmail?: string;
   refundStatus?: string;
+  cancelReason?: string | null;
   boothCode?: string;
   boothName?: string;
   eventId?: string;

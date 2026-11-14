@@ -122,6 +122,12 @@ export type OrderLookupRefusal = "order_not_found";
 export type OrderChangeRefusal = "order_not_found" | "not_allowed_in_status";
 export type CollectRefusal =
   "not_found" | "already_collected" | "cancelled" | "expired";
+// A refusal to hand an order over. For an order that exists but cannot be handed over
+// (already collected, cancelled, or expired) it also carries that order; a code that finds
+// nothing carries none.
+export type CollectResult =
+  | { ok: true; value: Order }
+  | { ok: false; reason: CollectRefusal; at?: string; order?: Order };
 export type CancelOrderRefusal = OrderChangeRefusal | "reason_required";
 export type SetStockRefusal = "product_not_found" | "invalid_quantity";
 export type VendorSignInRefusal = "invalid_credentials" | "no_booth";
