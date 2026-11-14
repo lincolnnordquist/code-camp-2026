@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setOrderingPaused, setProductStock, signOut } from "../../shared/api";
 import { useOnlineStatus } from "../../shared/live";
 import type { Product, VendorBooth } from "../../shared/types";
-import { Badge, Banner, Button, formatMoney, TextField } from "../../shared/ui";
+import { Badge, Banner, Button, formatMoney, Icon } from "../../shared/ui";
+import { ProductImage } from "../../shared/ui/ProductImage";
 import { refusalLabels } from "../../shared/ui/labels";
-import { VendorHeader } from "./VendorHeader";
+import { VendorHeader, VendorTitle } from "./VendorHeader";
+import { VendorState } from "./VendorState";
 import { useVendor } from "./vendorSession";
 
 // FR-24 and FR-25. The design has a Stock tab but no screen for it, so this one is built
@@ -52,24 +54,23 @@ export function Stock() {
 
   return (
     <>
-      <VendorHeader title="Stock" heading />
-      <main className="vendor-screen">
+      <VendorHeader title="Stock" />
+      <main className="vendor-screen vendor-stock">
+        <VendorTitle title="Stock" />
         <section className="vendor-card" aria-labelledby="pause-title">
           <div className="vendor-card-head">
-            <h2 id="pause-title" className="title-medium">
-              Online orders
-            </h2>
+            <h2 id="pause-title">Online orders</h2>
             {booth.orderingPaused ? <Badge tone="warning">Paused</Badge> : <Badge tone="success">Open</Badge>}
           </div>
-          <p className="body-medium">
+          <p className="vendor-card__text">
             {booth.orderingPaused
               ? "Customers cannot place new orders. Orders already placed continue."
               : "Pause to stop new orders. Orders already placed continue."}
           </p>
           {pausing ? (
-            <Button size="small" variant="vendor" loadingLabel="Updating" />
+            <Button variant={booth.orderingPaused ? "filled" : "outlined"} vendorSide loadingLabel="Updating" />
           ) : (
-            <Button size="small" variant="vendor" disabled={!online} onClick={togglePause}>
+            <Button variant={booth.orderingPaused ? "filled" : "outlined"} vendorSide disabled={!online} onClick={togglePause}>
               {booth.orderingPaused ? "Resume orders" : "Pause orders"}
             </Button>
           )}
@@ -80,20 +81,17 @@ export function Stock() {
             {problem}
           </Banner>
         )}
-        {!online && <p className="body-small">You are offline. Connect to change stock.</p>}
+        {!online && <p className="vendor-note">You are offline. Connect to change stock.</p>}
 
-        <section className="vendor-section">
-          <h2 className="title-medium">Products</h2>
-          <p className="body-small">
-            The quantity open to new orders. Stock held by existing orders is not changed.
-          </p>
+        <section className="vendor-section" aria-labelledby="products-title">
+          <div className="vendor-section__head">
+            <h2 id="products-title">Products</h2>
+            <p>The quantity open to new orders. Stock held by existing orders is not changed.</p>
+          </div>
           {products.length === 0 ? (
-            <div className="vendor-state">
-              <p className="title-medium">No products yet</p>
-              <p className="body-medium">Products for {event.name} show up here.</p>
-            </div>
+            <VendorState icon="inventory_2" title="No products yet" body={`Products for ${event.name} show up here.`} />
           ) : (
-            <ul className="vendor-products">
+            <ul className="vendor-products" role="list">
               {products.map((product) => (
                 <ProductStock key={product.id} product={product} currency={event.currency} online={online} onSaved={savedStock} />
               ))}
@@ -101,9 +99,11 @@ export function Stock() {
           )}
         </section>
 
-        <Button variant="outlined" vendorSide onClick={leave}>
-          Sign out
-        </Button>
+        <div className="vendor-signout">
+          <Button variant="outlined" vendorSide onClick={leave}>
+            Sign out
+          </Button>
+        </div>
       </main>
     </>
   );
@@ -146,33 +146,72 @@ function ProductStock({
     }
   };
 
+  const inputId = useId();
+  const supportId = `${inputId}-support`;
+  const support = error ?? (saved ? "Saved" : null);
+  const step = (by: number) => {
+    const base = quantity ?? product.availableQty;
+    setDraft(String(Math.max(0, base + by)));
+    setSaved(false);
+    setError(null);
+  };
+
   return (
-    <li className="vendor-card vendor-product">
-      <div className="vendor-card-head">
-        <span className="title-medium">{product.name}</span>
-        <span className="body-medium">{formatMoney(product.priceCents, currency)}</span>
+    <li className="vendor-product">
+      <div className="vendor-product__head">
+        <span className="vendor-product__photo">
+          <ProductImage product={product} size="small" />
+        </span>
+        <span className="vendor-product__name">{product.name}</span>
+        <span className="vendor-product__price">{formatMoney(product.priceCents, currency)}</span>
+        {product.availableQty === 0 && <Badge tone="error">Sold out</Badge>}
       </div>
-      <div className="vendor-stock-row">
-        <TextField
-          label="Available"
-          inputMode="numeric"
-          value={draft}
-          error={error ?? undefined}
-          supportingText={saved ? "Saved" : undefined}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            setSaved(false);
-            setError(null);
-          }}
-        />
+      <div className="vendor-product__edit">
+        {/* A stepper around the quantity, as in the cart, so a few more is two taps; typing still works. */}
+        <div className={`vendor-stepper${error ? " is-error" : ""}`}>
+          <button
+            type="button"
+            className="vendor-stepper__button"
+            aria-label={`One fewer ${product.name}`}
+            disabled={(quantity ?? product.availableQty) <= 0}
+            onClick={() => step(-1)}
+          >
+            <Icon name="remove" />
+          </button>
+          <label className="visually-hidden" htmlFor={inputId}>
+            Available
+          </label>
+          <input
+            id={inputId}
+            className="vendor-stepper__input"
+            inputMode="numeric"
+            value={draft}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={support ? supportId : undefined}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setSaved(false);
+              setError(null);
+            }}
+          />
+          <button type="button" className="vendor-stepper__button" aria-label={`One more ${product.name}`} onClick={() => step(1)}>
+            <Icon name="add" />
+          </button>
+        </div>
         {busy ? (
-          <Button size="small" variant="vendor" loadingLabel={`Saving ${product.name}`} />
+          <Button size="small" loadingLabel={`Saving ${product.name}`} />
         ) : (
-          <Button size="small" variant="vendor" disabled={!online || !changed} aria-label={`Save stock for ${product.name}`} onClick={save}>
+          <Button size="small" disabled={!online || !changed} aria-label={`Save stock for ${product.name}`} onClick={save}>
             Save
           </Button>
         )}
       </div>
+      {support && (
+        <p id={supportId} className={`vendor-product__support${error ? " is-error" : " is-saved"}`}>
+          {!error && <Icon name="check" size={18} />}
+          {support}
+        </p>
+      )}
     </li>
   );
 }

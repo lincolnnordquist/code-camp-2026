@@ -1,9 +1,11 @@
 import { useEffect, type MouseEvent } from "react";
-import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useOnlineStatus } from "../../shared/live";
-import { Banner, Button, NavigationBar, Snackbar } from "../../shared/ui";
+import { Banner, Button, Icon, Snackbar, type IconName } from "../../shared/ui";
 import { SkeletonGroup, Skeleton } from "../../shell/Skeleton";
-import { orderSummary } from "./queueModel";
+import { VendorHeader } from "./VendorHeader";
+import { VendorState } from "./VendorState";
+import { inTab, orderSummary } from "./queueModel";
 import { useVendor } from "./vendorSession";
 
 const ARRIVAL_SHOWN_MS = 6_000;
@@ -24,11 +26,17 @@ export function useSoftLinks() {
   };
 }
 
+const NAV: { label: string; icon: IconName; href: string }[] = [
+  { label: "Orders", icon: "receipt_long", href: "/vendor/orders" },
+  { label: "Pickup", icon: "qr_code_scanner", href: "/vendor/pickup" },
+  { label: "Stock", icon: "inventory_2", href: "/vendor/stock" },
+];
+
 export function VendorLayout() {
   const { pathname } = useLocation();
   const online = useOnlineStatus();
   const softLink = useSoftLinks();
-  const { boothState, reloadBooth, arrival, dismissArrival } = useVendor();
+  const { boothState, reloadBooth, ordersState, arrival, dismissArrival } = useVendor();
 
   useEffect(() => {
     if (!arrival) return;
@@ -38,14 +46,12 @@ export function VendorLayout() {
 
   if (boothState.status === "signed_out") return <Navigate to="/vendor" replace />;
 
-  const nav = [
-    { label: "Orders", icon: "receipt_long", href: "/vendor/orders" },
-    { label: "Pickup", icon: "qr_code_scanner", href: "/vendor/pickup" },
-    { label: "Stock", icon: "inventory_2", href: "/vendor/stock" },
-  ] as const;
+  // The Orders destination carries the count still to prepare, as the attendee Orders tab carries open orders.
+  const toPrepare = ordersState.status === "ready" ? ordersState.orders.filter((o) => inTab(o, "confirmed")).length : 0;
 
   return (
     <div className="vendor-app" onClick={softLink}>
+      {boothState.status !== "ready" && <VendorHeader title="Vendor" />}
       {/* Always mounted, so the message is announced when it appears. */}
       <div className="vendor-offline">
         {!online && (
@@ -56,35 +62,57 @@ export function VendorLayout() {
       </div>
       {boothState.status === "loading" && (
         <SkeletonGroup label="Loading your booth..." className="vendor-screen">
-          <Skeleton width="50%" height={28} />
-          <Skeleton height={96} shape="card" />
-          <Skeleton height={96} shape="card" />
+          <Skeleton width="40%" height={36} />
+          <Skeleton height={52} shape="pill" />
+          <Skeleton height={148} shape="card" />
+          <Skeleton height={148} shape="card" />
         </SkeletonGroup>
       )}
       {boothState.status === "error" && (
-        <div className="vendor-screen vendor-state" role="alert">
-          <p className="title-medium">Could not load your booth.</p>
-          <p className="body-medium">Check your connection and try again.</p>
-          <Button variant="vendor" onClick={reloadBooth}>
-            Try again
-          </Button>
-        </div>
+        <main className="vendor-screen">
+          <VendorState icon="wifi_off" tone="error" alert title="Could not load your booth." body="Check your connection and try again.">
+            <Button onClick={reloadBooth}>Try again</Button>
+          </VendorState>
+        </main>
       )}
       {boothState.status === "ready" && <Outlet />}
-      {arrival && (
-        <div className="vendor-toast">
-          <Snackbar>
-            New order {arrival.pickupCode}: {orderSummary(arrival)}
-          </Snackbar>
-        </div>
-      )}
-      <NavigationBar
-        label="Vendor"
-        items={nav.map((item) => ({
-          ...item,
-          current: pathname === item.href || pathname.startsWith(`${item.href}/`),
-        }))}
-      />
+      <div className="bottom-bars vendor-bottom">
+        {arrival && (
+          <div className="vendor-toast">
+            <Snackbar>
+              New order {arrival.pickupCode}: {orderSummary(arrival)}
+            </Snackbar>
+          </div>
+        )}
+        {/* The attendee app's navigation bar (index.css .tab-bar), with the vendor's three destinations. */}
+        <nav className="tab-bar vendor-tab-bar" aria-label="Vendor">
+          <ul className="tab-bar__list" role="list">
+            {NAV.map((item) => {
+              const selected = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <li key={item.href}>
+                  <Link
+                    className={`tab-bar__link${selected ? " is-active" : ""}`}
+                    to={item.href}
+                    aria-current={pathname === item.href ? "page" : undefined}
+                  >
+                    <Icon name={item.icon} filled={selected} />
+                    <span className="tab-bar__label">
+                      <span className="tab-bar__label-text">{item.label}</span>
+                      {item.href === "/vendor/orders" && toPrepare > 0 && (
+                        <span className="tab-bar__badge">
+                          <span aria-hidden="true">{toPrepare}</span>
+                          <span className="visually-hidden">, {toPrepare} confirmed</span>
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </div>
     </div>
   );
 }
