@@ -90,11 +90,56 @@ export function visibleFraction(scroll: ScrollOffset, view: Size, content: Size)
   }
 }
 
+/** A scroll offset held inside the scroll range (0 to `max`), as the browser holds a scroll write. */
+export function clampScroll(scroll: ScrollOffset, max: ScrollOffset): ScrollOffset {
+  return {
+    left: Math.min(max.left, Math.max(0, scroll.left)),
+    top: Math.min(max.top, Math.max(0, scroll.top)),
+  }
+}
+
 /** The scroll offset that centres the viewport on a plan point, held inside the scroll range. */
 export function centredScroll(point: PlanPoint, content: Size, view: Size, max: ScrollOffset): ScrollOffset {
-  const pinned = scrollToPin(point, content, view.width / 2, view.height / 2)
-  return {
-    left: Math.min(max.left, Math.max(0, pinned.left)),
-    top: Math.min(max.top, Math.max(0, pinned.top)),
-  }
+  return clampScroll(scrollToPin(point, content, view.width / 2, view.height / 2), max)
+}
+
+/**
+ * The plan point under a point of the scroller's viewport: the inverse of `scrollToPin`.
+ * Every zoom and pan takes its anchor from here, and pins it back with `scrollToPin`, so a point
+ * read and pinned at the same place does not move (a finger lifting re-bases with no jump).
+ */
+export function planPointAt(scroll: ScrollOffset, content: Size, viewX: number, viewY: number): PlanPoint {
+  return { planX: (scroll.left + viewX) / content.width, planY: (scroll.top + viewY) / content.height }
+}
+
+/**
+ * The scale while two fingers pinch: the scale at the start times how far apart they are now,
+ * held to min..max. Fingers too close for a distance, or a non-finite result, keep `startScale`.
+ */
+export function pinchScale(startScale: number, startDistance: number, distance: number, min: number, max: number): number {
+  const scale = startScale * (distance / startDistance)
+  if (!(startDistance > 0) || !Number.isFinite(scale)) return startScale
+  return Math.min(max, Math.max(min, scale))
+}
+
+/** A finger position at a time (ms), for the flick at the end of a pan. */
+export interface PanSample {
+  t: number
+  x: number
+  y: number
+}
+
+/**
+ * The finger's velocity (px per ms) over the samples of the last `windowMs`, or null when the
+ * release is not a flick: too few samples, a finger that rested before lifting, or slower than `minSpeed`.
+ */
+export function flickVelocity(samples: PanSample[], now: number, windowMs: number, minSpeed: number) {
+  const recent = samples.filter((s) => now - s.t <= windowMs)
+  if (recent.length < 2) return null
+  const first = recent[0]
+  const last = recent[recent.length - 1]
+  const dt = last.t - first.t
+  if (dt <= 0) return null
+  const velocity = { x: (last.x - first.x) / dt, y: (last.y - first.y) / dt }
+  return Math.hypot(velocity.x, velocity.y) >= minSpeed ? velocity : null
 }

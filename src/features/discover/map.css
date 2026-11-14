@@ -97,6 +97,19 @@
   mask-composite: intersect;
 }
 
+/* The map moves only by FloorMap's own scroll writes: pinch, pan, wheel and arrow keys. A native
+   scroll on iOS is driven by the UI process, so a pan or its momentum could land after a zoom frame
+   and move the plan off the fingers or the middle; a hidden overflow is scrolled by script alone.
+   At fit one finger still scrolls the page; zoomed, every touch on the map is the map's. */
+.floor-map .floor-map__scroller {
+  overflow: hidden;
+  touch-action: pan-x pan-y;
+}
+
+.floor-map .floor-map__scroller.is-zoomed {
+  touch-action: none;
+}
+
 /* Every frame of a zoom lays the canvas out at its new width (FloorMap); containment keeps that
    relayout and repaint inside the map. */
 .floor-map__scroller .floor-map__canvas {
