@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import type { Booth, Event, Product } from '../../shared/types'
 import { useOnlineStatus } from '../../shared/live'
-import { addToCart, isOtherBooth, maxQtyFor, useCart } from './cartStore'
+import { addToCart, cartCount, isOtherBooth, limitNote, maxQtyFor, setQty, useCart } from './cartStore'
+import { StepIcon } from './StepIcon'
 
 /** Where focus goes after the next render, because the control that had it was replaced. */
-type FocusTarget = 'question' | 'opener' | 'cartLink'
+type FocusTarget = 'question' | 'opener' | 'cartLink' | 'plus'
 
 const FOCUSABLE = 'button, [href], [tabindex]:not([tabindex="-1"])'
 
@@ -102,8 +103,9 @@ function CardIcon({ kind }: { kind: 'add' | 'added' }) {
  * The order control for one product. On a storefront card ('card', design:
  * StorefrontReserve, StorefrontAdded) it is one compact button: "Add", then a
  * tonal "Added" that adds another, until the limit. In the product sheet
- * ('sheet') it is the full button with a link to the cart. Adding is local to
- * this device and immediate, so there is no "Adding" state to show.
+ * ('sheet') it is one full "Add to cart" button; once the product is in the
+ * cart, a stepper for its line beside a filled "View cart (n)". Adding is local
+ * to this device and immediate, so there is no "Adding" state to show.
  */
 export function AddToCart({
   product,
@@ -125,7 +127,10 @@ export function AddToCart({
   const questionRef = useRef<HTMLHeadingElement>(null)
   const openerRef = useRef<HTMLButtonElement>(null)
   const cartLinkRef = useRef<HTMLAnchorElement>(null)
-  const inCart = cart?.boothId === booth.id ? (cart.items.find((i) => i.productId === product.id)?.qty ?? 0) : 0
+  const plusRef = useRef<HTMLButtonElement>(null)
+  const limitNoteId = useId()
+  const line = cart?.boothId === booth.id ? cart.items.find((i) => i.productId === product.id) : undefined
+  const inCart = line?.qty ?? 0
   const atMax = inCart >= maxQtyFor(product)
   const unavailable = !online || atMax
 
@@ -133,7 +138,7 @@ export function AddToCart({
     const target = pendingFocus.current
     if (!target) return
     pendingFocus.current = null
-    const el = { question: questionRef, opener: openerRef, cartLink: cartLinkRef }[target].current
+    const el = { question: questionRef, opener: openerRef, cartLink: cartLinkRef, plus: plusRef }[target].current
     el?.focus()
   })
 
@@ -219,18 +224,90 @@ export function AddToCart({
     )
   }
 
+  const offlineReason = !online && (
+    <span className="visually-hidden" id={offlineReasonId}>
+      You're offline. Add when you're back online.
+    </span>
+  )
+
+  if (!line) {
+    return (
+      <>
+        <button
+          ref={openerRef}
+          type="button"
+          className="order-button order-button--filled"
+          aria-disabled={!online}
+          aria-describedby={online ? undefined : offlineReasonId}
+          onClick={() => {
+            if (!online) return
+            // The button gives way to the stepper, so the next press is its plus.
+            if (!isOtherBooth(cart, booth.id)) pendingFocus.current = 'plus'
+            onAdd()
+          }}
+        >
+          Add to cart
+        </button>
+        {offlineReason}
+        {dialog}
+        {status}
+      </>
+    )
+  }
+
+  // The reason the plus stops: the booth's per-order limit or the stock left, as the cart line says it.
+  const note = atMax ? limitNote(line) : null
+  const plusReason = [online ? null : offlineReasonId, note ? limitNoteId : null].filter(Boolean).join(' ') || undefined
+  const step = (qty: number) => {
+    if (qty === 0) {
+      pendingFocus.current = 'opener'
+      setQty(product.id, 0)
+      setAnnouncement(`Removed ${product.name}`)
+      return
+    }
+    // One more goes through addToCart, which also takes the product's current limits.
+    if (qty > inCart) addToCart({ eventSlug: event.slug, currency: event.currency, booth, product })
+    else setQty(product.id, qty)
+    setAnnouncement(`${product.name}: ${qty} in cart`)
+  }
+
   return (
     <>
-      <div className="row">
-        <button ref={openerRef} type="button" className="button" aria-disabled={unavailable} onClick={onAdd}>
-          {atMax ? 'Limit reached' : inCart > 0 ? 'Add another' : 'Add to cart'}
-        </button>
-        {inCart > 0 && (
-          <Link ref={cartLinkRef} className="link" to={`/e/${event.slug}/cart`}>
-            {inCart} in cart
-          </Link>
-        )}
+      <div className="sheet-cart">
+        <span className="sheet-cart__stepper" role="group" aria-label={`Quantity of ${product.name}`}>
+          <button
+            type="button"
+            className="stepper__btn"
+            aria-label={inCart === 1 ? `Remove ${product.name}` : `One fewer ${product.name}`}
+            onClick={() => step(inCart - 1)}
+          >
+            {/* At one, this button removes the product from the cart, so it shows the bin. */}
+            <StepIcon kind={inCart === 1 ? 'remove' : 'minus'} />
+          </button>
+          <span className="stepper__qty">{inCart}</span>
+          <button
+            ref={plusRef}
+            type="button"
+            className="stepper__btn"
+            aria-label={`One more ${product.name}`}
+            // aria-disabled instead of disabled, so focus stays on the button when it reaches the limit.
+            aria-disabled={unavailable}
+            aria-describedby={plusReason}
+            onClick={() => !unavailable && step(inCart + 1)}
+          >
+            <StepIcon kind="plus" />
+          </button>
+        </span>
+        <Link ref={cartLinkRef} className="order-button order-button--filled sheet-cart__view" to={`/e/${event.slug}/cart`}>
+          View cart ({cartCount(cart)})
+        </Link>
       </div>
+      {note && (
+        <p className="sheet-cart__note" id={limitNoteId}>
+          {note}
+        </p>
+      )}
+      {offlineReason}
       {dialog}
       {status}
     </>
