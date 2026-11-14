@@ -11,7 +11,7 @@ export async function signInVendor(
   password: string,
 ): Promise<Result<{ boothId: string }, "invalid_credentials">> {
   if (!email || !password) return { ok: false, reason: "invalid_credentials" };
-  return { ok: true, value: { boothId: "booth-a" } };
+  return { ok: true, value: { boothId: "b0000000-0000-0000-0000-00000000000a" } };
 }
 
 export async function signOut(): Promise<void> {}
