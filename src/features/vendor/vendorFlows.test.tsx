@@ -232,8 +232,8 @@ describe("pickup", () => {
     fireEvent.change(await screen.findByLabelText("Pickup code"), { target: { value: "0427" } });
     expect(await screen.findByRole("heading", { name: "Already collected" })).toBeTruthy();
     // The refusal names the order, so its items and total are shown.
-    expect(screen.getByText("2 × Patch")).toBeTruthy();
-    expect(screen.getByText("$36.00", { selector: ".vendor-total span" })).toBeTruthy();
+    expect(screen.getByText("Patch")).toBeTruthy();
+    expect(screen.getByText("$36.00", { selector: ".vendor-items__total span" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Enter another code" }));
 
     api.collectOrder.mockResolvedValueOnce({

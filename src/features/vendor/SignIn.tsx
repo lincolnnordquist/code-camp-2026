@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { signInVendor } from "../../shared/api";
 import { useOnlineStatus } from "../../shared/live";
@@ -22,6 +22,10 @@ export function SignIn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<keyof typeof messages | null>(null);
 
+  useEffect(() => {
+    document.title = "Vendor sign in | DibSpot";
+  }, []);
+
   if (boothState.status === "ready") return <Navigate to="/vendor/orders" replace />;
 
   const submit = async (event: FormEvent) => {
@@ -43,40 +47,48 @@ export function SignIn() {
   };
 
   return (
-    <div className="vendor-app">
-      <main className="vendor-screen vendor-signin">
-        <h1 className="headline-small">Vendor sign in</h1>
-        <p className="body-large">Sign in to see your booth's orders and stock.</p>
-        {error && (
-          <Banner tone="error" icon="error">
-            {messages[error]}
-          </Banner>
-        )}
-        <form className="vendor-form" onSubmit={submit}>
-          <TextField
-            label="Email"
-            type="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {busy ? (
-            <Button variant="vendor" loadingLabel="Signing in" />
-          ) : (
-            <Button variant="vendor" type="submit">
-              Sign in
-            </Button>
+    <div className="vendor-signin">
+      <main className="vendor-signin__main">
+        <p className="vendor-signin__brand">
+          <span className="vendor-wordmark">DibSpot</span>
+          <span className="vendor-bar__kicker">Vendor</span>
+        </p>
+        <div className="vendor-signin__card">
+          <div className="vendor-signin__text">
+            <h1>Vendor sign in</h1>
+            <p>Sign in to see your booth's orders and stock.</p>
+          </div>
+          {error && (
+            <Banner tone="error" icon={error === "offline" || error === "network" ? "wifi_off" : "error"}>
+              {messages[error]}
+            </Banner>
           )}
-        </form>
+          <form className="vendor-form" onSubmit={submit}>
+            <TextField
+              label="Email"
+              type="email"
+              autoComplete="username"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {busy ? (
+              <Button className="vendor-form__submit" loadingLabel="Signing in" />
+            ) : (
+              <Button className="vendor-form__submit" type="submit">
+                Sign in
+              </Button>
+            )}
+          </form>
+        </div>
       </main>
     </div>
   );
