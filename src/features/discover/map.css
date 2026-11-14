@@ -637,6 +637,12 @@
 
 /* Wide screens: the room on the left, the booth's card in a 384 px panel held beside it. */
 @media (min-width: 64rem) {
+  /* Wide enough that the plan draws its booth codes and logos beside the panel. */
+  main:has(> .map-page) {
+    max-width: 1280px;
+    padding-inline: var(--space-24);
+  }
+
   .map-stage__map {
     grid-template-columns: minmax(0, 1fr) 384px;
     align-items: start;

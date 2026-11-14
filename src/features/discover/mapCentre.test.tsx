@@ -47,21 +47,37 @@ const region = () => screen.getByRole('region', { name: /^Floor plan, zoomed to/
 const canvas = () => region().querySelector<HTMLElement>('.floor-map__canvas')!
 /** The layer that carries the zoomed width, with room around the plan while zoomed. */
 const pan = () => region().querySelector<HTMLElement>('.floor-map__pan')!
-const overview = () => document.querySelector('.floor-map__overview')
-
 describe('find on map: centre on booth', () => {
-  it('opens at fit with the booth highlighted and no overview', async () => {
+  it('opens at fit with the booth highlighted', async () => {
     await renderMapPage(`/e/${SLUG}/map?booth=${BOOTH.id}`)
     expect(region().getAttribute('aria-label')).toBe('Floor plan, zoomed to fit')
     expect(screen.getByRole('button', { name: new RegExp(`^Booth ${BOOTH.code},`) }).getAttribute('aria-current')).toBe('location')
-    expect(overview()).toBeNull()
   })
 
-  it('zooms to 2x around the booth, lays the canvas out at that width and says so', async () => {
+  it('"Show the whole room" is off at fit; zooming in turns it on, and it returns the map to fit with the booth still selected', async () => {
     await renderMapPage(`/e/${SLUG}/map?booth=${BOOTH.id}`)
-    const centre = screen.getByRole('button', { name: 'Centre on booth' })
-    centre.focus()
-    fireEvent.click(centre)
+    const whole = screen.getByRole('button', { name: 'Show the whole room' })
+    expect(whole.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    await act(async () => {})
+    expect(region().getAttribute('aria-label')).toBe('Floor plan, zoomed to 150%')
+    expect(whole.getAttribute('aria-disabled')).toBe('false')
+    fireEvent.click(whole)
+    await act(async () => {})
+    expect(region().getAttribute('aria-label')).toBe('Floor plan, zoomed to fit')
+    expect(screen.getByRole('button', { name: new RegExp(`^Booth ${BOOTH.code},`) }).getAttribute('aria-current')).toBe('location')
+  })
+
+  it('a tap on a booth zooms to 2x around it where the card floats over the map, lays the canvas out at that width and says so', async () => {
+    await renderMapPage(`/e/${SLUG}/map`)
+    // jsdom applies no stylesheet, so the card's holder is made to float as it does on a phone.
+    document.querySelector<HTMLElement>('.map-stage__card')!.style.position = 'absolute'
+    const plate = screen.getByRole('button', { name: new RegExp(`^Booth ${BOOTH.code},`) })
+    plate.focus()
+    fireEvent.click(plate)
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    })
     await act(async () => {})
     expect(region().getAttribute('aria-label')).toBe('Floor plan, zoomed to 200%')
     // Committed: the plan laid out at the real width, with the live transform and its layer hint cleared.
@@ -70,28 +86,36 @@ describe('find on map: centre on booth', () => {
     expect(canvas().style.willChange).toBe('')
     const status = screen.getAllByRole('status').map((s) => s.textContent)
     expect(status).toContain(`Map zoomed to 200%, booth ${BOOTH.code} in the middle`)
-    // Focus stays on the action the person pressed; the announcement says what changed.
-    expect(document.activeElement).toBe(centre)
-  })
-
-  it('shows the overview while zoomed, hidden from assistive tech and out of the tab order', async () => {
-    await renderMapPage(`/e/${SLUG}/map?booth=${BOOTH.id}`)
-    fireEvent.click(screen.getByRole('button', { name: 'Centre on booth' }))
-    await act(async () => {})
-    const o = overview()!
-    expect(o).not.toBeNull()
-    expect(o.getAttribute('aria-hidden')).toBe('true')
-    expect(o.hasAttribute('tabindex')).toBe(false)
-    expect(o.querySelector('a, button, input, [tabindex]')).toBeNull()
-    // Back to fit with the 0 key: the overview goes with the zoom.
+    // Focus stays on the plate the person pressed; the announcement says what changed.
+    expect(document.activeElement).toBe(plate)
+    // Back to fit with the 0 key.
     fireEvent.keyDown(region(), { key: '0' })
     await act(async () => {})
     expect(region().getAttribute('aria-label')).toBe('Floor plan, zoomed to fit')
-    expect(overview()).toBeNull()
   })
 
-  it('offers no centre action until a booth is selected', async () => {
+  it('where the card sits beside or under the map, a tap selects the booth and the map keeps its zoom', async () => {
     await renderMapPage(`/e/${SLUG}/map`)
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^Booth ${BOOTH.code},`) }))
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    })
+    expect(region().getAttribute('aria-label')).toBe('Floor plan, zoomed to fit')
+    expect(screen.getByRole('button', { name: new RegExp(`^Booth ${BOOTH.code},`) }).getAttribute('aria-current')).toBe('location')
+  })
+
+  it('a second tap on the selected booth deselects it', async () => {
+    await renderMapPage(`/e/${SLUG}/map?booth=${BOOTH.id}`)
+    const plate = screen.getByRole('button', { name: new RegExp(`^Booth ${BOOTH.code},`) })
+    fireEvent.click(plate)
+    await act(async () => {})
+    expect(plate.getAttribute('aria-current')).toBeNull()
+    expect(screen.getByText('Tap a booth to see who is there.')).toBeTruthy()
+  })
+
+  it('has no recentre button, legend, zoom tip or overview', async () => {
+    await renderMapPage(`/e/${SLUG}/map?booth=${BOOTH.id}`)
     expect(screen.queryByRole('button', { name: 'Centre on booth' })).toBeNull()
+    expect(document.querySelector('.floor-map__legend, .floor-map__hint, .floor-map__overview')).toBeNull()
   })
 })
