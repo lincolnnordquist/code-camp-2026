@@ -51,7 +51,7 @@ export function json(status: number, body: unknown): Response {
 }
 
 export function orderPageUrl(appUrl: string, orderId: string): string {
-  return `${appUrl.replace(/\/+$/, "")}/orders/${orderId}`;
+  return `${appUrl.replace(/\/+$/, "")}/orders/${orderId}?checkout=return`;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

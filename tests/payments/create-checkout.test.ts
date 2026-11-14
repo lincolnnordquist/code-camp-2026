@@ -81,6 +81,7 @@ function setup(options: Setup = {}) {
     },
     getPayment: unused,
     closeCheckout: options.closeCheckout ?? unused,
+    getOrderState: unused,
     getRefund: unused,
     verifyWebhookSignature: unused,
   };
@@ -190,7 +191,7 @@ test("a checkout is created from the server's order and attached to it", async (
     connection: { accessToken: "seller-token", locationId: "LOCATION_A" },
     lineItems: [{ name: "Mug", quantity: 2, unitPriceCents: 1800 }],
     currency: "USD",
-    returnUrl: `https://app.test/orders/${ORDER_ID}`,
+    returnUrl: `https://app.test/orders/${ORDER_ID}?checkout=return`,
     buyerEmail: "attendee@squareup.com",
     idempotencyKey: ORDER_ID,
   }]);

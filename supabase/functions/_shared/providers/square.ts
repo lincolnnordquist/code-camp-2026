@@ -1,4 +1,5 @@
 import {
+  type OrderState,
   type PaymentProvider,
   type PaymentStatus,
   ProviderError,
@@ -22,6 +23,13 @@ const PAYMENT_STATUSES: Record<string, PaymentStatus | undefined> = {
   FAILED: "failed",
 };
 
+const ORDER_STATES: Record<string, OrderState | undefined> = {
+  DRAFT: "draft",
+  OPEN: "open",
+  COMPLETED: "completed",
+  CANCELED: "cancelled",
+};
+
 const REFUND_STATUSES: Record<string, RefundStatus | undefined> = {
   PENDING: "pending",
   COMPLETED: "completed",
@@ -37,7 +45,9 @@ type PaymentLinkReply = {
   payment_link?: { id?: string; url?: string; order_id?: string };
 };
 
-type OrderReply = { order?: { tenders?: { payment_id?: string }[] } };
+type OrderReply = {
+  order?: { state?: string; tenders?: { payment_id?: string }[] };
+};
 
 type PaymentReply = {
   payment?: {
@@ -199,6 +209,17 @@ export function createSquareProvider(
         }`,
       );
       return reply.cancelled_order_id ?? null;
+    },
+
+    async getOrderState(connection, providerOrderId) {
+      const { order } = await request<OrderReply>(
+        connection,
+        "GET",
+        `/v2/orders/${encodeURIComponent(providerOrderId)}`,
+      );
+      const state = ORDER_STATES[order?.state ?? ""];
+      if (!state) throw unexpectedReply("order state");
+      return state;
     },
 
     async getRefund(connection, refundId) {

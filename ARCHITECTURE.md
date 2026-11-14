@@ -150,7 +150,7 @@ Product photos and vendor logos and banners are files in the public Supabase Sto
 Two steps run every minute, scheduled in the database with `pg_cron`.
 
 - **Reservations:** a database job marks overdue reservations as `expired` and returns their stock in the same transaction.
-- **Unfinished checkouts:** the Edge Function `expire-checkouts` handles overdue `pending_payment` orders, because closing a checkout needs a call to Square. It looks the payment up, and confirms the order if the payment completed. Otherwise it deletes the Square checkout link. If Square's reply names the stored provider order as cancelled, the function marks the order `expired` and returns the stock. If the reply names no cancelled order, the order was paid in the meantime, and the function verifies the payment instead.
+- **Unfinished checkouts:** the Edge Function `expire-checkouts` handles overdue `pending_payment` orders, because closing a checkout needs a call to Square. An order with a completed payment is never expired; confirming it needs `svc_confirm_paid_order`, which is not built. An order whose payment is still in progress is left for the next run. For any other order, the function deletes the Square checkout link. The order becomes `expired` and its stock returns once Square shows its order cancelled. The delete reply names that order, or, when an earlier run already deleted the link, the Square order reads `CANCELED`.
 
 Stock is released after the link is closed, so a released item cannot be paid for afterwards. The scheduled call to `expire-checkouts` is made with `pg_net`, using a key kept in Supabase Vault.
 
@@ -285,6 +285,7 @@ Each row is a choice for the 24-hour build, with the path a commercial version w
 | Merchant connection | Seeded vendors and seeded Square sandbox sellers, until the Setup phase | Self-service Square authorization and connection management (planned: see "Accounts, invitations, and setup") |
 | Refunds | The vendor refunds in Square; the app shows refund due, then refunded | Refunds issued through the provider, with reconciliation |
 | Payment verification | Refunds are not read. A payment refunded in Square before its order is confirmed still confirms the order | Verification that reads the refunded amount, including partial refunds |
+| Unmatched payments | A completed payment that does not match its order's amount, currency, seller, or Square order leaves the order `pending_payment` with its stock held. The vendor resolves it in Square | Reading every tender of a split payment, and a review list for payments that do not match |
 | Attendee access | Orders stay with one browser, plus an emailed link per order | Optional accounts and order recovery across devices |
 | Hold expiry | One hold length per event | Per-vendor windows, reminders, and no-show rules |
 | Pickup | A typed code | Scanning, pickup capacity, and express stations |

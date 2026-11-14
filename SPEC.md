@@ -121,7 +121,8 @@ FR-13: Confirmations that arrive twice, late, or out of order confirm the order 
 FR-14: When a `pending_payment` order reaches its hold end, the server looks the payment up in Square once more. Outcomes:
 
 - Payment completed: the order becomes `confirmed`, as in FR-12.
-- No completed payment: the server deletes the Square checkout link. When Square confirms that it cancelled the order, the order becomes `expired` and its stock returns. When Square does not confirm it, the order was paid in the meantime, and the server verifies the payment as in FR-12.
+- Payment in progress: the order stays `pending_payment` and is checked again later.
+- No completed payment: the server deletes the Square checkout link. The order becomes `expired` and its stock returns once Square shows the order behind the link as cancelled. A payment that completes while the link is deleted is handled as in the first outcome.
 
 A paid order never expires.
 
