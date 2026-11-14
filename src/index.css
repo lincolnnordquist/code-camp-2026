@@ -791,6 +791,22 @@ main.main--under-header {
   }
 }
 
+/* On a wide screen the attendee tab bar floats: a centred pill above the bottom edge, with the page
+   scrolling past on both sides. The vendor app keeps its full-width bar. */
+@media (min-width: 600px) {
+  .tab-bar:not(.vendor-tab-bar) {
+    width: fit-content;
+    margin: 0 auto calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
+    border-radius: var(--radius-full);
+    box-shadow: var(--elevation-3);
+  }
+
+  .tab-bar:not(.vendor-tab-bar) .tab-bar__list {
+    padding: var(--space-8);
+  }
+}
+
 /* The aisle sign: a sharp-cornered dark plate with tall condensed lettering.
    Used for every booth code. Interactive plates keep the 44 px target. */
 .booth-plate {
@@ -1048,8 +1064,10 @@ main h1 {
     .category-tile,
     .result__main,
     .directory__row,
-    .wallet-stub,
-    .past-order,
+    .wallet-pass__code-card,
+    .ended-order,
+    .haul-tile__add,
+    .store-card,
     .active-order,
     .plate-link,
     .stepper__btn:not([aria-disabled='true']),
@@ -1075,8 +1093,10 @@ main h1 {
       .category-tile,
       .result__main,
       .directory__row,
-      .wallet-stub,
-      .past-order,
+      .wallet-pass__code-card,
+      .ended-order,
+      .haul-tile__add,
+      .store-card,
       .active-order,
       .plate-link,
       .stepper__btn:not([aria-disabled='true']),
@@ -1099,8 +1119,10 @@ main h1 {
       .category-tile,
       .result__main,
       .directory__row,
-      .wallet-stub,
-      .past-order,
+      .wallet-pass__code-card,
+      .ended-order,
+      .haul-tile__add,
+      .store-card,
       .active-order,
       .plate-link,
       .stepper__btn:not([aria-disabled='true']),

@@ -12,3 +12,8 @@ export function stockState(availableQty: number): StockState {
   if (availableQty <= LOW_STOCK_QTY) return { tone: 'warning', label: `Only ${availableQty} left` }
   return null
 }
+
+/** Sold-out products moved to the end; the rest keep their order. */
+export function soldOutLast<T extends { availableQty: number }>(products: T[]): T[] {
+  return [...products].sort((a, b) => Number(a.availableQty <= 0) - Number(b.availableQty <= 0))
+}

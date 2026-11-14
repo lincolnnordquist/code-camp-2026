@@ -1,0 +1,107 @@
+/* Travels with EventBanner.tsx. EventBanner.tsx sets --collapse from 0 at the top of the page to 1
+   after 72 px of scroll; the phone banner's height, overlay, name size and venue follow it. */
+.event-banner {
+  --collapse: 0;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  /* Over the shell's header, whose compact title row would otherwise sit on the banner. */
+  z-index: 11;
+  height: calc(var(--app-safe-top, 0px) + 168px - 72px * var(--collapse));
+  overflow: hidden;
+  background: var(--primary-900);
+  color: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / calc(0.25 * var(--collapse)));
+}
+
+/* Keeps the page's content below the banner, which is out of the flow on a phone. */
+.event-banner__space {
+  height: 168px;
+  margin-top: calc(-1 * var(--space-8));
+}
+
+.event-banner__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / calc(0.4 + 0.35 * var(--collapse)));
+  pointer-events: none;
+}
+
+.event-banner__content {
+  position: absolute;
+  right: var(--space-16);
+  bottom: var(--space-12);
+  left: var(--space-16);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-12);
+}
+
+.event-banner__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.event-banner__name {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: calc(28px - 10px * var(--collapse));
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-banner__venue {
+  max-height: calc(20px * (1 - var(--collapse)));
+  margin: 0;
+  overflow: hidden;
+  font: var(--type-body-medium);
+  opacity: max(0, calc(1 - 2 * var(--collapse)));
+}
+
+/* The offline notice stays readable over the pinned banner. */
+:root:has(.event-banner) .offline-banner {
+  z-index: 12;
+}
+
+@media (min-width: 40rem) {
+  .event-banner {
+    position: relative;
+    z-index: auto;
+    height: 200px;
+    margin-top: var(--space-8);
+    border-radius: var(--radius-lg);
+    box-shadow: none;
+  }
+
+  .event-banner__space {
+    display: none;
+  }
+
+  .event-banner__scrim {
+    background: rgb(0 0 0 / 0.4);
+  }
+
+  .event-banner__content {
+    right: var(--space-24);
+    bottom: var(--space-24);
+    left: var(--space-24);
+  }
+
+  .event-banner__name {
+    font-size: 36px;
+    line-height: 44px;
+  }
+
+  .event-banner__venue {
+    max-height: none;
+    font: var(--type-body-large);
+    opacity: 1;
+  }
+}

@@ -1,51 +1,38 @@
 import { Skeleton, SkeletonGroup } from '../../shell/Skeleton'
 
-const PASS_COUNT = 2
+const BACK_STRIP_COUNT = 2
 const PAST_ROW_COUNT = 3
 const ITEM_ROW_COUNT = 2
 const STEP_COUNT = 3
 
-/** The wallet on its way, in the rows' own shape: heading and Refresh, two open orders, then past orders. */
+/** The wallet on its way, in its own shape: heading and Refresh, two pass strips over a front pass, then the history rows. */
 export function MyOrdersSkeleton() {
   return (
     <SkeletonGroup label="Loading your orders..." className="my-orders">
       <div className="my-orders__head" aria-hidden="true">
-        <Skeleton width="55%" height={36} />
-        <Skeleton shape="pill" width={104} height={40} />
+        <Skeleton width="40%" height={36} />
+        <Skeleton shape="pill" width={48} height={48} />
       </div>
-      <ul className="wallet" aria-hidden="true">
-        {Array.from({ length: PASS_COUNT }, (_, i) => (
-          <li key={i} className="wallet-stub">
-            <span className="wallet-stub__top">
-              <Skeleton shape="circle" width={40} height={40} className="wallet-stub__plate" />
-              <Skeleton width="70%" height={20} className="wallet-stub__vendor" />
-              <Skeleton width="55%" height={14} className="order-skeleton__gap wallet-stub__summary" />
-              <Skeleton shape="pill" width={88} height={24} className="wallet-stub__pill" />
+      <div className="orders-layout orders-layout--with-wallet" aria-hidden="true">
+        <div className="wallet-stack" style={{ height: BACK_STRIP_COUNT * 56 + 290 }}>
+          {Array.from({ length: BACK_STRIP_COUNT + 1 }, (_, i) => (
+            <span key={i} className="wallet-stack__placeholder" style={{ top: i * 56, height: i === BACK_STRIP_COUNT ? 290 : 76 }}>
+              <Skeleton shape="card" width="100%" height="100%" />
             </span>
-            <span className="wallet-stub__bottom">
-              <span className="wallet-stub__code-block">
-                <Skeleton width="30%" height={14} />
-                <Skeleton width="40%" height={24} className="order-skeleton__code" />
-              </span>
-              <Skeleton shape="plate" width={48} height={48} />
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="past-orders" aria-hidden="true">
-        <Skeleton width="30%" height={20} />
-        <ul className="past-orders__list">
-          {Array.from({ length: PAST_ROW_COUNT }, (_, i) => (
-            <li key={i}>
-              <span className="past-order">
-                <Skeleton shape="circle" width={40} height={40} className="wallet-stub__plate" />
-                <Skeleton width="60%" height={20} className="past-order__name" />
-                <Skeleton width="45%" height={14} className="order-skeleton__gap past-order__meta" />
-                <Skeleton shape="pill" width={80} height={24} className="past-order__badge" />
-              </span>
-            </li>
           ))}
-        </ul>
+        </div>
+        <div className="orders-layout__side">
+          <div className="orders-section">
+            <Skeleton width="35%" height={28} />
+            <ul className="ended-orders">
+              {Array.from({ length: PAST_ROW_COUNT }, (_, i) => (
+                <li key={i}>
+                  <Skeleton shape="card" width="100%" height={80} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </SkeletonGroup>
   )

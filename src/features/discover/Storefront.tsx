@@ -11,7 +11,7 @@ import { useProductSheetLink } from './productSheetLink'
 import { SavedCopyNote } from './SavedCopyNote'
 import { storefrontShareUrl } from './share'
 import { ShareButton, ShareIcon } from './ShareButton'
-import { StockBadge } from './StockBadge'
+import { StockLine } from './StockLine'
 import { stockState } from './stockState'
 import { CatalogError } from './CatalogError'
 import { useCatalog } from './useCatalog'
@@ -274,18 +274,12 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
                       <span>{product.description}</span>
                     </span>
                   )}
-                  <span className="product-card__row">
-                    <span className="product-card__price">
-                      <span className="visually-hidden">, </span>
-                      {formatMoney(product.priceCents, catalog.event.currency)}
-                    </span>
-                    {stockState(product.availableQty) && (
-                      <>
-                        <span className="visually-hidden">, </span>
-                        <StockBadge qty={product.availableQty} />
-                      </>
-                    )}
+                  <span className="product-card__price">
+                    <span className="visually-hidden">, </span>
+                    {formatMoney(product.priceCents, catalog.event.currency)}
                   </span>
+                  {stockState(product.availableQty) && <span className="visually-hidden">, </span>}
+                  <StockLine qty={product.availableQty} reserve />
                 </span>
               </Link>
               {/* FR-05: ordering only where the booth takes orders, it is not paused, and stock is left. */}

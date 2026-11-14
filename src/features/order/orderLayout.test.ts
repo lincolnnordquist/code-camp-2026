@@ -11,8 +11,12 @@ describe('order layout at narrow widths and short heights', () => {
     expect(css).toMatch(/\.order-pass \.order-vendor__name \{\n {2}overflow-wrap: break-word;/)
   })
 
-  it('a narrow wallet row drops its badge under the summary', () => {
-    expect(css).toMatch(/@container \(max-width: 300px\) \{\n {2}\.past-order \{/)
+  it('the wallet sits beside the rest only when there is room for its 400 px column', () => {
+    expect(css).toMatch(/@media \(min-width: 48rem\) \{\n {2}\.orders-layout--with-wallet \{\n {4}display: grid;\n {4}grid-template-columns: minmax\(0, 400px\) minmax\(0, 1fr\);/)
+  })
+
+  it('the passes change place at once under reduced motion', () => {
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\n {2}\.wallet-stack,\n {2}\.wallet-pass \{\n {4}transition: none;/)
   })
 
   it('pickup mode has a compact pass on short phones and a sideways pass in landscape', () => {

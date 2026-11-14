@@ -163,27 +163,25 @@ describe('pickup mode opens only for an order with a code to hand over', () => {
     expect(screen.queryByRole('button', { name: /show code at booth/i })).toBeNull()
   })
 
-  it('the wallet offers it on confirmed and ready passes only, ready first, each pass one button named for its booth', async () => {
+  it('the wallet offers it from the front pass only, ready in front, and a pass behind comes forward when tapped', async () => {
     api.listMyOrders.mockResolvedValue([...threeOpen().slice(0, 2), order({ id: 'p', type: 'prepaid', status: 'pending_payment', boothId: 'b4', boothCode: 'D4', boothName: 'Fourth' })])
     await renderWallet()
     await screen.findByText('AAA111')
-    const buttons = screen.getAllByRole('button', { name: /^Show at booth/ })
-    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual([
-      'Show at booth: Second, Booth B2, Ready, 1 item, $8.00, pickup code B B B 2 2 2',
-      'Show at booth: First, Booth A1, Confirmed, 1 item, $8.00, pickup code A A A 1 1 1',
-    ])
-    // The whole pass is the button: its code and QR thumbnail are inside it.
-    expect(buttons[0].textContent).toContain('BBB222')
-    expect(buttons[0].querySelector('.wallet-stub__qr')).not.toBeNull()
-    // The pending payment links to its order page, with no code and no QR.
-    const pending = screen.getByRole('link', {
-      name: 'Fourth, Booth D4, Pending payment, 1 item, $8.00. Your pickup code appears once payment is confirmed.',
+    // Ready is the most urgent, so it starts in front; the code card is its one way into pickup mode.
+    const front = screen.getByRole('group', { name: 'Second, Booth B2, Ready for pickup' })
+    const show = within(front).getByRole('button', { name: 'Show at booth: pickup code B B B 2 2 2' })
+    expect(show.textContent).toContain('BBB222')
+    expect(show.querySelector('.wallet-pass__qr')).not.toBeNull()
+    expect(screen.getAllByRole('button', { name: /^Show at booth/ })).toEqual([show])
+    // The passes behind show their strip and come forward when tapped.
+    fireEvent.click(screen.getByRole('button', { name: 'Fourth, Pending payment. Show this order' }))
+    const pending = within(screen.getByRole('group', { name: 'Fourth, Booth D4, Waiting for payment' })).getByRole('link', {
+      name: 'Your pickup code appears once payment is confirmed.',
     })
     expect(pending.getAttribute('href')).toBe('/orders/p')
-    expect(pending.textContent).not.toContain(order().pickupCode)
-    expect(pending.querySelector('img')).toBeNull()
-    // No separate full-width button under each pass any more.
-    expect(screen.queryAllByRole('button', { name: /^Show at booth$/ })).toHaveLength(0)
+    expect(screen.queryAllByRole('button', { name: /^Show at booth/ })).toHaveLength(0)
+    fireEvent.click(screen.getByRole('button', { name: 'First, Confirmed. Show this order' }))
+    expect(screen.getByRole('button', { name: 'Show at booth: pickup code A A A 1 1 1' })).toBeTruthy()
   })
 
   it('a saved copy past its hold offers no pickup mode while the refresh is pending', async () => {
@@ -362,8 +360,9 @@ describe('pickup mode pages through the wallet', () => {
     api.listMyOrders.mockResolvedValue(threeOpen())
     await renderWallet()
     await screen.findByText('AAA111')
-    // Ready sorts first, so the wallet (and the pager) runs Second, First, Third.
-    const opener = screen.getByRole('button', { name: /^Show at booth: First, Booth A1,/ })
+    // Ready sorts first, so the pager runs Second, First, Third; First comes forward to be opened.
+    fireEvent.click(screen.getByRole('button', { name: 'First, Confirmed. Show this order' }))
+    const opener = screen.getByRole('button', { name: 'Show at booth: pickup code A A A 1 1 1' })
     fireEvent.click(opener)
     expect(screen.getByRole('img', { name: 'Order 2 of 3' })).toBeTruthy()
     expect(screen.getByRole('dialog', { name: 'First, Booth A1' })).toBeTruthy()
@@ -397,7 +396,8 @@ describe('pickup mode pages through the wallet', () => {
   it('from the wallet, each order links to its page, since the pass itself opens this view', async () => {
     api.listMyOrders.mockResolvedValue(threeOpen())
     await renderWallet()
-    fireEvent.click(await screen.findByRole('button', { name: /^Show at booth: First,/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'First, Confirmed. Show this order' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Show at booth: pickup code A A A 1 1 1' }))
     expect(inView().getByRole('link', { name: 'Order details: First' }).getAttribute('href')).toBe('/orders/o1')
   })
 

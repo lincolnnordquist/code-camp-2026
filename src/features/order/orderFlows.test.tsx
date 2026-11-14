@@ -918,12 +918,12 @@ describe('saved copy is provisional until the server confirms it (FR-26)', () =>
     saveCache([order({ holdEndsAt: PAST })])
     api.listMyOrders.mockReturnValue(never())
     await renderWallet()
-    expect(screen.getByText('Confirmed')).toBeTruthy()
     expect(screen.queryByText('ABC234')).toBeNull()
     // The pass links to the order page instead of opening pickup mode, and says why there is no code.
     expect(screen.queryByRole('button', { name: /^Show at booth/ })).toBeNull()
-    const pass = await screen.findByRole('link', { name: /^Vendor, Booth A1, Confirmed, .*Checking the latest status\.$/ })
-    expect(pass.querySelector('img')).toBeNull()
+    const link = await screen.findByRole('link', { name: 'Checking the latest status.' })
+    expect(link.getAttribute('href')).toBe('/orders/o1')
+    expect(document.querySelector('.wallet-pass__qr')).toBeNull()
   })
 })
 
@@ -974,7 +974,8 @@ describe('one wallet reader for the list and the badge', () => {
     api.listMyOrders.mockRejectedValue(new Error('offline'))
     await renderWallet()
     expect(screen.getByText(', 2 open')).toBeTruthy()
-    expect(screen.getByRole('list', { name: 'Open orders' }).children).toHaveLength(2)
+    expect(screen.getByText('2 open')).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Open orders' }).querySelectorAll('.wallet-pass')).toHaveLength(2)
     expect(screen.getByText(/showing saved orders/i)).toBeTruthy()
   })
 
@@ -1387,7 +1388,7 @@ describe('accessibility review (order side)', () => {
     api.listMyOrders.mockResolvedValue([order()])
     await renderWallet()
     expect(await screen.findByRole('heading', { level: 2, name: 'Open orders' })).toBeTruthy()
-    expect(screen.getByRole('list', { name: 'Open orders' })).toBeTruthy()
+    expect(within(screen.getByRole('region', { name: 'Open orders' })).getByRole('group', { name: /^Vendor, Booth A1/ })).toBeTruthy()
   })
 })
 
@@ -1615,7 +1616,7 @@ describe('order refusals from the database rule (place_order)', () => {
 })
 
 describe('copy for ended and unpaid orders (D9, D12)', () => {
-  it('past orders show the refund status: the badge names the refund and the row name keeps Cancelled', async () => {
+  it('orders not collected show the refund status under the cancel, the refund line in the warning tone', async () => {
     api.listMyOrders.mockResolvedValue([
       order({ id: 'a', type: 'prepaid', status: 'cancelled', refundStatus: 'due' }),
       order({ id: 'b', type: 'prepaid', status: 'cancelled', refundStatus: 'refunded', boothId: 'b2', boothCode: 'B2', boothName: 'Second' }),
@@ -1623,16 +1624,9 @@ describe('copy for ended and unpaid orders (D9, D12)', () => {
     ])
     await renderWallet()
     const rows = await screen.findAllByRole('link', { name: /Cancelled/ })
-    expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual([
-      expect.stringMatching(/Cancelled, refund due$/),
-      expect.stringMatching(/Cancelled, refunded$/),
-      expect.stringMatching(/Cancelled$/),
-    ])
-    // Short enough to sit beside the vendor name at 390 (QA edge 10); the refund implies the cancel.
-    expect(rows.map((r) => r.querySelector('.past-order__badge')?.textContent)).toEqual(['Refund due', 'Refunded', 'Cancelled'])
-    // Owed money is the one past-order detail the attendee may need to act on, so its pill is the warning tone.
-    expect(rows[0].querySelector('.wallet-badge--refund_due')).not.toBeNull()
-    expect(rows[1].querySelector('.wallet-badge--refund_due')).toBeNull()
+    expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual(['Vendor, Cancelled, Refund due', 'Second, Cancelled, Refunded', 'Third, Cancelled'])
+    expect(rows.map((r) => r.getAttribute('href'))).toEqual(['/orders/a', '/orders/b', '/orders/c'])
+    expect(rows.map((r) => r.querySelector('.ended-order__refund')?.textContent ?? null)).toEqual(['Refund due', 'Refunded', null])
   })
 
   it('an expired prepaid order says it was never charged; an expired reservation keeps its own copy', async () => {
