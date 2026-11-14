@@ -15,6 +15,7 @@ import {
   boothFromRow,
   eventFromRow,
   orderFromPayload,
+  PRODUCT_COLUMNS,
   productFromRow,
   type BoothRow,
   type EventRow,
@@ -103,9 +104,7 @@ export async function getMyBooth(): Promise<
   const products = check(
     await supabase
       .from("products")
-      .select(
-        "id, booth_id, name, category, description, image_path, price_cents, available_qty, max_per_order",
-      )
+      .select(PRODUCT_COLUMNS)
       .eq("booth_id", boothId)
       .order("name")
       .returns<ProductRow[]>(),

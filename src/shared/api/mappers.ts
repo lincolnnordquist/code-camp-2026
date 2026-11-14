@@ -30,6 +30,7 @@ export type OrderPayload = {
   collectedAt: string | null;
   cancelReason: string | null;
   refundStatus: OrderRefundStatus;
+  refundedCents: number;
   items: OrderItem[];
 };
 
@@ -51,6 +52,7 @@ export function orderFromPayload(payload: OrderPayload): Order {
     collectedAt: payload.collectedAt,
     cancelReason: payload.cancelReason,
     refundStatus: payload.refundStatus,
+    refundedCents: payload.refundedCents,
   };
 }
 
@@ -71,6 +73,7 @@ export type OrderRow = {
   collected_at: string | null;
   cancel_reason: string | null;
   refund_status: OrderRefundStatus;
+  refunded_cents: number;
 };
 
 // A row of order_items.
@@ -108,6 +111,7 @@ export function orderFromRow(row: OrderRow, items: ItemRow[]): Order {
     collectedAt: row.collected_at,
     cancelReason: row.cancel_reason,
     refundStatus: row.refund_status,
+    refundedCents: row.refunded_cents,
   };
 }
 
@@ -164,6 +168,10 @@ export function boothFromRow(row: BoothRow): Booth {
     pickupInstructions: row.pickup_instructions,
   };
 }
+
+// The product columns every read asks for, in one place so two reads cannot drift apart.
+export const PRODUCT_COLUMNS =
+  "id, booth_id, name, category, description, image_path, image_paths, price_cents, available_qty, max_per_order";
 
 export type ProductRow = {
   id: string;

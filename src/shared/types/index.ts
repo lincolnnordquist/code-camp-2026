@@ -86,6 +86,8 @@ export type Order = {
   collectedAt: string | null;
   cancelReason: string | null;
   refundStatus: OrderRefundStatus;
+  // How much has gone back to the attendee, in cents. A partial refund still counts as refunded.
+  refundedCents: number;
 };
 
 export type CartItem = {

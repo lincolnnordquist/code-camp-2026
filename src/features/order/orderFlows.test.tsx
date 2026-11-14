@@ -45,6 +45,7 @@ const order = (overrides: Partial<Order> = {}): Order & { eventSlug: string } =>
   collectedAt: null,
   cancelReason: null,
   refundStatus: 'none',
+  refundedCents: 0,
   eventSlug: 'ev',
   items: [{ productId: 'p', name: 'Patch', quantity: 1, unitPriceCents: 800 }],
   ...overrides,

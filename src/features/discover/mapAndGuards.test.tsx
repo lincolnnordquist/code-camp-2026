@@ -479,6 +479,7 @@ describe('ActiveOrders pickup codes', () => {
     holdEndsAt: null,
     cancelReason: null,
     refundStatus: 'none',
+    refundedCents: 0,
     createdAt: '2026-11-13T10:00:00Z',
     boothId: 'b',
     eventId: 'ev',

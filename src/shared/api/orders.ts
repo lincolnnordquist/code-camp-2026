@@ -6,7 +6,7 @@ import { check } from "./errors";
 import { orderFromRow, type ItemRow, type OrderRow } from "./mappers";
 
 const ORDER_COLUMNS =
-  "id, booth_id, event_id, booth_code, booth_name, type, status, total_cents, currency, pickup_code, hold_ends_at, created_at, collected_at, cancel_reason, refund_status";
+  "id, booth_id, event_id, booth_code, booth_name, type, status, total_cents, currency, pickup_code, hold_ends_at, created_at, collected_at, cancel_reason, refund_status, refunded_cents";
 
 async function withItems(rows: OrderRow[]): Promise<Order[]> {
   if (rows.length === 0) return [];
