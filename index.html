@@ -2,11 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- The top app bar is light (the page tone), so the status bar keeps its default dark text. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Con Guide" />
+    <!-- --page (neutral-50), the top app bar at rest. -->
+    <meta name="theme-color" content="#F7F5FE" />
+    <!-- No font preloads: WebKit fetches same-origin @font-face files in no-cors mode, so a
+         crossorigin preload is never reused there and every face downloads twice, while Chromium
+         fetches them with CORS and so never reuses a preload without it. src/fonts.css alone gives
+         one request per face in both (measured cold: WebKit starts it as early as with a preload,
+         Chromium about 25 ms later). -->
     <title>Event Commerce Platform</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@500;700&family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Gabarito:wght@600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

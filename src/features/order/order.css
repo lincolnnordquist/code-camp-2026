@@ -1,0 +1,2531 @@
+/* The storefront card's order button (design: StorefrontReserve, StorefrontAdded): the button is
+   the 48 px target and the 40 px pill inside it is what shows, filled "Add", then tonal "Added". */
+.add-card {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--on-action);
+  font: var(--type-button-small);
+  cursor: pointer;
+}
+
+.add-card__pill {
+  position: relative;
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  height: 40px;
+  padding: 0 var(--space-16);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--action);
+  color: var(--on-action);
+}
+
+.add-card__pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hover only where a pointer can rest: touch keeps :hover after a tap (iOS), which tinted cards it never touched. */
+@media (hover: hover) and (pointer: fine) {
+  .add-card:not([aria-disabled='true']):hover .add-card__pill::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.add-card:not([aria-disabled='true']):active .add-card__pill::after {
+  opacity: var(--state-pressed);
+}
+
+/* The focus ring goes round the pill people see, not the larger target. */
+.add-card:focus-visible {
+  outline: none;
+}
+
+.add-card:focus-visible .add-card__pill {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.add-card--added .add-card__pill {
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+}
+
+.add-card[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+.add-card[aria-disabled='true'] .add-card__pill {
+  background: var(--disabled);
+  color: var(--text-secondary);
+}
+
+/* The replace-cart question: a Material basic dialog (radius 28, card tone, elevation 3) over a
+   scrim, as in design/app-mockups/project/CartReplace.dc.html. */
+.replace-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-24);
+  color-scheme: light;
+  color: var(--text);
+}
+
+.replace-dialog__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.32);
+}
+
+.replace-dialog__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  width: 100%;
+  max-width: 35rem;
+  padding: var(--space-24);
+  box-sizing: border-box;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  box-shadow: var(--elevation-3);
+}
+
+.replace-dialog__panel h2 {
+  margin: 0;
+  font: var(--type-headline-small);
+  letter-spacing: -0.01em;
+}
+
+.replace-dialog__panel p {
+  margin: 0;
+  font: var(--type-body-medium);
+}
+
+.replace-dialog__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8);
+  padding-top: var(--space-8);
+}
+
+/* Text buttons: 40 high as drawn, inside a 48 target. */
+.replace-dialog__button {
+  position: relative;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-12);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  cursor: pointer;
+}
+
+.replace-dialog__button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .replace-dialog__button:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.replace-dialog__button:active::after {
+  opacity: var(--state-pressed);
+}
+
+/* The QR frame sets the size; the image inside is drawn at the device pixel ratio. */
+.pickup__qr {
+  width: 220px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.pickup-qr__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Module edges stay hard if the browser ever has to scale the image. */
+  image-rendering: pixelated;
+  /* No save-image menu on a long press at the booth. */
+  -webkit-touch-callout: none;
+}
+
+/* The order page in the team design system (src/shared/ui/tokens.css and the
+   mockups in design/order-page): light only, cards told from the page by tone, violet for
+   action, green, amber, red and blue for status only. */
+.order {
+  /* The three names the design system shares with the shell, set to their design-system values
+     for this screen only (as the event home does). The display-face roles are restated so they
+     resolve against Gabarito here. --space-4 keeps the shell's value; the 4px step is written as 4px. */
+  --font-display: Gabarito, sans-serif;
+  --text: var(--neutral-950);
+  --type-headline-medium: 800 28px/36px var(--font-display);
+  --type-title-large: 700 22px/28px var(--font-display);
+  --type-title-medium: 600 16px/24px var(--font-display);
+  --type-label-large: 600 14px/20px var(--font-display);
+  --type-button-medium: 700 16px/24px var(--font-display);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  /* The design is drawn at 360; a wider window gets the order screens' one 40rem column, centred
+     (wallet, cart, checkout and this page alike). */
+  max-width: 40rem;
+  margin: 0 auto;
+  padding-bottom: var(--space-24);
+  color-scheme: light;
+  color: var(--neutral-950);
+  font: var(--type-body-large);
+}
+
+.order p,
+.order h1,
+.order h2,
+.order dl,
+.order dd {
+  margin: 0;
+}
+
+.order-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--space-8);
+  max-width: 40rem;
+  margin: 0 auto var(--space-16);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.order-note p {
+  margin: 0;
+}
+
+/* An icon button (48 round): the pull gesture does the same, so it stays quiet. */
+.order-note__retry {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin-right: calc(var(--space-12) * -1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.order-note__retry[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+.retry-icon.is-spinning {
+  animation: wallet-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retry-icon.is-spinning {
+    animation: none;
+  }
+}
+
+.screen-state .order-invalid__actions {
+  max-width: 30rem;
+  margin: var(--space-16) auto 0;
+}
+
+/* Refund banner: 56 high, radius 12, warning while owed and neutral once refunded. */
+.order-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 56px;
+  padding: var(--space-8) var(--space-16);
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
+  background: var(--neutral-200);
+  color: var(--neutral-800);
+  font: var(--type-body-medium);
+}
+
+.order-banner svg {
+  flex: none;
+}
+
+.order-banner strong {
+  font-weight: 600;
+}
+
+.order-banner--due {
+  background: var(--warning-100);
+  color: var(--warning-900);
+}
+
+.order-vendor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--touch-target);
+}
+
+.order-vendor__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.order-vendor__name {
+  overflow-wrap: anywhere;
+  font: var(--type-title-medium);
+  letter-spacing: 0;
+}
+
+.order-vendor__booth {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.order-vendor__map {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  justify-content: center;
+  padding: 0 var(--space-12);
+  /* Its text, not its padding, meets the content edge. */
+  margin-right: calc(var(--space-12) * -1);
+  border-radius: var(--radius-full);
+  color: var(--primary-700);
+  font: 700 14px/20px var(--font-display);
+  text-decoration: none;
+}
+
+.order-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.order-status__headline {
+  overflow-wrap: anywhere;
+  font: var(--type-headline-medium);
+  letter-spacing: -0.02em;
+}
+
+.order-status__line {
+  font: var(--type-body-large);
+}
+
+/* Three steps: blue while confirmed, green once ready, neutral once collected; upcoming steps grey.
+   A live tracker (order-steps--live): the current step's marker breathes and a shimmer runs along
+   the next step's bar; reaching a step fills its bar and pops its marker (order-steps--arrived).
+   Only transform and opacity animate. */
+.order-steps {
+  /* A finished order fills in the action colour; in progress steps keep their status colour. */
+  --step-color: var(--action);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-secondary);
+  font: var(--type-label-medium);
+}
+
+.order-steps--confirmed {
+  --step-color: var(--info-600);
+}
+
+.order-steps--ready {
+  --step-color: var(--success-600);
+}
+
+.order-steps li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.order-steps .is-current {
+  color: var(--neutral-950);
+  font-weight: 700;
+}
+
+.order-steps__bar {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--neutral-300);
+}
+
+/* The bar fills from the left when its step is reached. */
+.order-steps__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--step-color);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 600ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.order-steps :is(.is-current, .is-done) .order-steps__fill {
+  transform: scaleX(1);
+}
+
+/* "On its way": a soft band moving along the next step's bar. */
+.order-steps--live .is-current + li .order-steps__bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--step-color), transparent);
+  opacity: 0.5;
+  transform: translateX(-100%);
+  /* Two passes (3.6 s), under WCAG 2.2.2's 5 s; a new step gets a new element, so it plays again. */
+  animation: order-steps-shimmer 1.8s ease-in-out 2 both;
+}
+
+.order-steps__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* The step marker: a ring while upcoming, filled once reached, with a check once done. */
+.order-steps__dot {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 0 0 2px var(--neutral-400);
+  color: #ffffff;
+}
+
+.order-steps :is(.is-current, .is-done) .order-steps__dot {
+  background: var(--step-color);
+  box-shadow: none;
+}
+
+/* The current step's halo breathes, about 2 s a breath. */
+/* A soft blurred glow, not an edge, so it never reads as a focus ring. */
+.order-steps--live .is-current .order-steps__dot::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: var(--step-color);
+  filter: blur(4px);
+  opacity: 0;
+  /* Two breaths (4 s), then still; it breathes again when the next step is reached. */
+  animation: order-steps-breathe 2s ease-in-out 2;
+}
+
+.order-steps--arrived .is-current .order-steps__dot {
+  animation: order-steps-pop 450ms ease-out;
+}
+
+.order-steps--arrived .is-current .order-steps__check {
+  animation: order-steps-check 400ms 150ms ease-out backwards;
+}
+
+/* Hidden pages hold their loops, to save battery. */
+.order-steps--paused :is(*, *::before, *::after) {
+  animation-play-state: paused;
+}
+
+@keyframes order-steps-breathe {
+  0%,
+  100% {
+    opacity: 0.08;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.22;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes order-steps-shimmer {
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes order-steps-pop {
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes order-steps-check {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-steps__fill {
+    transition: none;
+  }
+
+  .order-steps :is(*, *::before, *::after) {
+    animation: none !important;
+  }
+}
+
+/* The code card's slot folds to nothing when the code goes (grid rows 1fr to 0fr), taking the
+   column's 24 px gap with it, so the content below rises instead of jumping. */
+.order-code-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 300ms cubic-bezier(0.2, 0, 0, 1),
+    margin-bottom 300ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 200ms ease-out;
+}
+
+.order-code-slot__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.order-code-slot.is-leaving {
+  grid-template-rows: 0fr;
+  margin-bottom: calc(var(--space-24) * -1);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-code-slot {
+    transition: none;
+  }
+}
+
+/* The order as one pass (OrderView): radius 28, card tone; the vendor strip and overlapping logo,
+   the name with "Find booth", the status and tracker; below a perforation, the code, a receipt
+   stamp or the outcome. Ended orders (cancelled, expired) are muted. */
+.order-pass {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+}
+
+.order-pass--ended .pass-strip {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+/* The identity and "Find booth" share a row while the name has room for about 9 characters a line;
+   narrower (320 px, large text) Find booth wraps under the identity rather than squeezing the name. */
+.order-pass__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: 0 var(--space-16);
+}
+
+.order-pass__id {
+  flex: 1 1 0;
+  min-width: min(100%, 9em);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.order-pass__logo {
+  margin-top: -32px;
+  box-shadow: 0 0 0 3px var(--card);
+}
+
+.order-pass__vendor {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Whole words: a name breaks inside a word only when that word alone is wider than the pass. */
+.order-pass .order-vendor__name {
+  overflow-wrap: break-word;
+}
+
+/* The vendor block as one link (PassParts StorefrontLink): an empty link stretched over the block,
+   with the press tint and the focus ring on the whole block. */
+.pass-identity {
+  position: relative;
+}
+
+.pass-identity-link {
+  position: absolute;
+  inset: calc(var(--space-8) * -1);
+  z-index: 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.pass-identity-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pass-identity-link:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.pass-identity-link:active::after {
+  opacity: var(--state-pressed);
+}
+
+.pass-name-chevron {
+  margin-left: 2px;
+  color: var(--text-secondary);
+  vertical-align: -3px;
+}
+
+.order-pass .order-status {
+  padding: var(--space-16) var(--space-16) var(--space-8);
+}
+
+/* "Find booth": a small tonal button, quieter once the order is collected. */
+.order-find {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-16);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+  font: var(--type-button-small);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.order-find--quiet {
+  background: transparent;
+  color: var(--primary-700);
+  margin-right: calc(var(--space-12) * -1);
+}
+
+.order-pass__stamp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-16) 0;
+}
+
+.order-pass__stamp p {
+  margin: 0;
+}
+
+.order-pass__stamp-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--success-100);
+  color: var(--success-800);
+}
+
+.order-pass__stamp-title {
+  font: var(--type-title-medium);
+}
+
+.order-pass__stamp-detail {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.order-pass__outcome {
+  padding: var(--space-8) var(--space-16) 0;
+}
+
+.order-pass__end {
+  height: var(--space-16);
+}
+
+/* Items: a card of rows with a 48 px photo, a small quantity badge, the name and the line price;
+   then the summary rows, the total strongest. */
+.order .order-items {
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.order-items .order-item {
+  display: grid;
+  grid-template-columns: 48px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.order-item__photo .product-image {
+  width: 48px;
+  height: 48px;
+}
+
+.order-item__qty {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 var(--space-8);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--neutral-200);
+  color: var(--neutral-800);
+  font: var(--type-label-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-item__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.order-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-12);
+  box-shadow: inset 0 0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+.order-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-summary dt {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.order-summary dd {
+  margin: 0;
+}
+
+.order-summary__total {
+  flex-direction: row !important;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.order-summary__total dt {
+  color: var(--text);
+  font: var(--type-title-medium);
+}
+
+.order-summary__total dd {
+  font: var(--type-title-large);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-meta {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+  text-align: center;
+}
+
+/* The pickup code card (radius 16, padding 24), which opens pickup mode. */
+.order-code {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  color: var(--neutral-950);
+  font: inherit;
+}
+
+.order-code__strip {
+  align-self: stretch;
+  height: 56px;
+}
+
+.order-code__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-16) var(--space-24) var(--space-8);
+}
+
+.order-code .pass-notch {
+  align-self: stretch;
+}
+
+.order-code__end {
+  height: var(--space-8);
+}
+
+.order-code p {
+  margin: 0;
+}
+
+/* The design system's state layer, in the content colour. */
+.order-code__action::after,
+.order-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .order-code__action:hover::after,
+  .order-button:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.order-code__action:active::after,
+.order-button:active::after {
+  opacity: var(--state-pressed);
+}
+
+.order-code__label {
+  color: var(--text-secondary);
+  font: var(--type-label-medium);
+}
+
+.order-code__value {
+  /* The display face, large, with tabular figures, as in pickup mode; the padding balances the
+     tracking that trails the last character. */
+  padding-left: 0.12em;
+  font: 800 36px/44px var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+/* A text button (small) with the full 48 px target: the only way into pickup mode from the card. */
+.order-code__action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--touch-target);
+  padding: 0 var(--space-12);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  cursor: pointer;
+}
+
+.order-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+/* Label and value rows split by hairlines. */
+.order-details > div + div {
+  padding-top: var(--space-12);
+  box-shadow: inset 0 0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+.order-details > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-details dt {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.order-details__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-height: 24px;
+}
+
+.order-details dd {
+  overflow-wrap: anywhere;
+  font: var(--type-body-large);
+}
+
+/* The outlined badge on a card. */
+.order-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--space-12);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+  color: var(--neutral-800);
+  font: var(--type-label-medium);
+  white-space: nowrap;
+}
+
+.order-detail__value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+/* A countdown, not a code: Gabarito with tabular figures, so it reads as time and does not jitter. */
+.order-timer {
+  font: 600 16px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-timer--soon {
+  color: var(--warning-800);
+}
+
+.order-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.order-items h2 {
+  font: var(--type-title-medium);
+  letter-spacing: 0;
+}
+
+.order-items ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-items li,
+.order-items__total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+
+.order-items li span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.order-items li span:last-child {
+  flex: none;
+}
+
+.order-items__total {
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--neutral-300);
+  font: var(--type-title-medium);
+}
+
+/* Buttons: medium (56 high, radius full) in the design system's filled, outlined and error styles. */
+.order-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--space-24);
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  font: var(--type-button-medium);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.order-button--filled {
+  background: var(--action);
+  color: var(--on-action);
+}
+
+.order-button--outlined {
+  box-shadow: inset 0 0 0 1px var(--outline);
+  color: var(--neutral-950);
+}
+
+.order-button--destructive {
+  box-shadow: inset 0 0 0 1px var(--error-700);
+  color: var(--error-700);
+}
+
+.order-button--danger {
+  background: var(--error-700);
+  color: #ffffff;
+}
+
+/* aria-disabled keeps focus on the control; the design system's disabled colours say it is off. */
+.order-button[aria-disabled='true'] {
+  background: var(--disabled);
+  box-shadow: none;
+  color: var(--on-disabled);
+  cursor: not-allowed;
+}
+
+.order-button[aria-disabled='true']::after {
+  display: none;
+}
+
+.order-error {
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--error-100);
+  color: var(--error-900);
+  font: var(--type-body-medium);
+}
+
+.order-invalid__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* The cancel confirmation: a bottom sheet (radius 28, elevation 3) over a scrim. */
+.cancel-sheet {
+  --font-display: Gabarito, sans-serif;
+  --type-button-medium: 700 16px/24px var(--font-display);
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  color-scheme: light;
+  color: var(--neutral-950);
+}
+
+.cancel-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.32);
+}
+
+.cancel-sheet__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 var(--space-16) calc(var(--space-24) + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--card);
+  box-shadow: var(--elevation-3);
+  animation: cancel-sheet-in 200ms ease-out;
+}
+
+.cancel-sheet__handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+}
+
+.cancel-sheet__handle::before {
+  content: '';
+  width: 32px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-600);
+}
+
+.cancel-sheet__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.cancel-sheet__text h2 {
+  margin: 0;
+  font: 700 22px/28px var(--font-display);
+  letter-spacing: 0;
+}
+
+.cancel-sheet__text p {
+  margin: 0;
+  font: 400 16px/24px var(--font-text);
+}
+
+/* Offline, the reason the confirm button does nothing, in the design system's offline banner tones. */
+.cancel-sheet__offline {
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--neutral-900);
+  color: var(--neutral-50);
+  font: var(--type-body-medium);
+}
+
+.cancel-sheet__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* On the sheet's card surface the outlined button uses the on-card outline. */
+.cancel-sheet .order-button--outlined {
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+}
+
+@keyframes cancel-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cancel-sheet__panel {
+    animation: none;
+  }
+}
+
+/* The wallet, pickup mode and cart, in the same system as the order page: one 40rem reading
+   column on wide screens (pickup mode keeps 30rem, a phone-sized code), cards told from the page by tone, the order page's logo slot and badges, violet only
+   on the one primary action. */
+.my-orders,
+.cart {
+  display: flex;
+  flex-direction: column;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding-bottom: var(--space-24);
+}
+
+/* The title starts 16 under the safe area like every tab root's (main's 8 plus the 8 the others put
+   above their h1), less the room the 48 px refresh button gives its 36 px line when centred. */
+.my-orders__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin-top: calc(var(--space-8) - (var(--touch-target) - 36px) / 2);
+}
+
+.my-orders__title {
+  margin: 0;
+}
+
+/* An icon button (48 round): the pull gesture does the same, so it stays quiet. */
+.my-orders__refresh {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin-right: calc(var(--space-12) * -1);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.my-orders__refresh::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .my-orders__refresh:not([aria-disabled='true']):hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.my-orders__refresh:not([aria-disabled='true']):active::after {
+  opacity: var(--state-pressed);
+}
+
+.my-orders__refresh[aria-disabled='true'] {
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.my-orders__refresh-icon.is-spinning {
+  animation: wallet-spin 1s linear infinite;
+}
+
+@keyframes wallet-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.my-orders__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.my-orders__note {
+  margin-top: var(--space-8);
+}
+
+.open-orders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin-top: var(--space-16);
+}
+
+.wallet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* An open order: the attendee order row (logo, vendor, booth, status badge), with its pickup
+   code under it when there is one to hand over. The whole card is one control. */
+.wallet-stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-16);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.wallet-stub::after,
+.past-order::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wallet-stub:hover::after,
+  .past-order:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.wallet-stub:active::after,
+.past-order:active::after {
+  opacity: var(--state-pressed);
+}
+
+.wallet-stub__top,
+.past-order {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'logo name badge'
+    'logo meta badge';
+  align-items: center;
+  column-gap: var(--space-12);
+}
+
+/* The booth logo (shared BoothLogo, 40) takes the row's logo cell. */
+.wallet-stub__plate {
+  grid-area: logo;
+}
+
+.wallet-stub__vendor,
+.past-order__name {
+  grid-area: name;
+  min-width: 0;
+  overflow-wrap: break-word;
+  font: var(--type-title-medium);
+}
+
+.wallet-stub__summary,
+.past-order__meta {
+  grid-area: meta;
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.wallet-stub__pill,
+.past-order__badge {
+  grid-area: badge;
+  justify-self: end;
+}
+
+/* On a narrow row (a 320 px phone, large text) the badge drops under the summary, so the vendor
+   name keeps the width instead of wrapping a word a line. */
+.past-orders__list > li {
+  container-type: inline-size;
+}
+
+@container (max-width: 300px) {
+  .past-order {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'logo name'
+      'logo meta'
+      'logo badge';
+  }
+
+  .past-order__badge {
+    justify-self: start;
+    margin-top: var(--space-8);
+  }
+}
+
+/* The pending label is long; it drops under the summary so the vendor name keeps the width. */
+.wallet-stub--pending_payment .wallet-stub__top {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'logo name'
+    'logo meta'
+    'logo badge';
+}
+
+.wallet-stub--pending_payment .wallet-stub__pill {
+  justify-self: start;
+  margin-top: var(--space-8);
+}
+
+.wallet-stub__bottom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.wallet-stub__code-block {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wallet-stub__label {
+  color: var(--text-secondary);
+  font: var(--type-label-medium);
+}
+
+/* The code in the Code role's face and tracking at title size; pickup mode shows it full size. */
+.wallet-stub__code {
+  font: 700 22px/28px var(--font-mono);
+  letter-spacing: 2px;
+}
+
+.wallet-stub__qr-wrap {
+  display: grid;
+  flex: none;
+}
+
+/* The thumbnail is for recognition; the scannable QR is in pickup mode. */
+.wallet-stub__qr {
+  width: 48px;
+  height: 48px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+}
+
+.wallet-stub__hint {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.wallet-stub__chevron {
+  flex: none;
+  margin-left: auto;
+  color: var(--text-secondary);
+}
+
+/* Reflow when a row is narrow (a small phone, or 200% zoom): the badge drops under the text, and
+   below about 12rem the logo sits above, so names wrap by word, never one letter per line. */
+.wallet > li,
+.past-orders__list > li {
+  container-type: inline-size;
+}
+
+@container (max-width: 20rem) {
+  .wallet-stub__top,
+  .past-order {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'logo name'
+      'logo meta'
+      'logo badge';
+  }
+
+  .wallet-stub__pill,
+  .past-order__badge {
+    justify-self: start;
+    margin-top: var(--space-8);
+  }
+}
+
+@container (max-width: 12rem) {
+  .wallet-stub__top,
+  .past-order {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'logo'
+      'name'
+      'meta'
+      'badge';
+  }
+
+  .wallet-stub__plate {
+    margin-bottom: var(--space-8);
+  }
+}
+
+/* Prices use Gabarito (the README's price face) with tabular figures, so amounts line up and never
+   show the body face's slashed zero. Totals and line prices already use Gabarito roles. */
+.price,
+.cart__price,
+.cart__total,
+.order-items li span:last-child,
+.order-items__total {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small labels (11 and 12 px) open up a touch; codes line up their digits. */
+.wallet-badge,
+.order-badge,
+.order-steps,
+.order-code__label,
+.wallet-stub__label,
+.pickup-mode__code-label,
+.text-field__label {
+  letter-spacing: 0.01em;
+}
+
+.order-code__value,
+.wallet-stub__code,
+.pickup-mode__code-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Badges: step 800 on step 100, by status only (README, Status). */
+.wallet-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  margin: 0;
+  padding: 0 var(--space-12);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--neutral-200);
+  color: var(--neutral-800);
+  font: var(--type-label-medium);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.wallet-badge--pending_payment,
+.wallet-badge--confirmed {
+  background: var(--info-100);
+  color: var(--info-800);
+}
+
+.wallet-badge--ready {
+  background: var(--success-100);
+  color: var(--success-800);
+}
+
+.wallet-badge--refund_due {
+  background: var(--warning-100);
+  color: var(--warning-800);
+}
+
+.wallet-badge--cancelled,
+.wallet-badge--expired {
+  background: var(--error-100);
+  color: var(--error-800);
+}
+
+/* Before any order exists: one sentence and the way to the event, nothing else. */
+/* Before any order: one line and the way to the event, centred in the free space. */
+.wallet-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-24);
+  min-height: 50dvh;
+  text-align: center;
+}
+
+.wallet-empty p {
+  margin: 0;
+  font: var(--type-body-large);
+}
+
+.wallet-empty__action {
+  width: auto;
+}
+
+.cart__empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 100%;
+}
+
+.past-orders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin-top: var(--space-24);
+}
+
+.past-orders__title {
+  margin: 0;
+  font: var(--type-title-medium);
+}
+
+.past-orders__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A past order: the attendee order row on its own (72 high), linking to its page. */
+.past-order {
+  position: relative;
+  min-height: 72px;
+  padding: var(--space-16);
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* Pickup mode: the booth, the status and the pickup code card with its QR, full screen. */
+.pickup-mode {
+  /* The top inset, read once here and used only by the bar; the bar's row is 56 high. */
+  --pickup-safe-top: env(safe-area-inset-top, 0px);
+  --pickup-bar-height: calc(56px + var(--pickup-safe-top));
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow-y: auto;
+  /* Focus moves (to the code, to the status) stop below the pinned bar, never under it. */
+  scroll-padding-top: calc(var(--pickup-bar-height) + var(--space-16));
+  overscroll-behavior: contain;
+  /* The top inset is the sticky bar's own padding, so the bar covers it while content scrolls under. */
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  background: var(--page);
+  color: var(--text);
+  /* Single-finger drags are the view's own swipes; pinch-zoom stays available. */
+  touch-action: pinch-zoom;
+}
+
+/* Content taller than the screen (large text, landscape) scrolls; Close and Escape still close. */
+.pickup-mode[data-scrolls] {
+  touch-action: pan-y pinch-zoom;
+}
+
+.pickup-mode:focus {
+  outline: none;
+}
+
+.pickup-mode__sheet {
+  min-height: 100%;
+}
+
+/* Pager centred, Close on the right: standard icon buttons, so the code owns the screen. The bar
+   sticks to the top of the view on the card tone, full width with its controls in the 30rem column,
+   and shows a hairline once content has scrolled under it. */
+.pickup-mode__bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  /* The inset, then a 56 row: 48 targets centred with 4 above and below. */
+  padding: calc(4px + var(--pickup-safe-top)) max(var(--space-8), calc((100% - 30rem) / 2 + var(--space-8))) 4px;
+  box-sizing: border-box;
+  /* Page tone at rest; frosted, with a hairline, once the pass scrolls under it (as the app header). */
+  background: var(--page);
+}
+
+.pickup-mode__bar[data-scrolled-under] {
+  background: var(--card);
+  box-shadow: inset 0 -0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pickup-mode__bar[data-scrolled-under] {
+    background: color-mix(in oklch, var(--card) var(--bar-opacity), transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .pickup-mode__bar[data-scrolled-under] {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+.pickup-mode__pager {
+  display: flex;
+  grid-column: 2;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* The arrows sit either side of the dots that show which pass is open. */
+.pickup-mode__pager {
+  gap: var(--space-8);
+}
+
+.pickup-mode__icon-button,
+.pickup-mode__hint-dismiss {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.pickup-mode__icon-button::after,
+.pickup-mode__hint-dismiss::after,
+.pickup-mode__details::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.pickup-mode__icon-button:not([aria-disabled='true']), .pickup-mode__hint-dismiss, .pickup-mode__details):hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+:is(.pickup-mode__icon-button:not([aria-disabled='true']), .pickup-mode__hint-dismiss, .pickup-mode__details):active::after {
+  opacity: var(--state-pressed);
+}
+
+/* Shown in the disabled colour, not hidden, so the pager does not shift. */
+.pickup-mode__icon-button[aria-disabled='true'] {
+  color: var(--on-disabled);
+  cursor: default;
+}
+
+.pickup-mode__close {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.pickup-mode__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-24);
+  width: min(100%, 30rem);
+  margin: 0 auto;
+  /* 16 between the bar and the first content (the booth logo). */
+  padding: var(--space-16) var(--space-16) var(--space-24);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.pickup-mode__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.pickup-mode__booth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+/* The logo overlaps the bottom of the vendor strip, as on the storefront header. */
+.pickup-mode__logo {
+  margin: -44px 0 var(--space-8);
+  box-shadow: 0 0 0 3px var(--card);
+}
+
+.pickup-mode__vendor {
+  overflow-wrap: break-word;
+  font: var(--type-title-large);
+}
+
+.pickup-mode__booth-code {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.pickup-mode__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: calc(var(--space-8) * -1);
+}
+
+.pickup-mode__status p {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+/* The one line that changes what to do next reads in full ink. */
+.pickup-mode__status .pickup-mode__ready-line {
+  color: var(--text);
+  font: var(--type-body-large);
+}
+
+/* The pass (README PickupCodeCard, as a wallet pass): radius 28, card tone; the vendor strip on
+   top, the header, a perforation, then the code and its QR. A soft sheen crosses it once on open. */
+.pickup-pass {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 22.5rem;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+}
+
+.pickup-pass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, color-mix(in oklch, var(--neutral-50) 55%, transparent) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: pass-sheen 900ms 200ms ease-out both;
+  pointer-events: none;
+}
+
+@keyframes pass-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.pickup-pass__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-16);
+  padding: 0 var(--space-24) var(--space-8);
+}
+
+.pickup-pass__code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-16);
+  padding: var(--space-8) var(--space-24) var(--space-24);
+}
+
+.pickup-pass .pickup-mode__no-code {
+  padding: var(--space-8) var(--space-24) var(--space-24);
+}
+
+.pickup-pass__dots {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.pickup-pass__dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-300);
+  transition: transform 200ms var(--ease-ios), background-color 200ms ease;
+}
+
+.pickup-pass__dots .is-current {
+  background: var(--neutral-800);
+  transform: scale(1.33);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pickup-pass::after {
+    animation: none;
+    display: none;
+  }
+
+  .pickup-pass__dots span {
+    transition: none;
+  }
+}
+
+.pickup-mode__code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.pickup-mode__code-label {
+  color: var(--text-secondary);
+  font: var(--type-label-medium);
+}
+
+/* The code large, in the display face with tabular figures, read out at the booth. */
+.pickup-mode__code-value {
+  /* The letter spacing also trails the last character; the padding balances it. */
+  padding-left: 0.12em;
+  font: 800 40px/48px var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+/* On white for the scanner, at least 70% of a phone's width; the 4-module quiet zone is in the
+   image, so the tile's own padding only frames it. */
+.pickup-mode__qr {
+  width: min(100%, 50dvh);
+  min-width: 12rem;
+  aspect-ratio: 1;
+  padding: var(--space-8);
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  /* A thin ring so the white plate holds its edge on the card. */
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--neutral-950) 10%, transparent);
+}
+
+.pickup-mode__hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: calc(var(--space-12) * -1);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.pickup-mode__hint p {
+  margin: 0;
+}
+
+.pickup-mode__hint-dismiss {
+  color: var(--text-secondary);
+}
+
+.pickup-mode__no-code {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-large);
+}
+
+/* A tonal button to the order page, under the pass. */
+.pickup-mode__details {
+  width: auto;
+  max-width: 22.5rem;
+}
+
+/* Short phones (320 x 568 and the like): a compact pass, so the code and the whole QR are on the
+   first screen. The strip, logo, type and gaps step down; the QR keeps the 12rem scanning minimum. */
+@media (orientation: portrait) and (max-height: 720px) {
+  .pickup-mode__body {
+    gap: var(--space-12);
+    padding-top: var(--space-8);
+  }
+
+  .pickup-mode .pass-strip {
+    height: 40px;
+  }
+
+  .pickup-mode__logo.booth-logo--lg {
+    width: 48px;
+    height: 48px;
+    margin: -28px 0 4px;
+    font: var(--type-title-medium);
+  }
+
+  .pickup-mode__vendor {
+    font: var(--type-title-medium);
+  }
+
+  .pickup-pass__head {
+    gap: var(--space-8);
+  }
+
+  .pickup-mode__status {
+    gap: 4px;
+    margin-top: 0;
+  }
+
+  .pickup-mode__status .pickup-mode__ready-line {
+    font: var(--type-body-medium);
+  }
+
+  .pickup-pass .pass-notch {
+    height: 16px;
+  }
+
+  .pickup-pass .pass-notch::before,
+  .pickup-pass .pass-notch::after {
+    width: 16px;
+    height: 16px;
+  }
+
+  .pickup-pass .pass-notch::before {
+    left: calc(-8px - var(--space-16));
+  }
+
+  .pickup-pass .pass-notch::after {
+    right: calc(-8px - var(--space-16));
+  }
+
+  .pickup-pass__code {
+    gap: var(--space-8);
+    padding-bottom: var(--space-16);
+  }
+
+  .pickup-mode__code-value {
+    font-size: 32px;
+    line-height: 40px;
+  }
+
+  .pickup-mode__qr {
+    width: min(100%, 34dvh);
+  }
+}
+
+/* Landscape on a phone: the pass turns sideways, the booth and status on the left and the code
+   beside its QR on the right, split by the perforation drawn down instead of across. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .pickup-mode__body {
+    width: min(100%, 48rem);
+    padding-top: var(--space-8);
+  }
+
+  .pickup-pass {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    max-width: none;
+  }
+
+  .pickup-mode .pass-strip {
+    grid-column: 1 / -1;
+    height: 40px;
+  }
+
+  .pickup-pass__head {
+    align-self: center;
+    padding: 0 var(--space-16) var(--space-16);
+  }
+
+  .pickup-mode__logo.booth-logo--lg {
+    width: 48px;
+    height: 48px;
+    margin: -28px 0 4px;
+    font: var(--type-title-medium);
+  }
+
+  .pickup-pass .pass-notch {
+    display: none;
+  }
+
+  .pickup-pass__code,
+  .pickup-pass .pickup-mode__no-code {
+    flex-direction: row;
+    gap: var(--space-16);
+    padding: var(--space-16);
+    background: linear-gradient(180deg, color-mix(in oklch, var(--neutral-950) 22%, transparent) 50%, transparent 50%) left / 1px 8px repeat-y;
+  }
+
+  .pickup-mode__qr {
+    width: calc(100dvh - 180px);
+    min-width: 9rem;
+  }
+}
+
+/* The pass parts (PassParts.tsx), shared by pickup mode and the order page's code card. */
+.pass-strip {
+  flex: none;
+  height: 72px;
+  background-color: var(--quiet-action);
+  background-position: center;
+  background-size: cover;
+}
+
+/* The perforation: half-circle notches cut at both edges (the page tone behind, clipped by the
+   card's own overflow) and a dashed hairline between them. */
+.pass-notch {
+  position: relative;
+  flex: none;
+  height: 24px;
+  margin: 0 var(--space-16);
+  background: linear-gradient(90deg, color-mix(in oklch, var(--neutral-950) 22%, transparent) 50%, transparent 50%) center / 8px 1px repeat-x;
+}
+
+.pass-notch::before,
+.pass-notch::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--page);
+}
+
+.pass-notch::before {
+  left: calc(-12px - var(--space-16));
+}
+
+.pass-notch::after {
+  right: calc(-12px - var(--space-16));
+}
+
+/* A tonal button (README: quiet action). */
+.order-button--tonal {
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+}
+
+/* The cart, as drawn in design/app-mockups/project/Cart.dc.html and CheckoutReserve.dc.html:
+   vendor header, lines split by hairlines with the stepper on the right, the total, then the
+   payment sentence, the email field and the one action. */
+.cart {
+  gap: var(--space-24);
+}
+
+.cart :is(h1, h2, p) {
+  margin: 0;
+}
+
+.cart--empty {
+  align-items: flex-start;
+}
+
+.cart__booth {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.cart__vendor {
+  overflow-wrap: anywhere;
+  font: var(--type-headline-small);
+  letter-spacing: -0.01em;
+}
+
+.cart__booth-code {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.cart__lines {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One row per item: the framed photo, what it is and costs, then the stepper. */
+.cart__line {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.cart__photo .product-image {
+  width: 64px;
+  height: 64px;
+}
+
+.cart__line + .cart__line {
+  margin-top: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--neutral-300);
+}
+
+.cart__line-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cart__name {
+  overflow-wrap: anywhere;
+  font: var(--type-title-medium);
+}
+
+.cart__each {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.cart__price {
+  font: var(--type-title-medium);
+}
+
+.cart__line-controls {
+  display: flex;
+  align-items: center;
+}
+
+.cart__limit {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+/* A line over its cap after a refusal: the note says so in the error ink until the attendee fixes it. */
+.cart__line--over .cart__limit {
+  color: var(--error-700);
+  font: var(--type-label-medium);
+}
+
+/* A narrow cart (a small phone, or 200% zoom): the stepper goes under the item, and below about
+   12rem the photo sits above it too. */
+.cart__lines {
+  container-type: inline-size;
+}
+
+@container (max-width: 21rem) {
+  .cart__line {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .cart__line-controls {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
+@container (max-width: 12rem) {
+  .cart__line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Quantity stepper (README): two 48 round tonal buttons, the value between them in Title medium. */
+.stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.stepper__btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+  cursor: pointer;
+}
+
+.stepper__btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .stepper__btn:not([aria-disabled='true']):hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.stepper__btn:not([aria-disabled='true']):active::after {
+  opacity: var(--state-pressed);
+}
+
+.stepper__btn[aria-disabled='true'] {
+  background: var(--disabled);
+  color: var(--on-disabled);
+  cursor: not-allowed;
+}
+
+.stepper__qty {
+  min-width: 2rem;
+  font: var(--type-title-medium);
+  text-align: center;
+}
+
+.cart__total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin: 0;
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--neutral-300);
+  font: var(--type-title-medium);
+}
+
+.cart__payment {
+  margin: 0;
+  font: var(--type-body-large);
+}
+
+/* The flow's one action, docked at the bottom above the safe area while the page scrolls under it;
+   at the end of the page it rests in place, so nothing stays hidden behind it. */
+.cart__dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0 calc(var(--space-16) * -1);
+  padding: var(--space-12) var(--space-16) calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
+  background: var(--page);
+}
+
+/* Checkout's summary: a card of label and value rows, the total stronger. */
+.checkout__summary {
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.checkout__summary .order-items__total {
+  border-top: 0;
+  box-shadow: inset 0 0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
+  font: var(--type-title-large);
+}
+
+/* The docked action frosted, as the bars are, with a hairline over the content scrolling under it. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .cart__dock {
+    background: color-mix(in oklch, var(--page) var(--bar-opacity), transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+}
+
+.cart__dock {
+  box-shadow: inset 0 0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .cart__dock {
+    background: var(--page);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* The error banner (radius 12, error 100 and 900), with its icon. */
+.cart__alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  min-height: 56px;
+  padding: var(--space-16);
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
+  background: var(--error-100);
+  color: var(--error-900);
+  font: var(--type-body-medium);
+}
+
+.cart__alert svg {
+  flex: none;
+  margin-top: -2px;
+}
+
+.cart__alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cart__alert-body a {
+  color: inherit;
+}
+
+.cart__alert-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cart__alert-message:focus {
+  outline: none;
+}
+
+.cart__alert-message:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.cart__alert-title {
+  font-weight: 600;
+}
+
+.cart__alert-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The banner's own actions: text buttons in the banner's ink, each with a full target. */
+.cart__alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-8);
+  margin: calc(var(--space-12) * -1) 0 calc(var(--space-12) * -1) calc(var(--space-12) * -1);
+}
+
+.cart__alert-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-12);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: inherit;
+  font: var(--type-button-small);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.cart__alert-action::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cart__alert-action:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.cart__alert-action:active::after {
+  opacity: var(--state-pressed);
+}
+
+.reserve-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+/* The outlined text field (README: 56 high, radius 4, 1 px outline, supporting text 12/16). */
+.text-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.text-field__input {
+  width: 100%;
+  height: 56px;
+  padding: 0 var(--space-16);
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--outline);
+  color: var(--text);
+  font: var(--type-body-large);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .text-field__input:hover {
+    box-shadow: inset 0 0 0 1px var(--text);
+  }
+}
+
+/* Material's focused field: a 2 px outline in the action colour, which is the focus indicator. */
+.text-field__input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--action);
+}
+
+.text-field__label {
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  padding: 0 4px;
+  background: var(--page);
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.text-field:focus-within .text-field__label {
+  color: var(--primary-700);
+}
+
+.text-field__support {
+  margin: 0;
+  padding: 0 var(--space-16);
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.text-field--error .text-field__input {
+  box-shadow: inset 0 0 0 2px var(--error-600);
+}
+
+.text-field--error .text-field__label,
+.text-field--error:focus-within .text-field__label,
+.text-field__error {
+  color: var(--error-700);
+}
+
+.reserve-form__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-orders__refresh-icon.is-spinning {
+    animation: none;
+  }
+}
+
+/* Loading placeholders (OrderSkeletons.tsx) keep the gaps the real headings and panels leave. */
+.order-skeleton__code {
+  margin-top: var(--space-4);
+}
+
+.order-skeleton__gap {
+  margin-top: 6px;
+}
+
+.order-skeleton__card {
+  border-radius: var(--radius-lg);
+}

@@ -1,0 +1,917 @@
+/* The storefront and the product sheet, in the team design system and the designer's storefront
+   mockups (design/app-mockups/project/Storefront*.dc.html). Shared parts are in discover.css. */
+
+.storefront {
+  color-scheme: light;
+  color: var(--text);
+  font: var(--type-body-large);
+}
+
+/* Identity: the logo, the vendor in Headline small, then the booth, its mode and the map link. */
+.storefront__header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Logo to name 8, name to slogan 4, slogan to the booth row 12, the row to the chips 16. */
+  gap: 0;
+  margin: 0 0 var(--space-16);
+}
+
+/* The vendor's banner across the top, edge to edge on a phone (it fills the main padding), a rounded
+   card wider. Kept short so the products start soon; the card tone shows while it loads. */
+/* The banner runs up behind the safe area and the transparent over-media header (the shell's
+   --app-header-block), edge to edge, so 120 px of it shows below the header. */
+.storefront__banner {
+  --banner-visible: 120px;
+  align-self: stretch;
+  height: calc(var(--banner-visible) + var(--app-header-block));
+  margin: calc(-1 * var(--app-header-block)) calc(-1 * var(--space-16)) 0;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.storefront__banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Wider, it stays within the content column with rounded lower corners. */
+@media (min-width: 45rem) {
+  .storefront__banner {
+    --banner-visible: 180px;
+    margin-inline: 0;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+}
+
+/* The loading banner keeps the real one's height at each width. */
+.storefront__banner.skeleton {
+  /* The skeleton's 100% width would undo the banner's negative side margins; auto lets them reach
+     the screen edges like the real banner. */
+  inline-size: auto;
+  block-size: calc(var(--banner-visible) + var(--app-header-block));
+}
+
+/* The round logo overlaps the banner's lower edge, ringed in the page tone so it reads on any banner. */
+.storefront__logo {
+  display: inline-grid;
+  margin: -40px 0 var(--space-8) 0;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 3px var(--page);
+}
+
+@media (min-width: 45rem) {
+  .storefront__logo {
+    margin-left: var(--space-16);
+  }
+}
+
+.storefront__header h1 {
+  margin: 0;
+  font: var(--type-headline-small);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.storefront__tagline {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.storefront__badges {
+  margin-top: var(--space-12);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-8);
+  align-self: stretch;
+  font: var(--type-body-medium);
+}
+
+.storefront__code {
+  white-space: nowrap;
+}
+
+/* "Map" as a text button at the row's end, its 48 px target reaching the screen margin. */
+.storefront__map {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  /* The 48 px target overhangs the row, so the row is as tall as its 24 px badge. */
+  margin: calc((24px - var(--touch-target)) / 2) calc(-1 * var(--space-12)) calc((24px - var(--touch-target)) / 2) auto;
+  padding: 0 var(--space-12);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  text-decoration: none;
+}
+
+.storefront__map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.storefront__map:hover::after {
+  opacity: var(--state-hover);
+}
+
+.storefront__map:active::after {
+  opacity: var(--state-pressed);
+}
+
+/* Paused: a neutral banner, since a pause is not one of the status colours. */
+.storefront__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  min-height: 56px;
+  margin: 0 0 var(--space-16);
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--neutral-200);
+  color: var(--neutral-800);
+  font: var(--type-body-medium);
+}
+
+.storefront__notice svg {
+  flex: none;
+  margin-top: -2px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.storefront__notice p {
+  margin: 0;
+}
+
+.storefront__notice strong {
+  font-weight: 600;
+}
+
+.storefront__chips {
+  /* Row to chips 16 and chips to the grid 12: no row padding, each chip keeps 8 of target around it. */
+  margin-top: calc(-1 * var(--space-8));
+  margin-bottom: 4px;
+  padding-block: 0;
+  /* The row fades at the screen edges so a cut-off chip reads as "more this way". */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--space-16), #000 calc(100% - var(--space-24)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--space-16), #000 calc(100% - var(--space-24)), transparent);
+}
+
+.storefront__empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-12);
+  padding: var(--space-24) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text-secondary);
+  font: var(--type-body-large);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.storefront__empty svg {
+  color: var(--primary-700);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.storefront__empty p {
+  max-width: 32ch;
+  margin: 0;
+}
+
+/* The card's order control: the small filled button across the card. The element is the 48 px
+   target; the 40 px shape and its state layer are drawn 4 px inside it. */
+.product-card__order {
+  margin-top: auto;
+}
+
+.product-card__order .row {
+  display: grid;
+  gap: 0;
+}
+
+.product-card__order .button {
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-16);
+  overflow: visible;
+  background: transparent;
+  color: var(--on-action);
+  font: var(--type-button-small);
+}
+
+.product-card__order .button::before,
+.product-card__order .button::after {
+  inset: 4px 0;
+  border-radius: var(--radius-full);
+}
+
+.product-card__order .button::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  background: var(--action);
+}
+
+.product-card__order .button {
+  isolation: isolate;
+}
+
+.product-card__order .button--ghost {
+  color: var(--primary-700);
+}
+
+.product-card__order .button--ghost::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--outline);
+}
+
+.product-card__order .button[aria-disabled='true'] {
+  background: transparent;
+  color: var(--on-disabled);
+}
+
+.product-card__order .button[aria-disabled='true']::before {
+  background: var(--disabled);
+}
+
+.product-card__order .button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* A touch screen keeps :hover on the last button tapped, which left one "Added" tinted darker than
+   the rest. The hover layer is for pointers that really hover; a tap still shows the pressed layer. */
+@media (hover: none) {
+  .product-card__order .button:hover::after {
+    opacity: 0;
+  }
+
+  .product-card__order .button:active::after {
+    opacity: var(--state-pressed);
+  }
+}
+
+.product-card__order .link {
+  justify-content: center;
+  color: var(--primary-700);
+  font: var(--type-label-large);
+}
+
+.product-card__order .replace-prompt {
+  font: var(--type-body-medium);
+}
+
+/* The compact bar under the app header once the booth's identity scrolls away. It takes the
+   header's collapsed card tone, so the two read as one surface. */
+.storefront__bar {
+  position: fixed;
+  /* Under the app header, and under the offline banner when it shows (the shell measures it, with its
+     8 px top margin, into --offline-banner-block), so the bar never covers it. The bar shows only once
+     the page has scrolled, when the banner is stuck to the header and that margin is gone. */
+  top: calc(var(--storefront-bar-top, var(--header-height)) + max(0px, var(--offline-banner-block, 0px) - var(--space-8)));
+  left: 0;
+  right: 0;
+  z-index: 9;
+  /* Frosted like the app header it sits under, so the two read as one surface. */
+  background: color-mix(in oklch, var(--card) var(--bar-opacity, 82%), transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    visibility 0s linear 150ms;
+}
+
+.storefront__bar.is-shown {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.storefront__bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px var(--space-12);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--space-16) 4px;
+}
+
+.storefront__bar .plate-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--touch-target);
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  text-decoration: none;
+}
+
+
+
+.storefront__bar .mode {
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+}
+
+@media (max-height: 30rem) {
+  .storefront__bar {
+    top: 0;
+  }
+}
+
+/* Each card spans two rows of the grid (card, then its order control), so the buttons in a row
+   line up even when one card's control grows ("1 in cart"). */
+@supports (grid-template-rows: subgrid) {
+  .storefront__grid > li {
+    display: grid;
+    grid-row: span 2;
+    grid-template-rows: subgrid;
+    row-gap: var(--space-8);
+  }
+
+  .product-card__order {
+    margin-top: 0;
+  }
+}
+
+.storefront__grid > li {
+  scroll-margin-top: calc(var(--header-height) + var(--space-48) + env(safe-area-inset-top, 0px));
+}
+
+.storefront__grid > li:target .product-card .product-image {
+  box-shadow: 0 0 0 3px var(--primary-700);
+}
+
+/* Product sheet (Material 3 bottom sheet): card tone, extra-large top corners, elevation 3 over a
+   scrim; drag the bar down or tap the scrim to close. */
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklch, var(--neutral-950) 40%, transparent);
+  animation: sheet-fade var(--nav-duration) var(--ease-ios) backwards;
+}
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 40rem;
+  /* One height for every product, so paging through a booth never moves the sheet's top: the
+     photo box is fixed and the text scrolls inside. */
+  height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--space-24));
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  /* Clips the flush photo to the sheet's own corners. */
+  overflow: hidden;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--elevation-3);
+  font: var(--type-body-large);
+  transform: translateY(var(--sheet-dy, 0px));
+  transition: transform 200ms ease;
+  /* The app's navigation duration and curve, so the sheet moves like the rest of the app. */
+  animation: sheet-rise var(--nav-duration) var(--ease-ios) backwards;
+}
+
+/* The dialog takes focus only so Escape reaches it after a click on plain content; it is not a control. */
+.sheet:focus {
+  outline: none;
+}
+
+.sheet.is-dragging {
+  transition: none;
+}
+
+.sheet__bar {
+  /* Over the photo, so the photo meets the sheet's top edge; its controls sit on frosted chips. */
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: calc(var(--touch-target) + var(--space-24));
+  padding: var(--space-16) var(--space-8) var(--space-8);
+  touch-action: none;
+  cursor: grab;
+}
+
+/* The iOS grabber: 36 by 5, centred 6 from the top, light enough to read on any photo. */
+.sheet__handle {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  margin-left: -18px;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, var(--neutral-950) 30%, transparent);
+}
+
+.sheet__photo {
+  position: relative;
+}
+
+.sheet__icon-button.sheet__close {
+  background: color-mix(in oklch, var(--card) var(--bar-opacity, 82%), transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+.sheet__icon-button {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sheet__icon-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sheet__icon-button:hover::after {
+  opacity: var(--state-hover);
+}
+
+.sheet__icon-button:active::after {
+  opacity: var(--state-pressed);
+}
+
+.sheet__icon-button svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sheet__icon-button[aria-disabled='true'] {
+  color: var(--on-disabled);
+  cursor: default;
+}
+
+.sheet__icon-button[aria-disabled='true']::after {
+  display: none;
+}
+
+.sheet__close {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sheet__close {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+.sheet__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Vertical moves on the photo scroll the sheet. A gallery also takes sideways moves for its own
+   scroll (touch-action is the intersection of an element's and its ancestors', so pan-y here would
+   stop the track scrolling sideways). */
+.sheet__media {
+  touch-action: pan-y;
+}
+
+.sheet__media--gallery {
+  touch-action: pan-x pan-y;
+}
+
+/* The gallery: a scroll-snap track, one photo per page, with the browser's own momentum. */
+.gallery {
+  position: relative;
+}
+
+.gallery__track {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.gallery__track::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery__track:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: -4px;
+}
+
+.gallery__slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* The photo controls: chevrons beside the dots as one centred group (‹ dots ›) on a faint frosted
+   capsule 12 above the photo's bottom. Shown on every device; they switch photos only. */
+.gallery__controls {
+  position: absolute;
+  bottom: var(--space-12);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 2px;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, var(--card) 72%, transparent);
+  transform: translateX(-50%);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+}
+
+.gallery__dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.gallery__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-400);
+  transition:
+    width 200ms var(--ease-ios, ease),
+    background-color 200ms ease;
+}
+
+.gallery__dot.is-current {
+  width: 16px;
+  background: var(--action);
+}
+
+/* A compact 28 chevron with an invisible 48 target around it (the ::after), so the group stays small. */
+.gallery__nav {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  /* Measured on the capsule over the gallery photos: 5.2 to 5.8:1 (3:1 for icon controls). Step 600
+     measured 3.65:1 over the shield, too close for darker vendor photos behind the frosted capsule. */
+  color: var(--neutral-700);
+  cursor: pointer;
+}
+
+.gallery__nav::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+.gallery__nav svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.gallery__nav:active:not([aria-disabled='true']) {
+  color: var(--text);
+}
+
+.gallery__nav[aria-disabled='true'] {
+  opacity: 0.38;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery__dot {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .gallery__controls {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* The photo flush at the top, full width and square (the shop photos are), at most 45% of the screen. */
+.sheet__media .product-image--large {
+  width: 100%;
+  max-height: 45dvh;
+  aspect-ratio: 1;
+  border-radius: 0;
+}
+
+.sheet__media .product-image--placeholder.product-image--large {
+  aspect-ratio: 1;
+}
+
+.sheet__body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-8);
+  padding: var(--space-16) var(--space-16) var(--space-24);
+}
+
+/* The name in display type, balanced over its lines. */
+.sheet__title {
+  margin: 0;
+  font: var(--type-headline-small);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+/* Price in Gabarito display type with even figures, the stock state beside it when there is one. */
+.sheet__price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-12);
+  margin: 0;
+  font: var(--type-title-large);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A comfortable reading measure. */
+.sheet__desc {
+  max-width: 60ch;
+  margin: var(--space-8) 0 0;
+  white-space: pre-line;
+  text-wrap: pretty;
+}
+
+/* Who sells it: the booths-list row. Off the storefront the whole row opens the storefront. */
+.sheet__booth {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 72px;
+  margin-top: var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--page);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.sheet__booth--link {
+  position: relative;
+  overflow: hidden;
+}
+
+.sheet__booth--link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sheet__booth--link:hover::after {
+  opacity: var(--state-hover);
+}
+
+.sheet__booth--link:active::after {
+  opacity: var(--state-pressed);
+}
+
+.sheet__vendor {
+  display: grid;
+  flex: 1;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sheet__vendor-name {
+  max-width: 100%;
+  font: var(--type-title-medium);
+  overflow-wrap: anywhere;
+}
+
+.sheet__chevron {
+  flex: none;
+  color: var(--text-secondary);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Find on map: a text button under the row. */
+.sheet__map {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: var(--touch-target);
+  margin-left: calc(-1 * var(--space-12));
+  padding: 0 var(--space-12);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  text-decoration: none;
+}
+
+.sheet__map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sheet__map:hover::after {
+  opacity: var(--state-hover);
+}
+
+.sheet__map:active::after {
+  opacity: var(--state-pressed);
+}
+
+/* The order control docked at the sheet's foot on a frosted bar: the one primary action, full width. */
+.sheet__dock {
+  flex: none;
+  padding: var(--space-12) var(--space-16) calc(var(--space-12) + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in oklch, var(--card) var(--bar-opacity, 82%), transparent);
+  box-shadow: 0 -1px 0 color-mix(in oklch, var(--neutral-950) 8%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+.sheet__dock .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-12);
+}
+
+.sheet__dock .button {
+  flex: 1 1 12rem;
+  min-height: 56px;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sheet__dock {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Closing plays the opening backwards: the same duration, the --ease-ios curve time-reversed, from
+   wherever a drag left the sheet. ProductSheet unmounts it when sheet-sink ends. */
+.sheet-layer.is-closing {
+  pointer-events: none;
+}
+
+.sheet-layer.is-closing .sheet {
+  animation: sheet-sink var(--nav-duration) cubic-bezier(1, 0, 0.68, 0.28) forwards;
+}
+
+.sheet-layer.is-closing .sheet-scrim {
+  animation: sheet-fade-out var(--nav-duration) cubic-bezier(1, 0, 0.68, 0.28) forwards;
+}
+
+@keyframes sheet-sink {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront__bar,
+  .storefront__bar.is-shown,
+  .sheet {
+    transition: none;
+  }
+
+  .sheet,
+  .sheet-scrim,
+  .sheet-layer.is-closing .sheet,
+  .sheet-layer.is-closing .sheet-scrim {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .storefront__bar {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* A phone in landscape: the photo would shrink to a strip over the details, so the sheet goes two
+   columns, the photo on the left (held while the details scroll) and the details on the right. */
+@media (max-height: 30rem) and (min-width: 40rem) {
+  .sheet {
+    max-width: 48rem;
+  }
+
+  .sheet__scroll {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .sheet__photo {
+    position: sticky;
+    top: 0;
+  }
+
+  /* Close sits over the details column here, so the title leaves it room. */
+  .sheet__title {
+    padding-right: calc(var(--touch-target) + var(--space-8));
+  }
+
+  /* The sheet's height less the docked order bar, so the whole photo shows beside the details. */
+  .sheet__media .product-image--large {
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--space-24) - 5.5rem);
+  }
+}
