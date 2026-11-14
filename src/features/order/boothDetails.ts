@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import { getEventCatalog } from '../../shared/api'
+import { requestEventCatalog } from '../../shell/catalogRequest'
 import type { Booth, Order, Product } from '../../shared/types'
 import { orderEventSlug } from './orderExtras'
 
@@ -53,7 +53,7 @@ function subscribe(listener: () => void) {
 function loadEvent(slug: string) {
   if (requested.has(slug)) return
   requested.add(slug)
-  getEventCatalog(slug)
+  requestEventCatalog(slug)
     .then((r) => {
       // An unknown event stays requested: asking again would get the same answer.
       if (!r.ok) return

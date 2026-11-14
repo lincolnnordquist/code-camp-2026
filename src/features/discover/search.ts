@@ -56,6 +56,20 @@ export function searchCatalog(catalog: EventCatalog, query: string, category: st
   return hits.sort((a, b) => Number(b.product.availableQty > 0) - Number(a.product.availableQty > 0))
 }
 
+/**
+ * Booths a search names: every word of the query in the vendor's name, the booth code ("h6") or the
+ * slogan, folded like the product search. So a vendor with nothing listed yet, or a booth code read
+ * off a table, is still found.
+ */
+export function searchBooths(catalog: EventCatalog, query: string): Booth[] {
+  const words = queryWords(query)
+  if (words.length === 0) return []
+  return catalog.booths.filter((booth) => {
+    const haystack = foldText(`${booth.vendorName} ${booth.code} ${booth.slogan ?? ''}`).folded
+    return words.every((w) => haystack.includes(w))
+  })
+}
+
 export function categoriesOf(catalog: EventCatalog): string[] {
   return [...new Set(catalog.products.map((p) => p.category))].sort()
 }

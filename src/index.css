@@ -380,6 +380,14 @@ a {
   font: var(--type-body-medium);
 }
 
+/* On a tab root the header takes no room in the page (its bar floats over the large title), so the
+   banner sticks a bar's height below its own place, over the top of the page. While it shows, the
+   page starts that much lower instead. The banner's own box is unchanged, so the shell's measure of
+   it (--offline-banner-block) stays the same on every screen. */
+.app-header--root ~ .offline-banner:not(:empty) ~ main {
+  padding-top: calc(var(--space-8) + var(--header-height));
+}
+
 .offline-banner svg {
   flex: none;
   width: 24px;
@@ -952,6 +960,18 @@ main.main--under-header {
   margin: var(--space-16) 0;
   font: 400 var(--text-base) / 1.5 var(--font-body);
   letter-spacing: 0;
+}
+
+/* The not-found page: a real heading over the one sentence, then the way back. */
+.not-found__title {
+  margin: var(--space-16) 0 0;
+  color: var(--text);
+  font: var(--type-headline-small);
+  letter-spacing: 0;
+}
+
+.not-found .screen-state__message {
+  margin: var(--space-8) 0 var(--space-16);
 }
 
 /* Clears the sticky header when the route focus scrolls a heading into view. */

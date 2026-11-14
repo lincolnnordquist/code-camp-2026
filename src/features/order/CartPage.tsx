@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getEventCatalog } from '../../shared/api'
+import { requestEventCatalog } from '../../shell/catalogRequest'
 import { useOnlineStatus } from '../../shared/live'
 import type { Product } from '../../shared/types'
 import { ProductImage } from '../../shared/ui/ProductImage'
@@ -76,7 +76,7 @@ export function CartPage() {
   useEffect(() => {
     if (!cartSlug) return
     let active = true
-    getEventCatalog(cartSlug)
+    requestEventCatalog(cartSlug)
       .then((r) => {
         if (active && r.ok) setProducts(new Map(r.value.products.map((p) => [p.id, p])))
       })

@@ -850,6 +850,15 @@ html[data-search-view] :is(.tab-bar, .cart-bar) {
   margin-top: var(--space-24);
 }
 
+/* Booths a search names, above the products: the Booths tab's rows under their own heading. */
+.result-booths {
+  margin-bottom: var(--space-24);
+}
+
+.result-booths .result-group__name {
+  margin: 0 0 var(--space-12);
+}
+
 .result-group__head {
   display: flex;
   align-items: center;

@@ -47,6 +47,9 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
   const filters = readFilters(params)
   // A banner that fails to load leaves the plain banner band, not the browser's broken-image icon.
   const [failedBanner, setFailedBanner] = useState<string | null>(null)
+  // The banner's box is reserved at its final size from the first paint; the picture fades in once
+  // it has loaded instead of popping in late.
+  const [loadedBanner, setLoadedBanner] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const filtersChipRef = useRef<HTMLDivElement>(null)
   const filtersReturnFocus = useCallback(() => filtersChipRef.current?.querySelector<HTMLElement>('.chip--filters') ?? null, [])
@@ -136,7 +139,23 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
       <header className="storefront__header">
         <div className="storefront__banner">
           {booth.bannerUrl && booth.bannerUrl !== failedBanner && (
-            <img src={booth.bannerUrl} alt="" width={1200} height={400} decoding="async" onError={() => setFailedBanner(booth.bannerUrl)} />
+            <img
+              className={booth.bannerUrl === loadedBanner ? 'is-loaded' : undefined}
+              src={booth.bannerUrl}
+              alt=""
+              width={1200}
+              height={400}
+              // The storefront's first picture: requested at once, ahead of the product photos.
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              // A banner already in the cache (preloaded from the link) can finish before React attaches onLoad.
+              ref={(img) => {
+                if (img?.complete && img.naturalWidth > 0 && loadedBanner !== booth.bannerUrl) setLoadedBanner(booth.bannerUrl)
+              }}
+              onLoad={() => setLoadedBanner(booth.bannerUrl)}
+              onError={() => setFailedBanner(booth.bannerUrl)}
+            />
           )}
         </div>
         <span className="storefront__logo">

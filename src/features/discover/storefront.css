@@ -27,7 +27,8 @@
   height: calc(var(--banner-visible) + var(--app-header-block));
   margin: calc(-1 * var(--app-header-block)) calc(-1 * var(--space-16)) 0;
   overflow: hidden;
-  background: var(--card);
+  /* A soft neutral, the same for every vendor, in the banner's place until its picture fades in. */
+  background: var(--neutral-200);
 }
 
 .storefront__banner img {
@@ -35,6 +36,18 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.storefront__banner img.is-loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront__banner img {
+    transition: none;
+  }
 }
 
 /* Wider, it stays within the content column with rounded lower corners. */
@@ -43,6 +56,14 @@
     --banner-visible: 180px;
     margin-inline: 0;
     border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+}
+
+/* A short screen (a phone in landscape) is wide enough for the tall banner but has no height for it:
+   a strip of banner, so the booth's name and its row show above the tab bar. After the wide rule. */
+@media (max-height: 30rem) {
+  .storefront__banner {
+    --banner-visible: 56px;
   }
 }
 

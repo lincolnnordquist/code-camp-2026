@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Booth, EventCatalog, Product } from '../../shared/types'
 
-import { categoriesOf, descriptionSnippet, highlightParts, searchCatalog } from './search'
+import { categoriesOf, descriptionSnippet, highlightParts, searchBooths, searchCatalog } from './search'
 
 const booth = (id: string, vendorName: string): Booth => ({
   id,
@@ -175,5 +175,27 @@ describe('folding punctuation, emoji and accents (edge-case sweep)', () => {
 
   it('finds a description-only accented match for the snippet', () => {
     expect(descriptionSnippet('Comes with a dragón stand.', 'Egg Tabletop Dice', 'dragon')).toBe('Comes with a dragón stand.')
+  })
+})
+
+describe('searchBooths (vendors and booth codes, QA D6)', () => {
+  const withEmptyVendor: EventCatalog = { ...catalog, booths: [...catalog.booths, { ...booth('h6', 'DibSpot'), slogan: 'The team behind this app' }] }
+  const codes = (query: string) => searchBooths(withEmptyVendor, query).map((b) => b.code)
+
+  it('finds a vendor with no products by its name, in any case', () => {
+    expect(codes('DibSpot')).toEqual(['H6'])
+    expect(codes('dibspot')).toEqual(['H6'])
+  })
+
+  it('finds a booth by the code on its table, lower or upper case', () => {
+    expect(codes('h6')).toEqual(['H6'])
+    expect(codes('A1')).toEqual(['A1'])
+  })
+
+  it('needs every word, folds accents and punctuation, and finds nothing for an empty or emoji-only query', () => {
+    expect(codes('critical dice!')).toEqual(['B2'])
+    expect(codes('critical tee')).toEqual([])
+    expect(codes('')).toEqual([])
+    expect(codes('🐉')).toEqual([])
   })
 })

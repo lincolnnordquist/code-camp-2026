@@ -1,6 +1,7 @@
 import { MapSkeleton } from './DiscoverSkeletons'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { bannerPreloadProps } from './bannerPreload'
 import { BoothLogo } from '../../shared/ui/BoothLogo'
 import { boothBadgeClass, boothBadgeLabel } from './boothLabel'
 import { eventFloorLayout } from './catalogExtras'
@@ -187,7 +188,7 @@ export function MapPage() {
               Centre on booth
             </button>
             {selectedHasStorefront && (
-              <Link className="button" to={`/e/${eventSlug}/booth/${selected.id}`}>
+              <Link className="button" to={`/e/${eventSlug}/booth/${selected.id}`} {...bannerPreloadProps(selected)}>
                 Open storefront
               </Link>
             )}
