@@ -1,0 +1,895 @@
+/* The event home in the team design system (src/shared/ui/tokens.css): light only,
+   tonal surfaces, violet for action, green, amber, red and blue for status only. Shared discover
+   parts (product cards, chips, badges, booth tiles) are in discover.css. */
+
+.discover {
+  /* The page colour itself belongs to the shell (body); painting it here would leave a seam at the main padding. */
+  color-scheme: light;
+  color: var(--text);
+  font: var(--type-body-large);
+}
+
+/* Hero: the event in the headline role and the venue under it. */
+.discover__header {
+  margin: var(--space-8) 0 var(--space-16);
+}
+
+.discover__header h1 {
+  margin: 0;
+  font: var(--type-headline-medium);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.discover__venue {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.discover__venue svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.discover__header .note {
+  margin: var(--space-8) 0 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+/* Search: a filled pill, 48 high, on the card tone with no outline (the iOS and Material 3 search
+   bar), a 24 px leading icon and a 48 px clear button. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-bottom: var(--space-24);
+}
+
+.search__field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Cancel, in the search view: a text button with the full target. */
+.search__cancel {
+  flex: none;
+  min-height: var(--touch-target);
+  margin-right: calc(-1 * var(--space-12));
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  cursor: pointer;
+}
+
+.search__icon {
+  position: absolute;
+  top: 50%;
+  /* 14 from the pill's edge: the lens's visual centre sits on the curve's centre line. */
+  left: 14px;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.search__input {
+  width: 100%;
+  height: var(--touch-target);
+  padding: 0 var(--touch-target) 0 48px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--card);
+  box-shadow: none;
+  color: var(--text);
+  font: var(--type-body-large);
+  text-overflow: ellipsis;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search__input::-webkit-search-cancel-button {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* No clear button until there is text, so the hint gets that room. */
+.search__input:placeholder-shown {
+  padding-right: var(--space-16);
+}
+
+.search__input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* Focused: a quiet 1 px ring inside the pill. A keyboard focus adds the app's focus ring outside it. */
+.search__input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--outline);
+}
+
+html:not([data-input='pointer']) .search__input:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+
+/* Material 3 icon buttons: a 48 px round target with a state layer in the content colour. */
+.search__clear,
+.recent__remove {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.search__clear::after,
+.recent__remove::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.search__clear:hover::after,
+.recent__remove:hover::after {
+  opacity: var(--state-hover);
+}
+
+.search__clear:active::after,
+.recent__remove:active::after {
+  opacity: var(--state-pressed);
+}
+
+.search__clear svg,
+.recent__remove svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.search__clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/* The search view's sections: a Label large heading, 8 under it and 24 between sections. */
+.search-view__hint {
+  margin: 0 0 var(--space-24);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.recents {
+  margin: 0 0 var(--space-24);
+}
+
+.recents__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--touch-target);
+  margin-top: calc(-1 * var(--space-12));
+}
+
+.recents__title {
+  margin: 0 0 var(--space-8);
+  color: var(--text-secondary);
+  font: var(--type-label-large);
+  letter-spacing: 0;
+}
+
+.recents__head .recents__title {
+  margin: 0;
+}
+
+.recents__clear {
+  min-height: var(--touch-target);
+  margin-right: calc(-1 * var(--space-12));
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  cursor: pointer;
+}
+
+.recents__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One term per row: a clock, the words, and a 48 px remove; a hairline between rows from the text. */
+.recent {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.recent + .recent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(20px + var(--space-12));
+  border-top: 1px solid color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+.recent__term {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-8) 0 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: var(--type-body-large);
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent__icon {
+  flex: none;
+  color: var(--text-secondary);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.recent__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The phone search view (iOS and Material 3 search): the field and Cancel fixed at the top, just
+   under the safe area, on the page tone over the app bar, so no empty band shows above them. The
+   rest of the home is removed, not covered (display: none), so nothing under the field can be tapped
+   or read; the page heading stays for screen readers. Results, recents and categories start below. */
+@media (max-width: 40rem) {
+  .discover {
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+
+  .discover--docked .search {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 20;
+    margin: 0;
+    padding: calc(var(--safe-top) + var(--space-8)) var(--space-16) var(--space-8);
+    background: var(--page);
+  }
+
+  /* Cancel slides in from the right and the view's sections fade in while the field glides up
+     (EventHome.tsx); the rest of the home leaves at once, so nothing under the field can be tapped. */
+  .discover--docked .search__cancel {
+    animation: search-cancel-in 220ms var(--ease-ios) both;
+  }
+
+  .discover--docked :is(.search-view__hint, .recents, .search-view__categories, .results-section) {
+    animation: search-view-in 220ms var(--ease-ios) both;
+  }
+
+  .discover--docked .discover__header {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .discover--docked :is(.active-orders, .home-section) {
+    display: none;
+  }
+
+  .search-view__categories {
+    margin-bottom: var(--space-16);
+  }
+
+  /* 8 px between chips both ways. Each chip's target grows 4 px above and below (40 high), so the
+     targets of neighbouring rows meet but never overlap. */
+  .search-view__categories .chips {
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin: 0;
+    padding: 4px 0;
+    overflow: visible;
+  }
+
+  .search-view__categories .chip {
+    margin: 0;
+  }
+
+  .search-view__categories .chip::after {
+    inset: -4px 0;
+  }
+}
+
+/* The search view's mark (EventHome.tsx) hides the shell's bottom bars while the view is open. */
+html[data-search-view] :is(.tab-bar, .cart-bar) {
+  display: none;
+}
+
+@keyframes search-view-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes search-cancel-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--space-16));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discover--docked :is(.search__cancel, .search-view__hint, .recents, .search-view__categories, .results-section) {
+    animation: none;
+  }
+}
+
+/* The open-order badges: 24 high, Label medium, step 800 on step 100. */
+.active-order__badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-full);
+  font: var(--type-label-medium);
+}
+
+.active-order__badge--info {
+  background: var(--info-100);
+  color: var(--info-800);
+}
+
+.active-order__badge--success {
+  background: var(--success-100);
+  color: var(--success-800);
+}
+
+/* Open orders: the attendee order row, ready first. The strip is a container, so a narrow row
+   (a small phone, or a zoomed page) moves the pickup code under the name instead of clipping it. */
+.active-orders {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0 0 var(--space-24);
+  container-type: inline-size;
+}
+
+/* Wider screens set rows side by side rather than stretching one across. */
+@media (min-width: 45rem) {
+  .active-orders {
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  }
+}
+
+.active-order {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'plate text code';
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 72px;
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--neutral-950);
+  text-decoration: none;
+}
+
+.active-order__plate {
+  grid-area: plate;
+}
+
+.active-order__text {
+  grid-area: text;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.active-order__vendor {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font: var(--type-title-medium);
+}
+
+/* A long label (payment check) wraps inside the badge, never past it. */
+.active-order__badge {
+  padding-block: 4px;
+}
+
+.active-order__code-block {
+  grid-area: code;
+  justify-self: end;
+}
+
+/* The pickup code face, at row size. */
+.active-order__code {
+  display: block;
+  font: 700 16px/24px var(--font-mono);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+@container (max-width: 20rem) {
+  .active-order {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'plate text'
+      'plate code';
+    row-gap: var(--space-8);
+  }
+
+  .active-order__plate {
+    align-self: start;
+  }
+
+  .active-order__code-block {
+    justify-self: start;
+  }
+}
+
+/* Three or more: one row that counts them and names the booth that is ready. */
+.active-order--summary {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'plate text chevron';
+}
+
+.active-order__stack {
+  grid-area: plate;
+  display: flex;
+  gap: 4px;
+}
+
+.active-order__chevron {
+  grid-area: chevron;
+  color: var(--text-secondary);
+}
+
+.active-orders__meta {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+/* Ready is a status, so it is said in the success colour. */
+.active-orders__meta--ready {
+  color: var(--success-800);
+  font-weight: 600;
+}
+
+@container (max-width: 20rem) {
+  .active-order--summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'plate chevron'
+      'text chevron';
+  }
+}
+
+/* Sections: Title large headings with more room above (32) than below (12), so each heading
+   belongs to what follows it. */
+.home-section {
+  margin-top: var(--space-32);
+}
+
+.home-section h2 {
+  margin: 0 0 var(--space-12);
+  font: var(--type-title-large);
+  letter-spacing: 0;
+}
+
+.home-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  /* The See all target is 48 high around the 28 px heading line, 10 px each side: pulled up 10 so
+     the heading has 32 above it, and 2 px more below makes 12. */
+  margin-top: -10px;
+  margin-bottom: 2px;
+}
+
+.home-section__head h2 {
+  margin: 0;
+}
+
+/* "See all" as a text button: primary 700 in the button face, with the full target. */
+.home-section__head .link {
+  position: relative;
+  flex: none;
+  justify-content: center;
+  min-height: var(--touch-target);
+  margin-right: calc(-1 * var(--space-12));
+  padding: 0 var(--space-12);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  text-decoration: none;
+}
+
+/* Categories: a square photo with the name and count under it, never beside it. Three across on
+   a phone, six in one row wider. */
+.category-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-16) var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 45rem) {
+  .category-tiles {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.category-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* As product photos (discover.css): the photo fills the tile edge to edge, clipped to radius 12;
+   the card tone shows only for a category without a photo. */
+.category-tile__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+/* The cover is a ProductImage, so the tile takes the same treatment as every product card. */
+.category-tile__image .product-image {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.category-tile__name {
+  font: var(--type-label-large);
+  overflow-wrap: anywhere;
+}
+
+.category-tile__count {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+/* Booths: cards with the booth's tile, the vendor and its line. On a phone they scroll sideways
+   and snap; wider, three to a row. */
+.booth-row {
+  display: grid;
+  grid-auto-flow: column;
+  /* Two cards always fit side by side (160 px at most), so every snap position shows whole cards and
+     a card reached by Tab is never left half off screen. */
+  grid-auto-columns: min(160px, calc((100% - var(--space-12)) / 2));
+  gap: var(--space-12);
+  margin: 0 calc(-1 * var(--space-16));
+  padding: 0 var(--space-16);
+  list-style: none;
+  overflow-x: auto;
+  scroll-padding-inline: var(--space-16);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.booth-row::-webkit-scrollbar {
+  display: none;
+}
+
+.booth-row li {
+  /* Contains the visually hidden booth label, which would otherwise escape the scroller and widen the page. */
+  position: relative;
+  display: grid;
+  scroll-snap-align: start;
+}
+
+.booth-row__item {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: var(--space-12);
+  min-height: var(--touch-target);
+  padding: var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.booth-row__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.booth-row__name {
+  max-width: 100%;
+  font: var(--type-title-medium);
+  overflow-wrap: anywhere;
+}
+
+.booth-row__tagline {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+@media (min-width: 45rem) {
+  .booth-row {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .booth-row__item {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+}
+
+/* Map: the drawn plan in a card, with one quiet line to open it. */
+.map-preview {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.map-preview__plan {
+  display: block;
+  padding: var(--space-12) var(--space-12) 0;
+}
+
+.map-preview .floor-map {
+  border-color: var(--neutral-300);
+  border-radius: var(--radius-sm);
+}
+
+.map-preview__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  min-height: var(--touch-target);
+  padding: var(--space-8) var(--space-12) var(--space-8) var(--space-16);
+  font: var(--type-title-medium);
+}
+
+.map-preview__label svg,
+.active-order__chevron {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-preview__label svg {
+  color: var(--text-secondary);
+}
+
+/* While searching the results lead: the open orders step aside (their status line stays mounted
+   outside the section, so a change is still announced) and come back with the home. */
+.discover--searching .active-orders {
+  display: none;
+}
+
+/* Search results: the filter chips, the count with Clear search, then the rows. */
+.results-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8) var(--space-12);
+  /* Chips to this row 16 (the chips' own 8 plus 8), this row to the first result 8. */
+  margin: var(--space-8) 0 var(--space-8);
+}
+
+/* The count takes focus after Enter (a script target, not a control), so it draws no ring, as the
+   shell does for headings. A long count line wraps itself, never the Clear search button. */
+.result-count:focus {
+  outline: none;
+}
+
+.result-count {
+  flex: 1 1 12rem;
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-label-large);
+}
+
+/* Clear search: a text button. The element is the 48 px target; its state layer is drawn 4 px
+   inside it, the 40 px shape. */
+.results-section__head .button {
+  position: relative;
+  flex: none;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-16);
+  overflow: visible;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  box-shadow: none;
+  color: var(--primary-700);
+  font: var(--type-button-small);
+  white-space: nowrap;
+}
+
+.results-section__head .button::after {
+  inset: 4px 0;
+  border-radius: var(--radius-full);
+}
+
+/* The 48 px target overhangs the row instead of making it 48 high, so the row is as tall as the count. */
+.results-section__head:not(.results-section__head--empty) .button {
+  margin-block: calc((20px - var(--touch-target)) / 2);
+}
+
+
+
+.results-section__head .button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* No results: the message leads, centred, with Clear search and two categories to try under it. */
+.results-section__head--empty {
+  flex-direction: column;
+  gap: var(--space-16);
+  margin: var(--space-24) 0;
+  text-align: center;
+}
+
+.results-section__head--empty .result-count {
+  flex: none;
+  max-width: 22rem;
+  color: var(--text);
+  font: var(--type-title-large);
+  text-wrap: balance;
+}
+
+.results-empty {
+  display: grid;
+  justify-items: center;
+}
+
+.results-empty__label {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.results-empty .chips {
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* Field to chips 12: the row drops its own padding (each chip keeps 8 of target above and below) and
+   the section moves up into the field's 24 bottom margin. */
+.results-section {
+  margin-top: calc(var(--space-12) - var(--space-24) - var(--space-8));
+}
+
+.results-section__bar .chips {
+  padding-block: 0;
+}
+
+/* The chip row scrolls sideways; its end fades out so a cut-off chip reads as "more this way". Only
+   that row: the wrapped "Try a category" chips in the empty state never scroll. */
+.results-section__bar .chips {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--space-24)), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--space-24)), transparent);
+}
+
+/* Results grouped under their booth when one booth has several. */
+.result-group + .result-group {
+  margin-top: var(--space-24);
+}
+
+.result-group__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin-bottom: var(--space-12);
+}
+
+.result-group__name {
+  min-width: 0;
+  margin: 0;
+  font: var(--type-title-large);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Matched words: bold, not boxed, as a native search marks them. */
+.search-mark {
+  background: none;
+  color: inherit;
+  font-weight: 700;
+}
+
+/* Loading placeholders keep the hero's and the field's gaps. */
+.discover__header .skeleton--venue {
+  margin-top: 4px;
+}
+
+.discover .skeleton--field {
+  display: block;
+  margin-bottom: var(--space-24);
+  border-radius: var(--radius-xs);
+}
+
+.discover .category-tiles .skeleton--tile {
+  block-size: auto;
+  aspect-ratio: 1;
+  margin-bottom: 4px;
+}
+
+/* The place held for the open-orders strip while this visit's orders load: the card's shape. */
+.active-orders--loading {
+  border-radius: var(--radius-md);
+}
