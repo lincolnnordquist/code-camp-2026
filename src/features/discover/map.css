@@ -1,0 +1,611 @@
+/* The map screen in the team design system (src/shared/ui/tokens.css): light only,
+   tonal surfaces, violet for action, elevation only on what floats, status colours only for status.
+   Imported by FloorMap; the rules here override the map rules in discover.css, so each selector
+   carries one class more than the rule it replaces and the import order does not matter. */
+
+/* --font-display and --text collide with shell tokens, so they and the display-face type roles
+   are restated for the map. --space-4 also collides: the design system's 4 px step is written as 4px. */
+.map-page,
+.floor-map {
+  --font-display: Gabarito, sans-serif;
+  --text: var(--neutral-950);
+  --type-headline-medium: 800 28px/36px var(--font-display);
+  --type-title-large: 700 22px/28px var(--font-display);
+  --type-label-large: 600 14px/20px var(--font-display);
+  --type-button-medium: 700 16px/24px var(--font-display);
+
+  color-scheme: light;
+}
+
+.map-page {
+  color: var(--neutral-950);
+  font: var(--type-body-large);
+}
+
+.map-page h1 {
+  margin: var(--space-8) 0 var(--space-16);
+  font: var(--type-headline-medium);
+  letter-spacing: 0;
+}
+
+.map-page .note {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+/* The map is a card: the hall's floor is the page tone inside it, the legend and tip sit under it. */
+.map-page .floor-map:not(.floor-map--preview) {
+  margin-bottom: var(--space-12);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+/* The card clips its overflow, and the plan paints over an inset outline, so the map's focus
+   ring is an overlay on the frame, inside the card's edge and above the plan. */
+@supports selector(:has(*)) {
+  .floor-map .floor-map__scroller:focus-visible {
+    outline: none;
+  }
+
+  .floor-map .floor-map__frame:has(> .floor-map__scroller:focus-visible)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    box-shadow: inset 0 0 0 3px var(--focus);
+    pointer-events: none;
+  }
+}
+
+/* The map's loading shape (DiscoverSkeletons.tsx): the plan area at the hall's proportions inside
+   the card, then the toolbar and the key, as the loaded map lays them out. */
+.map-page .map-skeleton {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.map-skeleton__plan {
+  display: block;
+  padding: var(--space-12) var(--space-12) 0;
+}
+
+/* The hall's drawn proportions: the 1000-wide layout plus its two 50-unit label gutters, by 840. */
+.map-skeleton .map-skeleton__hall {
+  block-size: auto;
+  aspect-ratio: 1100 / 840;
+}
+
+.map-skeleton .floor-map__toolbar {
+  justify-content: space-between;
+}
+
+/* Zoomed, the plan runs past every edge of the card; a short fade on each side says it continues
+   instead of ending at a hard cut against the toolbar. */
+.floor-map .floor-map__scroller.is-zoomed {
+  --edge: var(--space-16);
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent),
+    linear-gradient(to right, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent),
+    linear-gradient(to right, transparent, #000 var(--edge), #000 calc(100% - var(--edge)), transparent);
+  mask-composite: intersect;
+}
+
+/* Every frame of a zoom lays the canvas out at its new width (FloorMap); containment keeps that
+   relayout and repaint inside the map. */
+.floor-map__scroller .floor-map__canvas {
+  contain: layout paint;
+}
+
+/* The drawn plan: page-tone floor inside outline-tone walls, quiet neutral tables and areas. */
+.floor-map .plan__floor {
+  fill: var(--page);
+}
+
+.floor-map .plan__walls {
+  stroke: var(--outline);
+}
+
+.floor-map .plan__table rect {
+  fill: var(--neutral-200);
+  /* The outline step: 3.19:1 against the page-tone floor, so an empty table is seen (WCAG 1.4.11). */
+  stroke: var(--outline);
+  stroke-width: 1.5;
+}
+
+/* Sizes are plan units, so the codes grow with the zoom; the face and weight are Label small. */
+.floor-map .plan__table text {
+  fill: var(--neutral-800);
+  font: 600 18px var(--font-text);
+}
+
+.floor-map .plan__row {
+  fill: var(--text-secondary);
+  font: 600 30px var(--font-display);
+}
+
+.floor-map .plan__area rect {
+  fill: var(--neutral-200);
+  stroke: none;
+  stroke-dasharray: none;
+}
+
+/* Title large's face and weight; 28 plan units keeps "Kitchen" inside its narrow recess. */
+.floor-map .plan__area text {
+  fill: var(--neutral-950);
+  font: 700 28px var(--font-display);
+}
+
+/* Vendor plates. A plate covers its table exactly, with the table's corner radius (FloorMap sets
+   --plate-radius from the layout), so no table corner shows past a plate at any zoom. */
+.floor-map .floor-map__booth {
+  /* Width stays with discover.css, which thins the home preview's plates. */
+  border-style: solid;
+  border-color: var(--action);
+  border-radius: var(--plate-radius, 0.8cqw);
+  background: var(--action);
+  color: var(--on-action);
+}
+
+.floor-map .floor-map__booth--discovery,
+.floor-map .floor-map__booth--paused {
+  border-style: solid;
+  border-color: var(--outline-on-card);
+  background: var(--page);
+  color: var(--neutral-800);
+}
+
+/* The selected booth, pinned: the deepest violet, set off from its neighbours by a page-tone gap and
+   a violet ring that stays on, so it reads as selected without colour alone and between pulses. */
+.floor-map .floor-map__booth.is-highlighted {
+  --selected-ring: 0 0 0 2px var(--page), 0 0 0 4px var(--primary-800);
+
+  border-color: var(--primary-800);
+  background: var(--primary-800);
+  color: var(--on-action);
+  box-shadow: var(--selected-ring);
+}
+
+/* Like a pin, a soft halo keeps pulsing around the selected plate (a slow 2 s cycle, the halo's
+   scale and opacity only, never the plate) until the person deselects it: a tap on empty map,
+   another booth, or Escape. Deselecting is the way to stop it (WCAG 2.2.2). It pauses while the page
+   is hidden. ::after is the plate's hit area, so the halo is ::before. */
+.floor-map .floor-map__booth.is-highlighted::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 2px solid var(--primary-500);
+  border-radius: calc(var(--plate-radius, 0.8cqw) + 6px);
+  opacity: 0;
+  pointer-events: none;
+  animation: selected-booth-halo 2s ease-out infinite;
+}
+
+.floor-map.is-page-hidden .floor-map__booth.is-highlighted::before {
+  animation-play-state: paused;
+}
+
+@keyframes selected-booth-halo {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+/* The ring is a box-shadow, so the outline stays free for the focus ring, drawn clear of it. */
+.floor-map .floor-map__booth.is-highlighted:focus-visible {
+  outline-offset: 6px;
+}
+
+/* Reduced motion: no pulse at all. The plate keeps its ring and gains a small static pin above it. */
+@media (prefers-reduced-motion: reduce) {
+  .floor-map .floor-map__booth.is-highlighted::before {
+    inset: auto;
+    /* Just above the plate, clear of its code, in the gap between rows. */
+    top: -13px;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: var(--primary-800);
+    box-shadow: 0 0 0 2px var(--page);
+    opacity: 1;
+    animation: none;
+  }
+}
+
+.floor-map .floor-map__code {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Gabarito is wider than the shell's condensed face, so the code is sized to fit "D10" across a
+   table: the floor follows the reader's text size as far as the table holds it (3cqw), past that
+   zooming the map enlarges the codes, and the booth list carries the same names. */
+.floor-map .floor-map__scroller .floor-map__code {
+  font-size: clamp(min(0.5625rem, 3cqw), 2.1cqw, 1.5rem);
+}
+
+/* The toolbar under the plan: the zoom tip, the overview while zoomed, and the zoom buttons at the
+   end. Nothing floats over the plan, so no table is ever covered. */
+.floor-map {
+  --zoom-btn: var(--touch-target);
+  --zoom-gap: var(--space-8);
+  --overview-h: var(--touch-target);
+}
+
+.floor-map__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-12);
+  padding: var(--space-8) var(--space-8) 0 var(--space-16);
+}
+
+.floor-map .floor-map__zoom {
+  position: static;
+  flex: none;
+  margin-left: auto;
+}
+
+/* Two 48 px tonal icon buttons, 8 px apart. They sit on the card, so they take no elevation. */
+.floor-map .floor-map__zoom-btn {
+  border-radius: var(--radius-full);
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+  box-shadow: none;
+}
+
+.floor-map .floor-map__zoom-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* The button is the whole 48 px target; its ::after is the Material state layer. */
+.floor-map .floor-map__zoom-btn::after {
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floor-map .floor-map__zoom-btn:hover::after {
+  opacity: var(--state-hover);
+}
+
+.floor-map .floor-map__zoom-btn:focus-visible::after {
+  opacity: var(--state-focus);
+}
+
+.floor-map .floor-map__zoom-btn:active::after {
+  opacity: var(--state-pressed);
+}
+
+/* Material's disabled icon button: content at 38%, the container only outlined, so it reads as
+   unavailable rather than broken. */
+.floor-map .floor-map__zoom-btn[aria-disabled='true'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--text) 12%, transparent);
+  color: color-mix(in oklch, var(--text) 38%, transparent);
+  opacity: 1;
+}
+
+.floor-map .floor-map__zoom-btn[aria-disabled='true']::after {
+  opacity: 0;
+}
+
+/* The overview, while zoomed: the hall's outline with the visible part marked in violet, at the
+   toolbar's start. */
+.floor-map__overview {
+  position: relative;
+  flex: none;
+  height: var(--overview-h);
+  max-width: calc(2 * var(--overview-h));
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--page);
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floor-map__overview-plan {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.floor-map__overview-plan path {
+  fill: var(--page);
+  stroke: var(--outline);
+  stroke-width: 16;
+}
+
+.floor-map__overview-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--action);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* The zoom tip in Body small, with a text button to dismiss it. */
+.floor-map .floor-map__hint {
+  flex: 1 1 12rem;
+  padding: 0;
+  border-top: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.floor-map .floor-map__hint-dismiss {
+  position: relative;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-full);
+  color: var(--primary-700);
+  font: var(--type-label-large);
+  overflow: hidden;
+}
+
+.floor-map .floor-map__hint-dismiss::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floor-map .floor-map__hint-dismiss:hover::after {
+  opacity: var(--state-hover);
+}
+
+.floor-map .floor-map__hint-dismiss:active::after {
+  opacity: var(--state-pressed);
+}
+
+/* Legend in Label medium, each swatch drawn like the plate it names. Short words and tight gaps
+   keep it on one line from 360 px; it wraps only at large text sizes. */
+.floor-map .floor-map__legend {
+  gap: 4px var(--space-8);
+  padding: var(--space-8) var(--space-12) var(--space-12) var(--space-16);
+  border-top: 0;
+  color: var(--text-secondary);
+  font: var(--type-label-medium);
+}
+
+.floor-map .floor-map__legend li {
+  position: relative;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.floor-map .legend-swatch {
+  flex: none;
+  width: 14px;
+  height: 12px;
+  border: 2px solid var(--action);
+  border-radius: 4px;
+  background: var(--action);
+}
+
+.floor-map .legend-swatch--dashed {
+  border-style: solid;
+  border-color: var(--outline-on-card);
+  background: var(--page);
+}
+
+.floor-map .legend-swatch--highlight {
+  border-color: var(--primary-800);
+  background: var(--primary-800);
+}
+
+.floor-map .legend-swatch--empty {
+  /* The card's outline step: 4.05:1 against the card (WCAG 1.4.11). */
+  border: 1px solid var(--outline-on-card);
+  background: var(--neutral-200);
+}
+
+/* The booth card floats over the page: raised, larger corners. Same logo, text and badge as a
+   booths-list row. */
+.map-page .booth-card {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--elevation-3);
+}
+
+/* Held above the tab bar while the page scrolls, so the actions stay in reach, only where the screen
+   has room for the map as well: on a short or very narrow screen (landscape, 200% text) a held card
+   would cover the map, so it scrolls with the page there. */
+@media (min-height: 36rem) and (min-width: 22rem) {
+  .map-page .booth-card {
+    position: sticky;
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + var(--space-12));
+  }
+}
+
+/* One left edge: the heading above already names the booth, so the card carries no code tile.
+   Name to tagline 4, tagline to badge 8, badge to buttons 16. */
+.map-page .booth-card__head {
+  margin-bottom: var(--space-16);
+}
+
+.booth-card__text {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.map-page .booth-card h2 {
+  margin: 0;
+  font: var(--type-title-large);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.map-page .booth-card__head p {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge spec: 24 high, Label medium. A booth's mode is not a status, so it is the designer's
+   outlined neutral badge, as on the storefront, the product sheet and the booths list. */
+.map-page .booth-card .mode {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 24px;
+  margin-top: 4px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-full);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+  color: var(--neutral-800);
+  font: var(--type-label-medium);
+}
+
+/* The two actions as small buttons (40 px shape, 48 px target), equal width across the card:
+   Centre on booth outlined, Open storefront filled and last, nearest the thumb. */
+.booth-card__buttons {
+  display: grid;
+  /* Side by side while each fits; stacked full width on a narrow card (200% text), never clipped. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--space-8);
+  margin-bottom: -4px;
+}
+
+/* The element is the 48 px target; the 40 px shape and its state layer are drawn 4 px inside it. */
+.map-page .booth-card__buttons .button {
+  position: relative;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-12);
+  overflow: visible;
+  isolation: isolate;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  box-shadow: none;
+  color: var(--on-action);
+  font: var(--type-button-small);
+  text-align: center;
+  white-space: normal;
+}
+
+.map-page .booth-card__buttons .button::before,
+.map-page .booth-card__buttons .button::after {
+  content: '';
+  position: absolute;
+  inset: 4px 0;
+  border-radius: var(--radius-full);
+  pointer-events: none;
+}
+
+.map-page .booth-card__buttons .button::before {
+  z-index: -1;
+  background: var(--action);
+}
+
+.map-page .booth-card__buttons .button::after {
+  background: currentColor;
+  opacity: 0;
+}
+
+.map-page .booth-card__buttons .button--outlined {
+  color: var(--primary-700);
+}
+
+.map-page .booth-card__buttons .button--outlined::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+}
+
+.map-page .booth-card__buttons .button:hover::after {
+  opacity: var(--state-hover);
+}
+
+.map-page .booth-card__buttons .button:active::after {
+  opacity: var(--state-pressed);
+}
+
+.map-page .booth-card__buttons .button:focus-visible {
+  outline-offset: -2px;
+}
+
+
+/* Short, wide screens (a phone in landscape): the map and the booth card side by side, the card held
+   at the top of its column while the page scrolls, so a tapped plate (kept on screen by MapPage) and
+   its card show together. The map keeps its full column: shrinking it to the screen's height would
+   bring the tables so close that one plate's 48 px target covers the next. Not on a short narrow
+   screen (200% text). Wide screens (a laptop) use the same side panel, so the card never sits over
+   the plan's bottom rows. */
+@media (max-height: 30rem) and (min-width: 40rem), (min-width: 64rem) {
+  .map-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
+    column-gap: var(--space-16);
+    align-items: start;
+  }
+
+  .map-page > * {
+    grid-column: 1 / -1;
+  }
+
+  .map-page h1 {
+    margin: 0 0 var(--space-8);
+    font: var(--type-title-large);
+  }
+
+  .map-page > .floor-map {
+    grid-column: 1;
+  }
+
+  .map-page > :is(.booth-card, .note) {
+    grid-column: 2;
+    position: sticky;
+    top: var(--space-8);
+    bottom: auto;
+  }
+
+  .map-page > .note {
+    margin-top: 0;
+  }
+}
+
+/* On a wide screen the app header stays over the page, so the held card sits below it. */
+@media (min-width: 64rem) and (min-height: 30.0625rem) {
+  .map-page > :is(.booth-card, .note) {
+    top: calc(var(--app-header-block) + var(--space-8));
+  }
+
+  .map-page h1 {
+    margin: var(--space-8) 0 var(--space-16);
+    font: var(--type-headline-medium);
+  }
+}

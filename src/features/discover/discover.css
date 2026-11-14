@@ -1,0 +1,848 @@
+/* What every discover screen shares, in the team design system (src/shared/ui/tokens.css):
+   tonal surfaces, violet for action, green, amber, red and blue for status only. Screen-specific
+   rules live in home.css (event home), storefront.css (storefront and product sheet) and map.css. */
+
+/* The screens a booth tile appears on. The sheet is portalled to the body, so it is named too. */
+:is(.discover, .storefront, .booths-page, .sheet) .booth-plate {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-sm);
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+  font: var(--type-title-medium);
+  letter-spacing: 0;
+}
+
+/* A tile that is a link keeps the 48 px target. */
+:is(.discover, .storefront, .booths-page, .sheet) a.booth-plate {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+}
+
+/* Badges: 24 high, Label medium. Stock is a status; a booth's mode is not, so it is outlined. */
+.stock-badge,
+:is(.discover, .storefront, .booths-page, .sheet) .mode {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 4px var(--space-12);
+  border-radius: var(--radius-full);
+  font: var(--type-label-medium);
+}
+
+.stock-badge--warning {
+  background: var(--warning-100);
+  color: var(--warning-800);
+}
+
+.stock-badge--error {
+  background: var(--error-100);
+  color: var(--error-800);
+}
+
+/* Scoped: the map's booth card draws its own mode badge (map.css). */
+:is(.discover, .storefront, .booths-page, .sheet) .mode {
+  flex: 0 1 auto;
+  min-width: 0;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--outline);
+  color: var(--neutral-800);
+}
+
+/* On a card the outline takes the card step. */
+:is(.directory__row, .sheet) .mode {
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+}
+
+/* Filter chips (Material 3): 32 high, radius 8, outlined until selected, then quiet violet with a
+   check. The row scrolls sideways past the screen margin; each chip's target grows to 48. */
+.chips {
+  display: flex;
+  gap: var(--space-8);
+  margin: 0 calc(-1 * var(--space-16));
+  padding: var(--space-8) var(--space-16);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 32px;
+  margin: var(--space-8) 0;
+  padding: 0 var(--space-12);
+  overflow: visible;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--outline);
+  color: var(--text);
+  font: var(--type-label-large);
+  cursor: pointer;
+}
+
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--space-8)) 0;
+}
+
+.chip[aria-pressed='true'] {
+  padding-left: var(--space-8);
+  box-shadow: none;
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+}
+
+.chip__check {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Product cards: the photo leads with its own rounded corners, and the text sits on the page
+   under it. Two across on a phone, up to four wider, one when large text needs the width. */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(8.5rem, (100% - 3 * var(--space-12)) / 4)), 1fr));
+  gap: var(--space-24) var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-grid > li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.product-card .product-image--large {
+  aspect-ratio: 1;
+}
+
+.product-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+/* Uniform cards: the name always takes two lines' room and never more, so prices line up across a row. */
+.product-card__name {
+  display: -webkit-box;
+  max-width: 100%;
+  min-height: 48px;
+  overflow: hidden;
+  font: var(--type-body-large);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* FR-05's short description: one line on the card, the whole text in the sheet. */
+.product-card__desc {
+  display: -webkit-box;
+  text-wrap: pretty;
+  max-width: 100%;
+  min-height: 20px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+/* Wider cards have room: the description gets a second line, still reserved so cards stay even. */
+@media (min-width: 45rem) {
+  .product-card__desc {
+    min-height: 40px;
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* The price with its stock state beside it, on one line while it fits. */
+.product-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-8);
+}
+
+/* Prices are set in Gabarito, with even-width figures so a column of prices lines up. The font
+   shorthand resets figures, so each price rule sets them after its font. */
+.product-card__price {
+  font: 600 16px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.product-card__booth {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+
+/* Search results: the booths-list rhythm. A 56 thumbnail, the facts, and the booth's tile as the
+   link to the map; a hairline between rows starts where the text does (56 + 12). */
+.results {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.result + .result::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(56px + var(--space-12));
+  border-top: 1px solid color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+.result__main {
+  display: flex;
+  /* At 200% text the row has no room for the booth tile beside it, so the tile wraps under. */
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+  min-height: 72px;
+  padding: var(--space-8) 0;
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+.result__main .product-image--small {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+.result__text {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.result__name {
+  font: var(--type-body-large);
+  overflow-wrap: anywhere;
+}
+
+/* Why a description-only match matched: a quiet excerpt, two lines at most, its matched words
+   in weight instead of the highlight the name carries. */
+.result__snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.result__snippet .search-mark {
+  background: none;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.result__vendor {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.result__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-12);
+}
+
+.result__price {
+  font: 600 16px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.result__plate {
+  align-self: center;
+  margin-left: auto;
+}
+
+/* The booth directory (Booths tab): one grouped list on a card, a hairline between rows inset
+   to the text so the logos stand in an unbroken column. */
+.directory {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  list-style: none;
+}
+
+.directory > li {
+  display: grid;
+}
+
+/* Logo 48 + padding 16 + gap 12: the hairline starts where the text does. */
+.directory > li + li .directory__row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: calc(var(--space-16) + 48px + var(--space-12));
+  border-top: 1px solid color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+.directory__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 72px;
+  padding: var(--space-12) var(--space-8) var(--space-12) var(--space-16);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.directory__row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.directory__row:hover::after {
+  opacity: var(--state-hover);
+}
+
+.directory__row:active::after {
+  opacity: var(--state-pressed);
+}
+
+.directory__text {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.directory__name {
+  max-width: 100%;
+  font: var(--type-title-medium);
+  overflow-wrap: anywhere;
+}
+
+.directory__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: 6px;
+}
+
+/* The booth code as a small mono badge: the plate's code, read the same way on the map. */
+.directory__code {
+  display: inline-grid;
+  place-items: center;
+  min-width: 36px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--page);
+  color: var(--text);
+  font: 700 13px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Slogans, snippets and descriptions avoid a lone last word. */
+:is(.directory__meta, .result__snippet, .booth-row__tagline, .storefront__tagline, .sheet__desc, .booth-card__head p) {
+  text-wrap: pretty;
+}
+
+.directory__meta {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory__chevron {
+  color: var(--text-secondary);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.booths-page h1 {
+  margin: var(--space-8) 0 var(--space-16);
+}
+
+.booths-page .note {
+  margin: 0 0 var(--space-16);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+/* The saved-copy note (SavedCopyNote.tsx) under a screen's title; the home places its own in the hero. */
+:is(.storefront, .booths-page, .map-page) .note.saved-note {
+  margin: 0 0 var(--space-16);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+/* Try again: a text button in the note's line, its 48 px target drawn around the words. */
+.saved-note__retry {
+  position: relative;
+  min-height: var(--touch-target);
+  margin: -14px 0 -14px var(--space-4);
+  padding: 0 var(--space-8);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--primary-700);
+  font: var(--type-label-large);
+  cursor: pointer;
+}
+
+/* After a tap, focus that a screen hands back (a closed sheet's card, the next chip or recent search)
+   draws no ring until the next key press: the backstop for engines without focus({ focusVisible }). */
+html[data-input='pointer'] :is([data-product-card], .chip, .recent__remove, .category-tile, .floor-map__booth):focus-visible {
+  outline: none;
+}
+
+/* Loading placeholders (DiscoverSkeletons.tsx) keep the gaps the real headings, field and photos leave. */
+.skeleton--title {
+  margin: var(--space-8) 0 var(--space-16);
+}
+
+.discover__header .skeleton--title {
+  margin: 0;
+}
+
+.skeleton--heading {
+  margin-bottom: var(--space-12);
+}
+
+.product-card .skeleton--photo {
+  block-size: auto;
+  aspect-ratio: 1;
+}
+
+.product-card__body .skeleton-text {
+  align-self: stretch;
+  margin-bottom: var(--space-8);
+}
+
+.product-card__body .skeleton + .skeleton {
+  margin-top: var(--space-8);
+}
+
+.product-card__order .skeleton--button {
+  margin: 4px 0;
+}
+
+/* The floor plan: structure only. map.css owns its colours, type and the map screen. */
+.floor-map {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-plate);
+  overflow: hidden;
+  background: var(--surface);
+  /* The map is a map, not a picture: no iOS image menu, callout or text selection on long-press. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.floor-map__canvas {
+  position: relative;
+  width: 100%;
+}
+
+/* Holds the canvas inside the scroller and carries the zoomed width (FloorMap sets it). While
+   zoomed it is padded by half the visible map on each side, outside the plan (content-box), so any
+   booth can be scrolled to the middle. */
+.floor-map__pan {
+  box-sizing: content-box;
+  width: 100%;
+}
+
+.floor-map__missing {
+  margin: 0 0 var(--space-8);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.floor-map__plan {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* The box already has the plan's ratio; fill keeps the drawing edge to edge so booth percentages line up. */
+  object-fit: fill;
+}
+
+.floor-map__plan--image {
+  pointer-events: none;
+  -webkit-touch-callout: none;
+}
+
+.floor-map__booth {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Exactly the table rectangle from the data: no minimum size, so a plate is never moved off its table. */
+  padding: 0;
+  border: 2px solid;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The 48 px target comes from an invisible hit area that grows only when the table is smaller. */
+button.floor-map__booth::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap)) / 2));
+}
+
+.floor-map__booth.is-highlighted {
+  z-index: 1;
+}
+
+.floor-map__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+  list-style: none;
+}
+
+.floor-map__legend li {
+  display: inline-flex;
+  align-items: center;
+}
+
+.legend-swatch {
+  display: inline-block;
+}
+
+.floor-map__code {
+  font: 800 var(--display-sm) / 1 var(--font-display);
+}
+
+.floor-map__hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin: 0;
+}
+
+.floor-map__hint-dismiss {
+  flex: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.floor-map__frame {
+  position: relative;
+}
+
+.plan__walls {
+  fill: none;
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+
+/* The scroller keeps the plan's shape; the canvas inside grows from 100% to 300% of it.
+   One finger pans natively (with momentum) when zoomed and scrolls the page at fit;
+   two fingers belong to the pinch handlers. Overscroll is left to chain, so the page never gets stuck. */
+.floor-map__scroller {
+  overflow: auto;
+  touch-action: pan-x pan-y;
+  scrollbar-width: none;
+}
+
+.floor-map__scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* Plate lettering scales with the drawn plan, so the code fits the table at every zoom step. */
+.floor-map__canvas {
+  container-type: inline-size;
+}
+
+/* The zoom buttons (map.css places them in the toolbar under the plan). */
+.floor-map__zoom {
+  display: flex;
+  gap: var(--zoom-gap);
+  overflow: visible;
+}
+
+.floor-map__zoom-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--zoom-btn);
+  height: var(--zoom-btn);
+  border: 0;
+  cursor: pointer;
+}
+
+.floor-map__zoom-btn::after {
+  content: '';
+  position: absolute;
+}
+
+.floor-map__zoom-btn:focus-visible {
+  z-index: 1;
+}
+
+.floor-map__zoom-btn[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+/* The home preview is a picture of the plan: small plates, no targets. */
+.floor-map--preview .floor-map__booth {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-width: 1px;
+}
+
+.floor-map--preview .floor-map__code {
+  font-size: 0.7rem;
+}
+
+.booth-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+}
+
+.booth-card__head p {
+  margin: 0;
+}
+
+/* The Filters chip leads every chip row, so it is never scrolled out of reach; the category chips
+   follow in their own group. */
+.chips__lead,
+.chips__group {
+  display: flex;
+  flex: none;
+  gap: var(--space-8);
+}
+
+.chip__icon {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* With filters on, the chip takes the selected tone and shows how many. */
+.chip--filters.is-active {
+  box-shadow: none;
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+}
+
+.chip__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--action);
+  color: var(--on-action);
+  font: 700 12px/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Filters and sort: a bottom sheet like the product sheet (radius, tone, elevation, motion). */
+.filters-sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 40rem;
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--space-24));
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden auto;
+  border: 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--elevation-3);
+  font: var(--type-body-large);
+}
+
+.filters-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  animation: sheet-rise var(--nav-duration) var(--ease-ios) backwards;
+}
+
+.filters-sheet::backdrop {
+  background: color-mix(in oklch, var(--neutral-950) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filters-sheet[open] {
+    animation: none;
+  }
+}
+
+.filters-sheet__body {
+  position: relative;
+  display: grid;
+  gap: var(--space-24);
+  padding: var(--space-24) var(--space-16) var(--space-8);
+}
+
+.filters-sheet__handle {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  margin-left: -18px;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, var(--neutral-950) 30%, transparent);
+}
+
+.filters-sheet__title {
+  margin: 0;
+  font: var(--type-title-large);
+  letter-spacing: 0;
+}
+
+.filters-sheet__title:focus {
+  outline: none;
+}
+
+.filters-sheet__group {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filters-sheet__group :is(h3, legend) {
+  margin: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  font: var(--type-label-large);
+}
+
+.filters-sheet__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-8);
+}
+
+/* Sort rows: the whole 48 high row is the target, the radio in the action colour. */
+.filters-sheet__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--touch-target);
+  cursor: pointer;
+}
+
+.filters-sheet__option input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--action);
+}
+
+.filters-sheet__actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16) calc(var(--space-12) + env(safe-area-inset-bottom, 0px));
+  background: var(--card);
+}
+
+.filters-sheet__actions .button {
+  min-height: 48px;
+}
+
+/* At 200% text (about 195 px wide) a booth row has no room for a text column beside the logo and
+   the chevron: the logo and chevron share the first line and the name, slogan and badges take the
+   full width under them, so names wrap by line, not one word per line. */
+@media (max-width: 22rem) {
+  .directory__row {
+    grid-template-columns: auto 1fr auto;
+    row-gap: var(--space-8);
+  }
+
+  .directory__text {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .directory__chevron {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .directory > li + li .directory__row::before {
+    left: var(--space-16);
+  }
+}

@@ -1,0 +1,1418 @@
+/* Base styles in the team design system. Its tokens (src/shared/ui/tokens.css, loaded first in
+   main.tsx) are the source of every value here. The names below are the app's older names, kept as
+   aliases so feature CSS picks up the system without edits; new code uses the design-system names
+   directly. Light theme only. */
+
+/* The type roles as `font` shorthands, built from the same values as the design system's type
+   classes (.title-medium and so on in tokens.css), for rules that set a role in one declaration. */
+:root {
+  --type-headline-medium: 800 28px/36px var(--font-display);
+  --type-headline-small: 700 24px/32px var(--font-display);
+  --type-title-large: 700 22px/28px var(--font-display);
+  --type-title-medium: 600 16px/24px var(--font-display);
+  --type-label-large: 600 14px/20px var(--font-display);
+  --type-button-medium: 700 16px/24px var(--font-display);
+  --type-button-small: 700 14px/20px var(--font-display);
+  --type-body-large: 400 16px/24px var(--font-text);
+  --type-body-medium: 400 14px/20px var(--font-text);
+  --type-body-small: 400 12px/16px var(--font-text);
+  --type-label-medium: 600 12px/16px var(--font-text);
+  --type-label-small: 600 11px/16px var(--font-text);
+  --type-code: 700 36px/44px var(--font-mono);
+  --type-code-tracking: 4px;
+  --type-timer: 500 16px/24px var(--font-mono);
+}
+
+:root {
+  color-scheme: light;
+
+  /* Colour aliases. --text, --font-display and --space-4 to --space-24 are design-system names
+     and are not redefined here. */
+  --ink: var(--neutral-950);
+  --bg: var(--page);
+  --surface: var(--card);
+  --muted: var(--text-secondary);
+  --border: var(--outline);
+  --field-border: var(--outline-on-card);
+  --accent: var(--action);
+  --accent-text: var(--on-action);
+  --accent-soft: var(--quiet-action);
+  /* Status pairs: the badge rule, step 800 (900 for warning) on step 100. */
+  --ok: var(--success-800);
+  --ok-soft: var(--success-100);
+  --warn: var(--warning-900);
+  --warn-soft: var(--warning-100);
+  --danger: var(--error-700);
+  --danger-text: var(--on-action);
+  /* Highlights are magenta (tertiary) on the attendee side. */
+  --highlight: var(--tertiary-200);
+  --highlight-text: var(--tertiary-900);
+  /* Booth code plates: the system's dark neutral pair, as in its offline banner. */
+  --plate-bg: var(--neutral-900);
+  --plate-text: var(--neutral-50);
+  --header-bg: var(--page);
+  --header-text: var(--text);
+  --focus: var(--primary-700);
+  --header-focus: var(--focus);
+
+  /* Type aliases: the body face, and the older size names on the nearest type-scale step,
+     in rem so the browser's text size still scales them. */
+  --font-body: var(--font-text);
+  --text-sm: 0.875rem; /* body medium, 14 */
+  --text-base: 1rem; /* body large, 16 */
+  --text-lg: 1rem; /* title medium, 16 */
+  --display-sm: 1.375rem; /* title large, 22 */
+  --display-md: 1.5rem; /* headline small, 24 */
+  --display-lg: 1.75rem; /* headline medium, 28 */
+  --display-xl: 2.25rem; /* code, 36 */
+
+  /* Spacing is named by pixel value, as in the design system (--space-4 to --space-24 come from
+     tokens.css). The system stops at 24; these two larger steps are the app's own. */
+  --space-32: 32px;
+  --space-48: 48px;
+
+  /* Shape and size aliases. */
+  --radius-plate: var(--radius-sm);
+  --radius-control: var(--radius-md);
+  --radius-card: var(--radius-md);
+  --radius-pill: var(--radius-full);
+  --radius: var(--radius-control);
+  --tap: var(--touch-target);
+  --content-max: 880px;
+  /* The top app bar at the iOS navigation bar's height (rounded up to a full touch target), so a
+     back screen's title starts just under Back; the Material 3 navigation bar below. */
+  --header-height: 48px;
+  --tab-bar-height: 64px;
+  /* Room the bottom bars can cover: the navigation bar plus the floating cart bar and its gap. */
+  --bottom-bars-reserve: 136px;
+
+  /* Motion: the iOS navigation curve, quick to start and long to settle. */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --nav-duration: 380ms;
+  --fade-duration: 180ms;
+  /* The screen a push covers: shifted a third of the way left and dimmed, as UINavigationController does. */
+  --nav-parallax: -30%;
+  --nav-dim: 0.88;
+
+  /* Loading placeholders: the system's placeholder tone and a lighter sheen that passes over it. */
+  --skeleton: var(--neutral-200);
+  --skeleton-sheen: color-mix(in oklch, var(--neutral-50) 40%, transparent);
+
+  font: var(--type-body-large);
+  color: var(--text);
+  background: var(--page);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-padding-top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + var(--space-8));
+  scroll-padding-bottom: calc(var(--bottom-bars-reserve) + env(safe-area-inset-bottom, 0px));
+}
+
+/* The header and tab bar never rubber-band; inner scrollers keep their own behaviour. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+/* The design system's bundle.css sets the body's margin, page colour, text colour and typeface. */
+body {
+  /* No double-tap page zoom (the map has its own double-tap); pinch-zoom of the page stays available. */
+  touch-action: manipulation;
+}
+
+/* A full-height column, so the bottom bars rest on the screen edge even on a short page. */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Type finish: large titles tightened like iOS large titles, headings balanced over their lines,
+   body text without orphans. Labels of 11 and 12 px open up a touch; every number that lines up
+   (prices, totals, codes, timers) uses tabular figures. */
+h1,
+h2 {
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+h1 {
+  font: var(--type-headline-medium);
+  letter-spacing: -0.02em;
+  margin: var(--space-4) 0 var(--space-12);
+}
+
+p,
+dd,
+li {
+  text-wrap: pretty;
+}
+
+h2 {
+  font: var(--type-title-large);
+  margin: 0 0 var(--space-8);
+}
+
+/* Text links take the system's text-action colour, which reads at 7.35:1 on the page. */
+a {
+  color: var(--primary-700);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* The Material 3 focus indicator: 3 px, 2 px clear of the control. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Headings take focus only so a screen reader starts reading there after a route change or a
+   filter; they are not controls, so they draw no ring. Every control keeps its ring. */
+:is(h1, h2)[tabindex='-1']:focus {
+  outline: none;
+}
+
+/* Top app bar (Material 3 small): page tone at rest, card tone once the page title has scrolled
+   under it, so the bar separates from content by tone, never by a line or a shadow. */
+/* Home-screen mode draws under a translucent status bar; the inset is 0 in a browser tab. Read once,
+   so the header adds it exactly once and the pull spinner lines up with the header's real bottom. */
+:root {
+  --app-safe-top: env(safe-area-inset-top, 0px);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: var(--app-safe-top);
+  background: var(--header-bg);
+  color: var(--header-text);
+  transition: background-color 150ms ease;
+}
+
+.app-header.is-collapsed {
+  background: var(--card);
+}
+
+.app-header :focus-visible {
+  outline-color: var(--header-focus);
+}
+
+/* 4 px side padding, so a 48 px icon button's icon sits on the 16 px screen margin. */
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--content-max);
+  min-height: var(--header-height);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.app-header a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  color: var(--header-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* The wordmark and the collapsed page title share one leading-aligned cell and cross-fade, so the
+   title can never sit over Back. */
+.app-header__titles {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  padding-inline: var(--space-12);
+}
+
+/* After Back the title follows the icon button directly, as in design/order-page. */
+.app-header__inner--back .app-header__titles {
+  padding-left: 0;
+}
+
+.app-header .wordmark,
+.app-header__title {
+  grid-area: 1 / 1;
+  min-width: 0;
+  margin: 0;
+  font: var(--type-title-large);
+  /* One line: large text truncates, and the page h1 carries the full name. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: opacity 150ms ease;
+}
+
+/* A decorative, aria-hidden copy of the h1: taps go through it. */
+.app-header__title {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-header.is-collapsed .wordmark,
+.app-header.is-name-in-page .wordmark {
+  opacity: 0;
+}
+
+.app-header.is-collapsed .app-header__title {
+  opacity: 1;
+}
+
+/* iOS large titles on a tab root: at rest the header is only the safe area and the page h1 is the
+   title. Once the h1 scrolls away, a compact row (card tone, the small title) fades in over the
+   content, below the safe area, so nothing below moves. */
+.app-header--root .app-header__inner {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.app-header--root::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: var(--header-height);
+  background: var(--card);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.app-header--root.is-collapsed .app-header__inner,
+.app-header--root.is-collapsed::after {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The page h1 already names the screen. */
+.app-header--root .wordmark {
+  opacity: 0;
+}
+
+/* The h1 about 16 below the safe area: main's 8 plus the h1's own 4 and its half-leading. */
+.app-header--root ~ main {
+  padding-top: var(--space-8);
+}
+
+/* Filtered results on the home are still the home: the tab root's large title, with Back inline
+   before it instead of in a row of its own above the hero. At rest Back is level with the title's
+   first line (16 below the safe area, half its 36 px line); once the title scrolls away the compact
+   row takes over as on any tab root. */
+.app-header--inline-back:not(.is-collapsed) .app-header__inner {
+  opacity: 1;
+  translate: 0 calc(var(--space-16) + 18px - var(--header-height) / 2);
+}
+
+.app-header--inline-back .app-header__inner {
+  transition:
+    opacity 150ms ease,
+    translate 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-header--inline-back .app-header__inner {
+    transition: opacity 150ms ease;
+  }
+}
+
+.app-header--inline-back .app-header__back {
+  pointer-events: auto;
+}
+
+/* At rest Back is a bare arrow like every other Back; once the page scrolls, and until the compact row
+   takes over, it carries the over-media frosted chip so content never passes under a bare arrow. Its
+   icon stays centred either way, so the chip fading in does not move it. */
+.app-header--inline-back .app-header__back::before {
+  transition: opacity 150ms ease;
+}
+
+.app-header--inline-back:not(.is-scrolled) .app-header__back::before {
+  opacity: 0;
+}
+
+/* The hero (or its loading placeholder) starts clear of Back's 48 px button, which begins 12 left of
+   the content edge, so its focus ring never crosses the title. */
+.main--inline-back .discover__header {
+  padding-left: calc(var(--space-48) - var(--space-12) + 4px);
+}
+
+/* The system's offline banner, inset like a card under the top app bar. It stays in view under the
+   bar while the page scrolls, over the page's content and any media run up behind the header. */
+.offline-banner {
+  position: sticky;
+  top: calc(var(--app-safe-top) + var(--header-height));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: calc(100% - 2 * var(--space-16));
+  max-width: calc(var(--content-max) - 2 * var(--space-16));
+  min-height: 56px;
+  margin: var(--space-8) auto 0;
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--neutral-900);
+  color: var(--neutral-50);
+  font: var(--type-body-medium);
+}
+
+.offline-banner svg {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+/* Stays in the accessibility tree while empty, so filling it is announced. */
+.offline-banner:empty {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-16) var(--space-16) var(--space-32);
+}
+
+main.main--flush {
+  padding-top: 0;
+}
+
+/* Flush means flush under the app bar's row. Opened cold (the emailed order link) there is no row,
+   so the page keeps the tab root's 16 under the safe area rather than touching the status bar. */
+.app-header--root ~ main.main--flush {
+  padding-top: var(--space-16);
+}
+
+.bottom-bars {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* The floating cart sits just above the navigation bar: a medium filled button, floating, so it is
+   the one shell surface with elevation. */
+.cart-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  width: calc(100% - 2 * var(--space-16));
+  /* The width of the tab bar's destinations, so on a wide window it stays a phone-sized action. */
+  max-width: 30rem;
+  min-height: 56px;
+  margin: 0 auto var(--space-8);
+  padding: 0 var(--space-24);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--action);
+  color: var(--on-action);
+  font: var(--type-button-medium);
+  text-decoration: none;
+  box-shadow: var(--elevation-3);
+}
+
+.cart-bar__total {
+  font: var(--type-title-large);
+}
+
+/* Material 3 navigation bar, the short (64) bar: card tone, edge to edge, never floating. A
+   hairline divider gives it an edge against the page, which is only one tone lighter. The
+   selected destination gets the indicator pill, a filled icon and a heavier label, so it is not
+   told by colour alone. Icons run at 28 rather than 24 so they read at arm's length on a phone. */
+/* How much of the card tone the frosted bars keep. 72% let a near-black photo pull the tab labels
+   to 3.1:1; 82% is the brief's fallback (measured in the hand-back). */
+:root {
+  --bar-opacity: 82%;
+  --header-bar-opacity: 92%;
+}
+
+.tab-bar {
+  /* Indicator one step stronger than quiet-action, so the pill shows clearly on the card. */
+  --tab-indicator: var(--primary-200);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--card);
+  box-shadow: inset 0 0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+/* Frosted bars, iOS style: the tab bar always, the header only once content has scrolled under it
+   (at rest it stays page tone, unblurred). Opaque card where blur is missing, where the person asked
+   for less transparency, and in forced colours. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tab-bar {
+    background: color-mix(in oklch, var(--card) var(--bar-opacity), transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  /* The header carries a title over whatever scrolls under it (chips, text, photos), so it is more
+     opaque and blurs harder than the tab bar: busy content stays a soft tint, not shapes. */
+  .app-header.is-collapsed,
+  .app-header--root.is-scrolled,
+  .app-header--root.is-collapsed::after {
+    background: color-mix(in oklch, var(--card) var(--header-bar-opacity), transparent);
+    -webkit-backdrop-filter: saturate(160%) blur(30px);
+    backdrop-filter: saturate(160%) blur(30px);
+  }
+}
+
+.app-header.is-collapsed:not(.app-header--root),
+.app-header--root.is-collapsed::after {
+  box-shadow: inset 0 -0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
+}
+
+/* The over-media header (a page root with data-header="over-media", see App.tsx): transparent at
+   rest, no title, Back on a frosted 40 px chip that reads over any banner; collapsed, the frosted
+   header above. The page's media starts under it: margin-top: calc(-1 * var(--app-header-block)). */
+:root {
+  --app-header-block: calc(var(--app-safe-top) + var(--header-height) + var(--offline-banner-block, 0px));
+}
+
+main.main--under-header {
+  padding-top: 0;
+}
+
+.app-header--over-media:not(.is-collapsed) {
+  background: transparent;
+}
+
+.app-header--over-media:not(.is-collapsed) .app-header__titles {
+  visibility: hidden;
+}
+
+.app-header--over-media:not(.is-collapsed) .app-header__back::before,
+.app-header--inline-back:not(.is-collapsed) .app-header__back::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: var(--radius-full);
+  background: var(--card);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+}
+
+.app-header--over-media .app-header__back,
+.app-header--inline-back .app-header__back {
+  isolation: isolate;
+}
+
+/* At large text (200%, about 195 px of layout) the 40 px chip covers much of a result photo as it
+   scrolls under; a 32 px chip keeps the 48 px target and covers less. After the chip's own rule. */
+@media (max-width: 280px) {
+  .app-header--inline-back:not(.is-collapsed) .app-header__back::before {
+    inset: var(--space-8);
+  }
+}
+
+/* On the chip the chevron is centred, not shifted to the text gutter. */
+.app-header--over-media:not(.is-collapsed) .app-header__back svg,
+.app-header--inline-back:not(.is-collapsed) .app-header__back svg {
+  transform: none;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-header--over-media:not(.is-collapsed) .app-header__back::before,
+  .app-header--inline-back:not(.is-collapsed) .app-header__back::before {
+    background: color-mix(in oklch, var(--card) var(--bar-opacity), transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .app-header--over-media:not(.is-collapsed) .app-header__back::before,
+  .app-header--inline-back:not(.is-collapsed) .app-header__back::before {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .tab-bar,
+  .app-header.is-collapsed,
+  .app-header--root.is-scrolled,
+  .app-header--root.is-collapsed::after {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+.tab-bar__link {
+  letter-spacing: 0.01em;
+}
+
+/* Over a frosted bar, a dark photo underneath darkens the bar; the labels take one step darker
+   (neutral-800) so they keep 4.5:1 over the darkest photo. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tab-bar__link:not(.is-active) {
+    color: var(--neutral-800);
+  }
+}
+
+/* Equal quarters, capped, so on a wide phone or tablet the destinations stay a group instead of
+   drifting to the four corners of the bar. */
+.tab-bar__list {
+  display: grid;
+  /* minmax(0, 1fr): the four destinations share any width, even at 200% zoom, never pushing one off. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 var(--space-8);
+  list-style: none;
+}
+
+/* Content is exactly 64: 4 + indicator 36 + 4 + label 16 + 4, so every label sits on one
+   baseline. The badge offsets are measured from this box, so they move with it. */
+.tab-bar__link {
+  --tab-badge-top: var(--space-4);
+  --tab-badge-left: calc(50% + 6px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-4);
+  min-height: var(--tab-bar-height);
+  padding: var(--space-4) 2px;
+  border-radius: var(--radius-md);
+  /* At large text sizes a label wraps inside its quarter instead of overflowing it. */
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font: var(--type-label-medium);
+  font-weight: 400;
+  text-decoration: none;
+}
+
+/* The icon's own box is the 56 x 36 indicator. */
+.tab-bar__link svg {
+  flex: none;
+  box-sizing: content-box;
+  width: 28px;
+  height: 28px;
+  padding: var(--space-4) 14px;
+  border-radius: var(--radius-full);
+  transition: background-color 150ms ease;
+}
+
+/* Hover only where a pointer can rest: touch keeps :hover after a tap (iOS), which tinted cards it never touched. */
+@media (hover: hover) and (pointer: fine) {
+  .tab-bar__link:hover svg {
+    background-color: color-mix(in oklch, currentColor calc(var(--state-hover) * 100%), transparent);
+  }
+}
+
+.tab-bar__link:not(.is-active):active svg {
+  background-color: color-mix(in oklch, currentColor calc(var(--state-pressed) * 100%), transparent);
+}
+
+.tab-bar__link:focus-visible {
+  outline-offset: -2px;
+}
+
+.tab-bar__link.is-active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The pill is a background image so it can grow out from the centre on selection, as Material 3
+   does, without scaling the icon inside it. */
+.tab-bar__link.is-active svg {
+  background: linear-gradient(var(--tab-indicator), var(--tab-indicator)) center / 100% 100% no-repeat;
+  color: var(--on-quiet-action);
+  animation: tab-indicator-grow 200ms var(--ease-ios);
+}
+
+/* Folds and perforation on a filled icon are cut in the indicator's colour. */
+.tab-bar__cut {
+  stroke: var(--tab-indicator);
+}
+
+@keyframes tab-indicator-grow {
+  from {
+    background-size: 40% 100%;
+  }
+}
+
+/* A count, not a status, so it takes the action colour rather than a status hue. Material 3
+   large badge: anchored over the icon's top-right corner, growing rightward as the count widens.
+   The label keeps it in the DOM after the name, so the link reads "Orders, 3 open". */
+.tab-bar__badge {
+  position: absolute;
+  top: var(--tab-badge-top);
+  left: var(--tab-badge-left);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--action);
+  color: var(--on-action);
+  font: var(--type-label-small);
+}
+
+/* Too narrow for four words side by side (about 200% zoom on a phone): the icons stay and the
+   words leave the screen but not the accessible names; the open-order badge stays. */
+@media (max-width: 17.5rem) {
+  .tab-bar__label-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* Material 3 medium width: each destination becomes one horizontal pill, icon beside label, and
+   the indicator wraps the whole pill, so every destination is a distinct shape. */
+@media (min-width: 600px) {
+  .tab-bar__list {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-8);
+    max-width: none;
+    padding: var(--space-8) var(--space-16);
+  }
+
+  .tab-bar__link {
+    /* Icon box starts 12 in and 10 down in the 48 pill. */
+    --tab-badge-top: var(--space-4);
+    --tab-badge-left: 32px;
+    flex-direction: row;
+    gap: var(--space-8);
+    min-height: 48px;
+    padding: 0 var(--space-16) 0 var(--space-12);
+    border-radius: var(--radius-full);
+    /* Gabarito ships 600 to 800 here, so the selected label steps up to 800 rather than down. */
+    font: var(--type-label-large);
+    transition: background-color 150ms ease;
+  }
+
+  .tab-bar__link:focus-visible {
+    outline-offset: 2px;
+  }
+
+  .tab-bar__link svg,
+  .tab-bar__link:hover svg,
+  .tab-bar__link:not(.is-active):active svg,
+  .tab-bar__link.is-active svg {
+    padding: 0;
+    background: none;
+    animation: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tab-bar__link:hover {
+      background-color: color-mix(in oklch, currentColor calc(var(--state-hover) * 100%), transparent);
+    }
+  }
+
+  .tab-bar__link:not(.is-active):active {
+    background-color: color-mix(in oklch, currentColor calc(var(--state-pressed) * 100%), transparent);
+  }
+
+  .tab-bar__link.is-active {
+    background: linear-gradient(var(--tab-indicator), var(--tab-indicator)) center / 100% 100% no-repeat;
+    color: var(--on-quiet-action);
+    font-weight: 800;
+    animation: tab-indicator-grow 200ms var(--ease-ios);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar__link.is-active,
+  .tab-bar__link.is-active svg {
+    animation: none;
+  }
+}
+
+/* The aisle sign: a sharp-cornered dark plate with tall condensed lettering.
+   Used for every booth code. Interactive plates keep the 44 px target. */
+.booth-plate {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-plate);
+  background: var(--plate-bg);
+  color: var(--plate-text);
+  font: 800 var(--display-sm) / 1 var(--font-display);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.booth-plate--lg {
+  min-width: 72px;
+  min-height: 72px;
+  padding: 0 var(--space-12);
+  font-size: var(--display-xl);
+}
+
+/* Small plate for a code inside a larger link; never a target on its own. */
+.booth-plate--sm {
+  min-width: 36px;
+  min-height: 30px;
+  padding: 0 6px;
+  font-size: var(--text-lg);
+}
+
+.booth-plate__kicker {
+  display: block;
+  font: 700 var(--text-sm) / 1 var(--font-body);
+  letter-spacing: 0;
+}
+
+/* The system's filled button: full radius, Gabarito button label, a state layer in the content
+   colour for hover and press, and the 48 px target. */
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: var(--tap);
+  padding: 0 var(--space-24);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--action);
+  color: var(--on-action);
+  font: var(--type-button-medium);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .button:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.button:active::after {
+  opacity: var(--state-pressed);
+}
+
+.button:disabled {
+  background: var(--disabled);
+  color: var(--on-disabled);
+  cursor: not-allowed;
+}
+
+/* Keeps focus on the control and its label readable (4.88:1), unlike a disabled button. */
+.button[aria-disabled='true'] {
+  background: var(--disabled);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+:is(.button:disabled, .button[aria-disabled='true'])::after {
+  display: none;
+}
+
+/* Outlined button; the outline takes the on-card step inside a card through --field-border. */
+.button--ghost {
+  background: transparent;
+  color: var(--primary-700);
+  box-shadow: inset 0 0 0 1px var(--field-border);
+}
+
+.button--danger {
+  background: var(--danger);
+  color: var(--danger-text);
+}
+
+.button--danger-outline {
+  background: transparent;
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.button--wide {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  font-weight: 700;
+}
+
+/* Material 3 icon button: a 48 px round target, named by its aria-label. */
+/* Optical alignment: the chevron's stroke meets the 16 px content gutter. */
+.app-header__back svg {
+  transform: translateX(-4px);
+}
+
+.app-header__back {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--header-text);
+  cursor: pointer;
+}
+
+/* The bar's 4 px padding has no room for the usual 2 px offset at the screen edge. */
+.app-header__back:focus-visible {
+  outline-offset: 0;
+}
+
+.app-header__back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-header__back:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.app-header__back:active::after {
+  opacity: var(--state-pressed);
+}
+
+.screen-state {
+  padding: var(--space-32) 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.screen-state .button {
+  margin-top: var(--space-12);
+}
+
+/* An error or not-found message that is the page's only heading keeps the body style. */
+.screen-state__message {
+  margin: var(--space-16) 0;
+  font: 400 var(--text-base) / 1.5 var(--font-body);
+  letter-spacing: 0;
+}
+
+/* Clears the sticky header when the route focus scrolls a heading into view. */
+main h1 {
+  scroll-margin-top: calc(var(--header-height) + var(--space-16) + env(safe-area-inset-top, 0px));
+}
+
+.note {
+  margin: var(--space-8) 0;
+  color: var(--muted);
+}
+
+.note--warn {
+  padding: var(--space-12);
+  border-radius: var(--radius-control);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+/* The system's error banner colours. */
+.error {
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: var(--error-100);
+  color: var(--error-900);
+}
+
+/* App chrome is not text to select; content (names, descriptions, the pickup code) stays selectable. */
+.app-header,
+.bottom-bars,
+.button,
+.booth-plate,
+.chip,
+.category-tile,
+.stepper {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Pressed feedback for everything tappable. Reduced motion keeps only the tint. The tint darkens
+   instead of fading, and the small contrast lift keeps every text pair at 4.5:1 or more while
+   pressed (brightness alone took teal on its soft badge to 4.4:1). */
+:is(
+    .button:not([aria-disabled='true']),
+    a.booth-plate,
+    .chip,
+    .tab-bar__link,
+    .cart-bar,
+    .product-card,
+    .category-tile,
+    .result__main,
+    .directory__row,
+    .booth-row__item,
+    .map-preview,
+    .wallet-stub,
+    .past-order,
+    .active-order,
+    .plate-link,
+    .stepper__btn:not([aria-disabled='true']),
+    .order-button:not([aria-disabled='true']),
+    .add-card:not([aria-disabled='true']),
+    .order-code__action,
+    button.floor-map__booth
+  ):active {
+  filter: contrast(1.1) brightness(0.94);
+}
+
+/* The press spring, on touch only (a mouse gets the hover layer) and never with reduced motion: in
+   fast, back out with a little overshoot. The cubic-bezier is the fallback where linear() easing is
+   not supported. Reduced motion keeps only the tint above. */
+@media (hover: none) and (prefers-reduced-motion: no-preference) {
+  :is(
+      .button:not([aria-disabled='true']),
+      a.booth-plate,
+      .chip,
+      .tab-bar__link,
+      .cart-bar,
+      .product-card,
+      .category-tile,
+      .result__main,
+      .directory__row,
+      .booth-row__item,
+      .map-preview,
+      .wallet-stub,
+      .past-order,
+      .active-order,
+      .plate-link,
+      .stepper__btn:not([aria-disabled='true']),
+      .order-button:not([aria-disabled='true']),
+      .add-card:not([aria-disabled='true']),
+      .order-code__action,
+      button.floor-map__booth
+    ) {
+    transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 280ms linear(0, 0.6 20%, 1.03 45%, 1);
+  }
+
+  :is(
+      .button:not([aria-disabled='true']),
+      a.booth-plate,
+      .chip,
+      .tab-bar__link,
+      .cart-bar,
+      .product-card,
+      .category-tile,
+      .result__main,
+      .directory__row,
+      .booth-row__item,
+      .map-preview,
+      .wallet-stub,
+      .past-order,
+      .active-order,
+      .plate-link,
+      .stepper__btn:not([aria-disabled='true']),
+      .order-button:not([aria-disabled='true']),
+      .add-card:not([aria-disabled='true']),
+      .order-code__action,
+      button.floor-map__booth
+    ):active {
+    transform: scale(0.97);
+    transition: transform 90ms ease-out;
+  }
+}
+
+/* A list's first entrance (shell/useFirstEntrance.ts): items rise in once per session, 30 ms apart
+   for the first eight; the rest arrive with the eighth. Opacity and transform only. */
+[data-entrance] > * {
+  animation: entrance-rise 260ms var(--ease-ios) both;
+}
+
+[data-entrance] > :nth-child(2) { animation-delay: 30ms; }
+[data-entrance] > :nth-child(3) { animation-delay: 60ms; }
+[data-entrance] > :nth-child(4) { animation-delay: 90ms; }
+[data-entrance] > :nth-child(5) { animation-delay: 120ms; }
+[data-entrance] > :nth-child(6) { animation-delay: 150ms; }
+[data-entrance] > :nth-child(7) { animation-delay: 180ms; }
+[data-entrance] > :nth-child(n + 8) { animation-delay: 210ms; }
+
+@keyframes entrance-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-entrance] > * {
+    animation: none;
+  }
+}
+
+/* Route transitions (the shell starts them): drilled-in screens slide, tabs cross-fade.
+   The header and bottom bars hold still. */
+.app-header {
+  view-transition-name: app-header;
+}
+
+/* The tab bar never animates. It used to share one "bottom-bars" snapshot with the floating cart
+   bar and cross-fade: in WebKit the half-faded images showed the page through them, so the
+   bar vanished for a moment on the way to Home, and a new-only image was still blank there. The old
+   and new images now stay fully opaque, new over old, so one bar is always drawn. */
+.tab-bar {
+  view-transition-name: tab-bar;
+}
+
+::view-transition-group(tab-bar),
+::view-transition-old(tab-bar),
+::view-transition-new(tab-bar) {
+  animation: none;
+}
+
+/* The floating cart bar comes and goes with the screens that show it, so it fades on its own. */
+.cart-bar {
+  view-transition-name: cart-bar;
+}
+
+/* The header's own parts morph instead of ghosting over each other when Back appears or leaves. */
+.app-header .wordmark {
+  view-transition-name: app-wordmark;
+}
+
+.app-header__back {
+  view-transition-name: app-back;
+}
+
+/* Only the shell names elements (app-header, its wordmark and Back, tab-bar, cart-bar); the root
+   animation below leaves named elements to the browser's default. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--fade-duration);
+}
+
+::view-transition-group(*) {
+  animation-duration: var(--nav-duration);
+  animation-timing-function: var(--ease-ios);
+}
+
+/* Push: the new screen slides in from the right edge over the old one, which drifts left and dims. */
+html[data-nav='push']::view-transition-old(root) {
+  animation: var(--nav-duration) var(--ease-ios) both vt-cover-out;
+}
+
+html[data-nav='push']::view-transition-new(root) {
+  animation: var(--nav-duration) var(--ease-ios) both vt-enter-from-right;
+}
+
+/* Pop: the reverse. The leaving screen stays on top and slides off to the right. */
+html[data-nav='pop']::view-transition-old(root) {
+  z-index: 1;
+  animation: var(--nav-duration) var(--ease-ios) both vt-leave-to-right;
+}
+
+html[data-nav='pop']::view-transition-new(root) {
+  animation: var(--nav-duration) var(--ease-ios) both vt-uncover-in;
+}
+
+/* Tabs cross-fade (the default root animation at --fade-duration). */
+
+/* Tab switches: Material 3 fade-through. The old screen fades out fast, then the new one fades in
+   from 98%. The tab bar and header are named and hold still (see tab-bar above). */
+html[data-nav='tab']::view-transition-old(root) {
+  animation: 90ms cubic-bezier(0.3, 0, 1, 1) both vt-fade-out;
+}
+
+html[data-nav='tab']::view-transition-new(root) {
+  animation: 210ms cubic-bezier(0, 0, 0, 1) 90ms both vt-fade-through-in;
+}
+
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-fade-through-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes vt-cover-out {
+  to {
+    transform: translateX(var(--nav-parallax));
+    filter: brightness(var(--nav-dim));
+  }
+}
+
+@keyframes vt-enter-from-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes vt-leave-to-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes vt-uncover-in {
+  from {
+    transform: translateX(var(--nav-parallax));
+    filter: brightness(var(--nav-dim));
+  }
+}
+
+/* The sliding screen casts a soft edge on what it uncovers or covers. */
+html:is([data-nav='push'])::view-transition-new(root),
+html:is([data-nav='pop'])::view-transition-old(root) {
+  box-shadow: -8px 0 24px rgb(0 0 0 / 0.12);
+}
+
+/* Edge swipe-back: the screen follows the finger (transform set inline by the shell). */
+html.is-swiping-back main {
+  box-shadow: -8px 0 24px rgb(0 0 0 / 0.12);
+  will-change: transform;
+}
+
+/* Clip, not hidden: the screen slid past the right edge must not widen the page or move the sticky bars. */
+html.is-swiping-back,
+html.is-swiping-back body {
+  overflow-x: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* A short screen (landscape phone, large text): the header scrolls away with the page and the
+   floating cart bar shrinks to a compact pill at the end of the row, so content keeps the height
+   and the cart stays one tap away. The total leaves the pill but stays in its accessible name. */
+@media (max-height: 30rem) {
+  .app-header {
+    position: static;
+  }
+
+  html {
+    scroll-padding-top: var(--space-8);
+    scroll-padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .cart-bar {
+    width: fit-content;
+    max-width: calc(100% - 2 * var(--space-16));
+    min-height: var(--tap);
+    margin-right: max(var(--space-16), calc((100% - var(--content-max)) / 2 + var(--space-16)));
+    margin-left: auto;
+    padding: 0 var(--space-16);
+    font: var(--type-button-small);
+  }
+
+  .cart-bar__total {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Home-screen mode has no browser toolbar below the page; the bars already pad for the home indicator only. */
+@media (display-mode: standalone) {
+  .tab-bar {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--space-4));
+  }
+}
+
+/* A load that finishes quickly shows nothing at all; the text appears only if
+   it takes longer, so screens do not flash "Loading..." on every visit. */
+/* Placeholders show only if loading takes longer than 150 ms, so a fast load never flashes them. */
+.screen-state--loading {
+  animation: reveal-loading 0s linear 150ms both;
+}
+
+@keyframes reveal-loading {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+/* Pull to refresh, iOS style: the content under the header stretches down on a rubber band
+   (transform written per frame by the shell) and uncovers this spinner, pinned under the header.
+   The header and the bottom bars never move. */
+.pull-refresh {
+  position: fixed;
+  top: calc(var(--header-height) + var(--app-safe-top));
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* On a tab root the header is only the safe area (its row appears once the title scrolls away), so
+   the spinner starts right below it, in the gap the pulled content opens, never over the title. */
+.app-header--root ~ .pull-refresh {
+  top: var(--app-safe-top);
+}
+
+.pull-refresh__slot {
+  display: block;
+}
+
+.pull-refresh__spinner {
+  display: block;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 3px solid var(--quiet-action);
+  border-top-color: var(--action);
+  border-radius: 50%;
+}
+
+/* Armed: the ring closes up and settles, so letting go is known to refresh. */
+.pull-refresh[data-armed] .pull-refresh__slot {
+  scale: 1.12;
+  transition: scale 160ms var(--ease-ios);
+}
+
+.pull-refresh[data-armed] .pull-refresh__spinner,
+.pull-refresh[data-phase='refreshing'] .pull-refresh__spinner {
+  border-color: var(--action);
+  border-right-color: var(--quiet-action);
+}
+
+.pull-refresh[data-phase='refreshing'] .pull-refresh__spinner {
+  animation: pull-spin 800ms linear infinite;
+}
+
+@keyframes pull-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Skeletons stand in for content that is on its way: token-coloured blocks with a slow sheen.
+   Screens size them with the Skeleton component (src/shell/Skeleton.tsx). */
+.skeleton {
+  display: block;
+  inline-size: 100%;
+  block-size: 1em;
+  border-radius: var(--radius-control);
+  /* A soft, slanted sheen at an even pace; the hard bright stripe read as a glitch. */
+  background: var(--skeleton) linear-gradient(120deg, transparent 30%, var(--skeleton-sheen) 50%, transparent 70%) no-repeat;
+  background-size: 200% 100%;
+  animation: skeleton-sheen 1.4s linear infinite;
+}
+
+.skeleton--card {
+  border-radius: var(--radius-card);
+}
+
+.skeleton--plate {
+  border-radius: var(--radius-plate);
+}
+
+.skeleton--pill {
+  border-radius: var(--radius-pill);
+}
+
+.skeleton--circle {
+  border-radius: 50%;
+}
+
+.skeleton-text {
+  display: grid;
+  gap: 0.5em;
+}
+
+@keyframes skeleton-sheen {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pull-refresh[data-armed] .pull-refresh__slot {
+    transition: none;
+  }
+
+  .pull-refresh[data-phase='refreshing'] .pull-refresh__spinner {
+    animation: none;
+  }
+
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}
+

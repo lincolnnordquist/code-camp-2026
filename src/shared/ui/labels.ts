@@ -1,6 +1,12 @@
 // The one place for order status and payment wording (FR-28).
 // A reservation is never labelled paid, and a pending payment is never labelled complete.
 import type { BoothMode, Order, OrderStatus } from "../types";
+import type {
+  ConfirmCheckoutRefusal,
+  OrderChangeRefusal,
+  OrderLookupRefusal,
+  StartCheckoutRefusal,
+} from "../types";
 import type { BadgeTone } from "./Badge";
 import type { BannerTone } from "./Banner";
 import type { IconName } from "./Icon";
@@ -122,3 +128,44 @@ function refundLabels(refundStatus: LabelledOrder["refundStatus"], amount: strin
       return null;
   }
 }
+
+// Additions for the attendee screens, for Payments & design to review. They build on the exports
+// above, so the status wording stays in this one module.
+
+/**
+ * Every refusal an attendee screen can show: the shared API's reasons, plus `network` for a call
+ * that threw or never answered (the API throws on a network failure instead of returning a reason).
+ */
+export type RefusalReason =
+  | StartCheckoutRefusal
+  | ConfirmCheckoutRefusal
+  | OrderChangeRefusal
+  | OrderLookupRefusal
+  | "event_not_found"
+  | "network";
+
+export const refusalLabels: Record<RefusalReason, string> = {
+  payment_not_verified: "We have not been able to verify your payment yet.",
+  insufficient_stock: "Not enough stock left",
+  over_max_per_order: "Over the limit per order",
+  ordering_paused: "This booth has paused online orders",
+  booth_not_accepting_orders: "This booth does not take online orders",
+  empty_cart: "Your cart is empty",
+  // The cart appends the named items to the stock and product refusals, so these have no full stop.
+  product_not_found: "Some items are no longer sold",
+  invalid_items: "Something in your cart could not be ordered. Check the quantities and try again.",
+  invalid_email: "Enter a full email address, like name@example.com.",
+  checkout_unavailable: "Online payment is not available right now. Try again in a moment.",
+  order_not_found: "We could not find this order.",
+  not_allowed_in_status: "This order can no longer be cancelled",
+  event_not_found: "We could not find this event.",
+  network: "Could not reach the server. Check your connection and try again.",
+};
+
+/** A booth that has paused online orders is never shown as taking them (FR-05). */
+export const pausedBoothBadge: BadgeLabel = { label: "Online orders paused", tone: "warning" };
+
+/** The status badge's words, for screens that name a status in text. */
+export const orderStatusLabels = Object.fromEntries(
+  Object.entries(statusBadges).map(([status, badge]) => [status, badge.label]),
+) as Record<OrderStatus, string>;

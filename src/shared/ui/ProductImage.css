@@ -1,0 +1,71 @@
+/* Travels with ProductImage.tsx; colours and radius are design-system tokens. */
+
+/* Product photos fill their tile edge to edge (cards, results, the sheet), clipped to radius 12, so
+   a photo's own background is the tile: no box inside a box. Shop photos are square and padded in
+   their own background colour, so cover does not crop the product. The card tone shows only while
+   a photo loads, and for a product without one. */
+.product-image {
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.product-image--frame {
+  display: block;
+}
+
+.product-image__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.product-image__photo.is-loaded {
+  opacity: 1;
+}
+
+/* Cutouts: the whole product on the one tile colour, with its own margin (no padding here), a soft
+   shadow under the product itself (drop-shadow follows its outline, not the box) and a faint ring
+   on the tile so a white product on a light tile still has an edge. */
+.product-image[data-fit='contain'] {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--neutral-950) 5%, transparent);
+}
+
+.product-image[data-fit='contain'] .product-image__photo {
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px color-mix(in oklch, var(--neutral-950) 14%, transparent));
+}
+
+.product-image--small {
+  width: 80px;
+  height: 80px;
+  /* Thumbnails (48 to 80: order items, cart lines, results) read square with the small radius; 12 on
+     a 48 tile reads as a pill and crops a full-bleed photo's corners. */
+  border-radius: var(--radius-sm);
+}
+
+.product-image--large {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+/* No photo yet: the category, quietly, in the photo's place. */
+.product-image--placeholder {
+  display: grid;
+  place-items: center;
+  padding: var(--space-8);
+  color: var(--text-secondary);
+  font: var(--type-label-medium);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-image__photo {
+    transition: none;
+  }
+}
