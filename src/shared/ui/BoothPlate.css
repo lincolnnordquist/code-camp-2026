@@ -1,0 +1,19 @@
+.ec-booth-plate {
+  display: inline-flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-sm);
+  background: var(--neutral-950);
+  color: #fff;
+  white-space: nowrap;
+}
+
+.ec-booth-plate__label {
+  font: 600 11px/16px var(--font-text);
+}
+
+.ec-booth-plate__code {
+  font: 800 16px/20px var(--font-display);
+}

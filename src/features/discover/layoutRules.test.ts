@@ -19,9 +19,9 @@ describe('layout rules from the live-site QA', () => {
     )
   })
 
-  it('the storefront logo frame holds its 64 px circle, neutral fill and ring before the logo arrives', () => {
+  it('the storefront logo frame holds its 56 px circle, neutral fill and ring before the logo arrives', () => {
     expect(storefrontCss).toMatch(
-      /\.storefront__logo \{\n {2}display: inline-grid;\n {2}width: 64px;\n {2}height: 64px;\n {2}margin: -40px 0 var\(--space-8\) 0;\n {2}overflow: hidden;\n {2}border-radius: var\(--radius-full\);\n {2}background: var\(--neutral-200\);\n {2}box-shadow: 0 0 0 3px var\(--page\);/,
+      /\.storefront__logo \{\n {2}display: inline-grid;\n {2}flex: none;\n {2}width: 56px;\n {2}height: 56px;\n {2}overflow: hidden;\n {2}border-radius: var\(--radius-full\);\n {2}background: var\(--neutral-200\);\n {2}box-shadow: 0 0 0 1px var\(--neutral-200\);/,
     )
     expect(storefrontCss).toMatch(/\.storefront__logo img\.booth-logo,\n\.sheet__booth img\.booth-logo \{\n {2}background: var\(--neutral-200\);/)
   })

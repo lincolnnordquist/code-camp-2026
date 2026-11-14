@@ -1,31 +1,25 @@
-/* The storefront card's order button (design: StorefrontReserve, StorefrontAdded): the button is
-   the 48 px target and the 40 px pill inside it is what shows, filled "Add", then tonal "Added". */
+/* The storefront card's order button: the button is the 48 px target and the 40 px circle inside
+   it is what shows, a tonal plus, then a filled check once the product is in the cart. */
 .add-card {
-  display: flex;
-  align-items: center;
-  width: 100%;
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
   height: var(--touch-target);
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--on-action);
-  font: var(--type-button-small);
   cursor: pointer;
 }
 
 .add-card__pill {
   position: relative;
-  display: inline-flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-8);
+  display: grid;
+  place-items: center;
+  width: 40px;
   height: 40px;
-  padding: 0 var(--space-16);
-  box-sizing: border-box;
   border-radius: var(--radius-full);
-  background: var(--action);
-  color: var(--on-action);
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
 }
 
 .add-card__pill::after {
@@ -60,8 +54,8 @@
 }
 
 .add-card--added .add-card__pill {
-  background: var(--quiet-action);
-  color: var(--on-quiet-action);
+  background: var(--action);
+  color: var(--on-action);
 }
 
 .add-card[aria-disabled='true'] {
@@ -2435,7 +2429,7 @@ img.pickup-mode__logo,
    vendor header, lines split by hairlines with the stepper on the right, the total, then the
    payment sentence, the email field and the one action. */
 .cart {
-  gap: var(--space-24);
+  gap: var(--space-16);
 }
 
 .cart :is(h1, h2, p) {
@@ -2444,21 +2438,35 @@ img.pickup-mode__logo,
 
 .cart--empty {
   align-items: flex-start;
+  gap: var(--space-24);
 }
 
-.cart__booth {
+.booth-identity {
   display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.booth-identity .booth-identity__logo {
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 0 0 1px var(--neutral-200);
+}
+
+.booth-identity__text {
+  display: flex;
+  flex: 1;
   flex-direction: column;
-  margin: 0;
+  min-width: 0;
 }
 
-.cart__vendor {
+.booth-identity .booth-identity__name {
   overflow-wrap: anywhere;
-  font: var(--type-headline-small);
-  letter-spacing: -0.01em;
+  font: var(--type-title-large);
+  letter-spacing: 0;
 }
 
-.cart__booth-code {
+.booth-identity__type {
   color: var(--text-secondary);
   font: var(--type-body-medium);
 }
@@ -2466,33 +2474,42 @@ img.pickup-mode__logo,
 .cart__lines {
   display: flex;
   flex-direction: column;
+  gap: var(--space-16);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* One row per item: the framed photo, what it is and costs, then the stepper. */
 .cart__line {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
-  align-items: center;
+  display: flex;
   gap: var(--space-12);
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 
 .cart__photo {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
 }
 
 .cart__photo .product-image {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
 }
 
-.cart__line + .cart__line {
-  margin-top: var(--space-16);
-  padding-top: var(--space-16);
-  border-top: 1px solid var(--neutral-300);
+.cart__lines .cart__photo {
+  flex: none;
+  border-radius: var(--radius-md);
+  background: var(--surface-white);
+}
+
+.cart__line-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
 }
 
 .cart__line-text {
@@ -2509,10 +2526,26 @@ img.pickup-mode__logo,
 .cart__each {
   color: var(--text-secondary);
   font: var(--type-body-medium);
+  font-variant-numeric: tabular-nums;
 }
 
-.cart__price {
-  font: var(--type-title-medium);
+.cart__limit {
+  color: var(--warning-900);
+  font: var(--type-label-medium);
+}
+
+/* A line over its cap after a refusal: the note says so in the error ink until the attendee fixes it. */
+.cart__line--over .cart__limit {
+  color: var(--error-700);
+}
+
+/* The stepper and the line total share a row; at large text the total wraps under the stepper. */
+.cart__line-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
 }
 
 .cart__line-controls {
@@ -2520,39 +2553,9 @@ img.pickup-mode__logo,
   align-items: center;
 }
 
-.cart__limit {
-  margin-top: 4px;
-  color: var(--text-secondary);
-  font: var(--type-body-small);
-}
-
-/* A line over its cap after a refusal: the note says so in the error ink until the attendee fixes it. */
-.cart__line--over .cart__limit {
-  color: var(--error-700);
-  font: var(--type-label-medium);
-}
-
-/* A narrow cart (a small phone, or 200% zoom): the stepper goes under the item, and below about
-   12rem the photo sits above it too. */
-.cart__lines {
-  container-type: inline-size;
-}
-
-@container (max-width: 21rem) {
-  .cart__line {
-    grid-template-columns: 64px minmax(0, 1fr);
-  }
-
-  .cart__line-controls {
-    grid-column: 1 / -1;
-    justify-self: end;
-  }
-}
-
-@container (max-width: 12rem) {
-  .cart__line {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.cart__price {
+  margin-left: auto;
+  font: var(--type-button-medium);
 }
 
 /* Quantity stepper (README): two 48 round tonal buttons, the value between them in Title medium. */
@@ -2653,19 +2656,60 @@ img.pickup-mode__logo,
   font: var(--type-body-small);
 }
 
+/* On a phone the summary's parts follow the lines in the page's own column, so the docked action
+   sticks within the whole page; the panel's title and item list show only in the wide layout. */
+.cart__columns,
+.cart__summary,
+.checkout__main {
+  display: contents;
+}
+
+.cart__summary-title,
+.cart__summary-lines,
+.checkout .cart__total {
+  display: none;
+}
+
 .cart__total {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-12);
   margin: 0;
-  padding-top: var(--space-12);
-  border-top: 1px solid var(--neutral-300);
+  padding: var(--space-4) var(--space-4) 0;
   font: var(--type-title-medium);
+}
+
+.cart__total span:last-child {
+  font: var(--type-title-large);
+}
+
+.cart__pay {
+  padding: 0 var(--space-4);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
 }
 
 .cart__payment {
   margin: 0;
   font: var(--type-body-large);
+}
+
+/* The design system's banner is one 56 px line; the hold notice needs two or three. */
+.checkout .ec-banner {
+  height: auto;
+  min-height: 56px;
+  padding: var(--space-16);
+  align-items: flex-start;
+}
+
+/* The notice sits between the items and the email on a phone, though it follows them in the markup. */
+.checkout .reserve-form {
+  order: 1;
+}
+
+.checkout .cart__dock {
+  order: 2;
 }
 
 /* The flow's one action, docked at the bottom above the safe area while the page scrolls under it;
@@ -2972,91 +3016,191 @@ img.pickup-mode__logo,
   }
 }
 
-/* Shop-style cart and checkout, in the discover screens' calm language: bigger product photos on the
-   untinted grey tile, whitespace instead of hairlines between lines, one quiet stepper pill per line,
-   and a total set large so the single primary action under it reads as the next step. */
-.cart__line {
-  grid-template-columns: 88px minmax(0, 1fr) auto;
-  gap: var(--space-16);
-}
-
-.cart__line + .cart__line {
-  margin-top: var(--space-24);
-  padding-top: 0;
-  border-top: 0;
-}
-
-.cart__photo,
-.cart__photo .product-image {
-  width: 88px;
-  height: 88px;
-}
-
-.cart__photo,
 .order-item__photo {
   border-radius: var(--radius-md);
   background: var(--surface-photo);
 }
 
-.cart__name {
-  font: 600 16px/22px var(--font-text);
-}
-
-.cart__price {
-  margin-top: var(--space-4);
-  font: 700 16px/24px var(--font-display);
-  font-variant-numeric: tabular-nums;
-}
-
-/* The stepper as one grey pill: transparent buttons with dark glyphs inside it, the quantity between. */
+/* The cart's stepper as one outlined pill, 40 high: its buttons keep the 48 px target by reaching
+   4 px past the pill above and below, and their state layer stays inside it. */
 .cart__line-controls .stepper {
   gap: 0;
-  padding: 0 2px;
+  height: 40px;
   border-radius: var(--radius-full);
-  background: var(--surface-photo);
+  background: var(--page);
+  box-shadow: inset 0 0 0 1px var(--outline-on-card);
 }
 
 .cart__line-controls .stepper__btn {
+  margin-block: -4px;
+  overflow: visible;
   background: transparent;
   color: var(--text);
 }
 
+.cart__line-controls .stepper__btn::after {
+  inset: 4px 0;
+  border-radius: var(--radius-full);
+}
+
 .cart__line-controls .stepper__btn[aria-disabled='true'] {
   background: transparent;
-  color: var(--on-disabled);
+  color: var(--neutral-400);
 }
 
 .cart__line-controls .stepper__qty {
-  min-width: 1.5rem;
-  font: 700 16px/24px var(--font-display);
+  min-width: 1.25rem;
+  font: var(--type-button-medium);
   font-variant-numeric: tabular-nums;
 }
 
-@container (max-width: 21rem) {
-  .cart__line {
-    grid-template-columns: 88px minmax(0, 1fr);
-  }
-}
-
-.cart__total {
-  align-items: baseline;
-  margin-top: var(--space-8);
-  padding-top: var(--space-24);
-  border-top: 1px solid var(--neutral-200);
-  font: 800 22px/28px var(--font-display);
-  letter-spacing: -0.01em;
-}
-
 .checkout__summary {
-  padding: var(--space-24) var(--space-16);
+  gap: 0;
+  padding: 0 var(--space-16);
   border-radius: var(--radius-lg);
-  background: var(--surface-photo);
+  background: var(--card);
+}
+
+.checkout__summary h2 {
+  padding: var(--space-16) 0 var(--space-4);
+}
+
+.checkout__summary ul {
+  gap: 0;
+}
+
+.checkout__summary li {
+  padding: var(--space-8) 0;
+  font: var(--type-body-medium);
+}
+
+.checkout__summary li .price,
+.cart__summary-lines .price {
+  font: var(--type-label-large);
 }
 
 .checkout__summary .order-items__total {
-  padding-top: var(--space-16);
-  font: 800 22px/28px var(--font-display);
-  letter-spacing: -0.01em;
+  margin-top: var(--space-4);
+  padding: var(--space-12) 0 var(--space-16);
+  border-top: 1px solid var(--neutral-200);
+  box-shadow: none;
+  font: var(--type-button-medium);
+}
+
+/* Below the wide layout the action sits on the screen's bottom edge on a short page too: the cart
+   fills the page, and the dock takes the room left and covers the padding under it. */
+@media (max-width: 59.99rem) {
+  main:has(> .cart:not(.cart--empty)) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cart:not(.cart--empty) {
+    flex: 1;
+    width: 100%;
+  }
+
+  .cart:not(.cart--empty) .cart__dock {
+    margin-top: auto;
+    margin-bottom: calc((var(--space-24) + var(--space-32)) * -1);
+  }
+}
+
+/* From 60rem the total and the one action move into a side panel, so nothing docks. */
+@media (min-width: 60rem) {
+  main:has(> .cart:not(.cart--empty)) {
+    max-width: 960px;
+    padding-inline: var(--space-24);
+  }
+
+  /* The shell's Back and title line up with the column and take the page-title size. */
+  .app-header:has(~ main > .cart:not(.cart--empty)) .app-header__inner {
+    max-width: 960px;
+    padding-inline: var(--space-12);
+  }
+
+  .app-header:has(~ main > .cart:not(.cart--empty)) .wordmark {
+    font: var(--type-headline-medium);
+  }
+
+  .cart:not(.cart--empty) {
+    max-width: none;
+    gap: var(--space-24);
+  }
+
+  .cart__columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    align-items: start;
+    gap: var(--space-24);
+  }
+
+  .checkout__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    min-width: 0;
+  }
+
+  .cart__summary {
+    position: sticky;
+    top: calc(var(--app-header-block) + var(--space-16));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    padding: var(--space-24);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+  }
+
+  .cart__summary-title {
+    display: block;
+    font: var(--type-title-large);
+    letter-spacing: 0;
+  }
+
+  .cart__summary-lines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    margin: calc(var(--space-8) * -1) 0 0;
+    padding: 0;
+    list-style: none;
+    font: var(--type-body-medium);
+  }
+
+  .cart__summary-lines li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-12);
+  }
+
+  .cart__summary-lines li span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .cart__summary .cart__total,
+  .checkout .cart__summary .cart__total {
+    display: flex;
+    margin-top: calc(var(--space-4) * -1);
+    padding: var(--space-12) 0 0;
+    border-top: 1px solid var(--neutral-200);
+  }
+
+  .cart__summary .cart__pay {
+    padding: 0;
+  }
+
+  .cart__summary .cart__dock {
+    position: static;
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* The pickup code is the order page's hero: set larger, with generous room above and below, since it

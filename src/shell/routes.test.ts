@@ -34,10 +34,7 @@ describe('top app bar route rules', () => {
 
   it('the cart and its checkout step name themselves, and Back from checkout returns to the cart', () => {
     expect(headerTitleOf('/e/con/cart')).toBe('Cart')
-    expect(headerTitleOf('/e/con/cart/checkout', 'reservation')).toBe('Reserve')
-    expect(headerTitleOf('/e/con/cart/checkout', 'prepay')).toBe('Checkout')
-    // With the cart not read yet, checkout falls back to the reservation wording.
-    expect(headerTitleOf('/e/con/cart/checkout')).toBe('Reserve')
+    expect(headerTitleOf('/e/con/cart/checkout')).toBe('Checkout')
     expect(parentOf('/e/con/cart/checkout')).toBe('/e/con/cart')
     expect(parentOf('/e/con/cart')).toBe('/e/con')
     expect(hasBack('/e/con/cart/checkout', '', 0)).toBe(true)

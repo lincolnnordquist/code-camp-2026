@@ -27,7 +27,7 @@ describe('order layout at narrow widths and short heights', () => {
   it('item and cart photos sit on our own neutral square from the first frame, the photo tile see-through over it', () => {
     expect(css).toMatch(/\.order-item__photo,\n\.cart__photo \{\n {2}display: block;\n {2}overflow: hidden;\n {2}border-radius: var\(--radius-sm\);\n {2}background: var\(--neutral-200\);/)
     expect(css).toMatch(/\.order-item__photo \{\n {2}width: 48px;\n {2}height: 48px;/)
-    expect(css).toMatch(/\.cart__photo \{\n {2}width: 64px;\n {2}height: 64px;/)
+    expect(css).toMatch(/\.cart__photo \{\n {2}width: 72px;\n {2}height: 72px;/)
     expect(css).toMatch(/\.order-item__photo \.product-image--frame,\n\.cart__photo \.product-image--frame \{\n {2}background: transparent;/)
   })
 })

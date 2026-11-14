@@ -4,15 +4,12 @@ import { requestEventCatalog } from '../../shell/catalogRequest'
 import { useOnlineStatus } from '../../shared/live'
 import type { Product } from '../../shared/types'
 import { ProductImage } from '../../shared/ui/ProductImage'
-import { boothModeBadges, formatMoney, orderLabels } from '../../shared/ui/labels'
+import { formatMoney } from '../../shared/ui/labels'
 import { cartTotal, isOverLimit, lastOrderId, limitNote, setQty, useCart, type CartItem } from './cartStore'
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
 import { announceIn } from './announce'
+import { BoothIdentity } from './BoothIdentity'
 import { StepIcon } from './StepIcon'
-
-/** The label module's wording for a reservation's payment, as the order page shows it. */
-// How a reservation is paid, in the label module's words for a confirmed one.
-const PAY_AT_PICKUP = orderLabels({ type: 'reservation', status: 'confirmed', refundStatus: 'none', refundedCents: 0, totalCents: 0, currency: 'USD' }).paymentBadge?.label
 
 /**
  * Where focus goes after a line is removed, because its stepper is gone: the
@@ -117,102 +114,113 @@ export function CartPage() {
     <>
       {announcer}
       <div className="cart">
-        {/* The design's cart header: the vendor, then the booth and how it takes payment. */}
-        <div className="cart__booth">
-          <h1 className="cart__vendor" ref={headingRef} tabIndex={-1}>
-            {/* The space stays outside the hidden span, where every name computation keeps it. */}
-            <span className="visually-hidden">Your cart from</span> {cart.vendorName}
-          </h1>
-          <p className="cart__booth-code">
-            Booth {cart.boothCode} · {isPrepay ? boothModeBadges.prepay.label : PAY_AT_PICKUP}
-          </p>
-        </div>
+        <BoothIdentity cart={cart} lead="Your cart from" headingRef={headingRef} />
 
-        <ul className="cart__lines" role="list" ref={linesRef} {...linesEntrance}>
-          {cart.items.map((item, index) => {
-            const note = limitNote(item)
-            const noteId = `limit-${item.productId}`
-            return (
-              <li
-                key={item.productId}
-                className={`cart__line${isOverLimit(item) ? ' cart__line--over' : ''}`}
-                data-product-id={item.productId}
-              >
-                <span className="cart__photo" aria-hidden="true">
-                  {products.has(item.productId) ? (
-                    <ProductImage product={products.get(item.productId)!} size="small" />
-                  ) : (
-                    <span className="product-image product-image--small product-image--frame" />
-                  )}
-                </span>
-                <span className="cart__line-text">
-                  <span className="cart__name">{item.name}</span>
-                  {/* The unit price only adds anything once there is more than one. */}
-                  {item.qty > 1 && (
-                    <span className="cart__each">
-                      <span className="price">{formatMoney(item.priceCents, cart.currency)}</span> each
-                    </span>
-                  )}
-                  <span className="cart__price">{formatMoney(item.qty * item.priceCents, cart.currency)}</span>
-                  {note && (
-                    <span className="cart__limit" id={noteId}>
-                      {note}
-                    </span>
-                  )}
-                </span>
-                <span className="cart__line-controls">
-                  <span className="stepper" role="group" aria-label={`Quantity of ${item.name}`}>
-                    <button
-                      type="button"
-                      className="stepper__btn"
-                      aria-label={item.qty === 1 ? `Remove ${item.name}` : `One fewer ${item.name}`}
-                      onClick={() => (item.qty === 1 ? removeLine(index) : step(item, item.qty - 1))}
-                    >
-                      {/* At one, this button removes the line, so it shows the bin. */}
-                      <StepIcon kind={item.qty === 1 ? 'remove' : 'minus'} />
-                    </button>
-                    <span className="stepper__qty">{item.qty}</span>
-                    <button
-                      type="button"
-                      className="stepper__btn"
-                      aria-label={`One more ${item.name}`}
-                      // aria-disabled instead of disabled, so focus stays on the button when it reaches the limit.
-                      aria-disabled={item.qty >= item.maxQty}
-                      aria-describedby={note ? noteId : undefined}
-                      onClick={() => item.qty < item.maxQty && step(item, item.qty + 1)}
-                    >
-                      <StepIcon kind="plus" />
-                    </button>
+        <div className="cart__columns">
+          <ul className="cart__lines" role="list" ref={linesRef} {...linesEntrance}>
+            {cart.items.map((item, index) => {
+              const note = limitNote(item)
+              const noteId = `limit-${item.productId}`
+              return (
+                <li
+                  key={item.productId}
+                  className={`cart__line${isOverLimit(item) ? ' cart__line--over' : ''}`}
+                  data-product-id={item.productId}
+                >
+                  <span className="cart__photo" aria-hidden="true">
+                    {products.has(item.productId) ? (
+                      <ProductImage product={products.get(item.productId)!} size="small" />
+                    ) : (
+                      <span className="product-image product-image--small product-image--frame" />
+                    )}
                   </span>
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-        <p className="cart__total">
-          <span>Total</span>
-          <span>{formatMoney(cartTotal(cart), cart.currency)}</span>
-        </p>
+                  <span className="cart__line-body">
+                    <span className="cart__line-text">
+                      <span className="cart__name">{item.name}</span>
+                      <span className="cart__each">
+                        {formatMoney(item.priceCents, cart.currency)}
+                        <span className="visually-hidden"> each</span>
+                      </span>
+                      {note && (
+                        <span className="cart__limit" id={noteId}>
+                          {note}
+                        </span>
+                      )}
+                    </span>
+                    <span className="cart__line-foot">
+                      <span className="cart__line-controls">
+                        <span className="stepper" role="group" aria-label={`Quantity of ${item.name}`}>
+                          <button
+                            type="button"
+                            className="stepper__btn"
+                            aria-label={item.qty === 1 ? `Remove ${item.name}` : `One fewer ${item.name}`}
+                            onClick={() => (item.qty === 1 ? removeLine(index) : step(item, item.qty - 1))}
+                          >
+                            {/* At one, this button removes the line, so it shows the bin. */}
+                            <StepIcon kind={item.qty === 1 ? 'remove' : 'minus'} />
+                          </button>
+                          <span className="stepper__qty">{item.qty}</span>
+                          <button
+                            type="button"
+                            className="stepper__btn"
+                            aria-label={`One more ${item.name}`}
+                            // aria-disabled instead of disabled, so focus stays on the button when it reaches the limit.
+                            aria-disabled={item.qty >= item.maxQty}
+                            aria-describedby={note ? noteId : undefined}
+                            onClick={() => item.qty < item.maxQty && step(item, item.qty + 1)}
+                          >
+                            <StepIcon kind="plus" />
+                          </button>
+                        </span>
+                      </span>
+                      <span className="cart__price">{formatMoney(item.qty * item.priceCents, cart.currency)}</span>
+                    </span>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
 
-        {/* The one action, docked at the bottom like a native flow's; the page's end clears it. */}
-        <div className="cart__dock">
-          {/* aria-disabled instead of removing the link, so focus stays on it when the device goes offline. */}
-          <Link
-            className="order-button order-button--filled"
-            to={`/e/${eventSlug}/cart/checkout`}
-            aria-disabled={!online}
-            aria-describedby={online ? undefined : 'cart-offline'}
-            onClick={(e: MouseEvent<HTMLAnchorElement>) => {
-              if (!online) e.preventDefault()
-            }}
-          >
-            Continue
-          </Link>
-          {!online && (
-            <p id="cart-offline" className="reserve-form__note">
-              {isPrepay ? "You're offline. Pay when you're back online." : "You're offline. Reserve when you're back online."}
+          {/* A side panel on a wide screen; on a phone its parts follow the lines and the action docks. */}
+          <div className="cart__summary">
+            <h2 className="cart__summary-title">Summary</h2>
+            <ul className="cart__summary-lines" role="list">
+              {cart.items.map((i) => (
+                <li key={i.productId}>
+                  <span>
+                    {i.qty} × {i.name}
+                  </span>
+                  <span className="price">{formatMoney(i.qty * i.priceCents, cart.currency)}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="cart__total">
+              <span>Total</span>
+              <span>{formatMoney(cartTotal(cart), cart.currency)}</span>
             </p>
-          )}
+            {!isPrepay && <p className="cart__pay">Pay at the booth when you pick up.</p>}
+
+            {/* The one action, docked at the bottom like a native flow's; the page's end clears it. */}
+            <div className="cart__dock">
+              {/* aria-disabled instead of removing the link, so focus stays on it when the device goes offline. */}
+              <Link
+                className="order-button order-button--filled"
+                to={`/e/${eventSlug}/cart/checkout`}
+                aria-disabled={!online}
+                aria-describedby={online ? undefined : 'cart-offline'}
+                onClick={(e: MouseEvent<HTMLAnchorElement>) => {
+                  if (!online) e.preventDefault()
+                }}
+              >
+                Continue
+              </Link>
+              {!online && (
+                <p id="cart-offline" className="reserve-form__note">
+                  {isPrepay ? "You're offline. Pay when you're back online." : "You're offline. Reserve when you're back online."}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </>

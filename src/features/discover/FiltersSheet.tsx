@@ -34,7 +34,7 @@ export function FiltersChip({
         <circle cx="16" cy="7" r="2" />
         <circle cx="10" cy="17" r="2" />
       </svg>
-      Filters
+      <span className="chip__label">Filters</span>
       {count > 0 && (
         <span className="chip__count">
           <span className="visually-hidden">, </span>

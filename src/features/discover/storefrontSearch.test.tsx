@@ -141,7 +141,12 @@ describe('product sheet', () => {
     expect(within(dialog).getByText('Only 4 left')).toBeTruthy()
     expect(within(dialog).getByText('$12.00')).toBeTruthy()
     expect(within(dialog).getByText('Titan Hoodie description.')).toBeTruthy()
-    expect(within(dialog).getByRole('link', { name: 'Find on map' }).getAttribute('href')).toBe(`/e/${SLUG}/map?booth=b-res`)
+    expect(within(dialog).getByRole('link', { name: 'Find it on the map' }).getAttribute('href')).toBe(`/e/${SLUG}/map?booth=b-res`)
+    // On its own storefront the booth row is not a link; it names the booth on the plate and how it takes orders.
+    const boothRow = dialog.querySelector('.sheet__booth') as HTMLElement
+    expect(boothRow.tagName).toBe('DIV')
+    expect(boothRow.querySelector('.ec-booth-plate')?.textContent).toMatch(/^Booth\s/)
+    expect(within(boothRow).getByText('Reserve online')).toBeTruthy()
     // The page behind leaves the tab order while the sheet is open.
     expect(hoodie.closest('body > div')).toHaveProperty('inert', true)
   })
@@ -272,8 +277,8 @@ describe('product sheet', () => {
     expect(url()).toBe(`/e/${SLUG}?product=p-poster`)
     const dialog = screen.getByRole('dialog', { name: 'Titan Poster' })
     expect(within(dialog).getByRole('button', { name: 'Order Titan Poster' })).toBeTruthy()
-    // The vendor row is the link; jsdom drops the space after each hidden comma.
-    expect(within(dialog).getByRole('link', { name: /^Booth B6,\s*Pixel Forge Prints,/ }).getAttribute('href')).toBe(`/e/${SLUG}/booth/b-pre`)
+    // The vendor row is the link: the name, how the booth takes orders, then the plate. jsdom drops the space after each hidden comma.
+    expect(within(dialog).getByRole('link', { name: /^Pixel Forge Prints,\s*Pay online,\s*Booth B6$/ }).getAttribute('href')).toBe(`/e/${SLUG}/booth/b-pre`)
   })
 
   it('keeps the search in the URL when a result opens the sheet', async () => {

@@ -290,7 +290,7 @@ describe('Storefront ordering rules (FR-05)', () => {
     const call = renderOrderControl.mock.calls.find(([args]) => args.product.id === 'p-hoodie')
     expect(call).toBeDefined()
     expect(call![0]).toMatchObject({ booth: { id: 'b-res' }, event: { slug: SLUG } })
-    expect(screen.getAllByText('Reserve').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Reserve online').length).toBeGreaterThan(0)
   })
 
   it('does not render the order control for a sold-out product', async () => {
@@ -314,7 +314,7 @@ describe('Storefront ordering rules (FR-05)', () => {
     expect(within(item).queryByRole('button', { name: /^Order / })).toBeNull()
     expect(renderOrderControl).not.toHaveBeenCalled()
     expect(screen.getAllByText('Online orders paused').length).toBeGreaterThan(0)
-    expect(screen.queryByText(/^(Reserve|Prepay)$/)).toBeNull()
+    expect(screen.queryByText(/^(Reserve online|Pay online)$/)).toBeNull()
   })
 
   it('does not render the order control at a discovery booth', async () => {
@@ -360,23 +360,67 @@ describe('Storefront ordering rules (FR-05)', () => {
     expect(screen.queryByRole('button', { name: 'Order Attack on Titan Tee' })).toBeNull()
   })
 
-  it('filters the shelf by category with the chips, keeping it in the URL', async () => {
+  it('filters the shelf by category with the tabs, each with its product count, keeping it in the URL', async () => {
     const catalog = makeCatalog()
     catalog.products.push(product('p-cap', 'b-res', 'Survey Corps Cap', 9, 'Cap.', 'Accessories'))
     saveCatalog(catalog)
     api.getEventCatalog.mockResolvedValue(ok(catalog))
     await renderStorefront('b-res')
 
-    const chips = screen.getByRole('group', { name: 'Categories' })
-    expect(within(chips).getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(within(chips).getByRole('button', { name: 'Accessories' }))
+    const tabs = screen.getByRole('tablist', { name: 'Category' })
+    const total = catalog.products.filter((p) => p.boothId === 'b-res').length
+    expect(within(tabs).getByRole('tab', { name: `All, ${total} products` }).getAttribute('aria-selected')).toBe('true')
+    fireEvent.click(within(tabs).getByRole('tab', { name: 'Accessories, 1 product' }))
 
-    expect(within(chips).getByRole('button', { name: 'Accessories' }).getAttribute('aria-pressed')).toBe('true')
+    expect(within(tabs).getByRole('tab', { name: 'Accessories, 1 product' }).getAttribute('aria-selected')).toBe('true')
     expect(screen.getByRole('link', { name: /^Survey Corps Cap/ })).toBeTruthy()
     expect(screen.queryByRole('link', { name: /^Attack on Titan Hoodie/ })).toBeNull()
 
-    fireEvent.click(within(chips).getByRole('button', { name: 'All' }))
+    fireEvent.click(within(tabs).getByRole('tab', { name: /^All,/ }))
     expect(screen.getByRole('link', { name: /^Attack on Titan Hoodie/ })).toBeTruthy()
+  })
+
+  it('moves between category tabs with the arrow keys, wrapping at the ends, and keeps one tab in the tab order', async () => {
+    const catalog = makeCatalog()
+    catalog.products.push(product('p-cap', 'b-res', 'Survey Corps Cap', 9, 'Cap.', 'Accessories'))
+    saveCatalog(catalog)
+    api.getEventCatalog.mockResolvedValue(ok(catalog))
+    await renderStorefront('b-res')
+
+    const tabs = within(screen.getByRole('tablist', { name: 'Category' })).getAllByRole('tab')
+    expect(tabs.map((t) => t.tabIndex)).toEqual([0, ...tabs.slice(1).map(() => -1)])
+    fireEvent.keyDown(tabs[0], { key: 'ArrowLeft' })
+    const last = within(screen.getByRole('tablist', { name: 'Category' })).getAllByRole('tab').at(-1)!
+    expect(last.getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(last)
+    fireEvent.keyDown(last, { key: 'ArrowRight' })
+    expect(within(screen.getByRole('tablist', { name: 'Category' })).getAllByRole('tab')[0].getAttribute('aria-selected')).toBe('true')
+  })
+
+  it("shows the vendor's pickup instructions as a note, and no note when the vendor wrote none", async () => {
+    const catalog = makeCatalog()
+    const booth = catalog.booths.find((b) => b.id === 'b-res')!
+    booth.pickupInstructions = 'Pickup window at the back of the booth.'
+    saveCatalog(catalog)
+    api.getEventCatalog.mockResolvedValue(ok(catalog))
+    await renderStorefront('b-res')
+    expect(document.querySelector('.storefront__pickup')?.textContent).toBe('Pickup window at the back of the booth.')
+
+    cleanup()
+    booth.pickupInstructions = ''
+    saveCatalog(catalog)
+    api.getEventCatalog.mockResolvedValue(ok(catalog))
+    await renderStorefront('b-res')
+    expect(document.querySelector('.storefront__pickup')).toBeNull()
+  })
+
+  it('the facts row names the booth, how it takes orders, and links to it on the map', async () => {
+    await renderStorefront('b-res')
+    const facts = document.querySelector('.storefront__facts') as HTMLElement
+    expect(Array.from(facts.querySelectorAll('dt'), (dt) => dt.textContent)).toEqual(['Booth', 'Shop type', 'Map'])
+    expect(within(facts).getByText('Reserve online')).toBeTruthy()
+    // jsdom drops the space before the hidden words.
+    expect(within(facts).getByRole('link', { name: /^Find it\s*on the map, Booth / }).getAttribute('href')).toBe(`/e/${SLUG}/map?booth=b-res`)
   })
 
   it('keeps showing the saved shelf with the saved-copy note when the refresh fails', async () => {
@@ -402,10 +446,11 @@ describe('Storefront ordering rules (FR-05)', () => {
     expect(screen.queryByText(/Showing saved info/)).toBeNull()
   })
 
-  it('shows no category chips for a booth with one category', async () => {
+  it('shows no category tabs for a booth with one category', async () => {
     await renderStorefront('b-res')
 
-    expect(screen.queryByRole('group', { name: 'Categories' })).toBeNull()
+    expect(screen.queryByRole('tablist', { name: 'Category' })).toBeNull()
+    expect(screen.queryByRole('tab')).toBeNull()
   })
 
   it('shows the not-found state for an unknown booth', async () => {

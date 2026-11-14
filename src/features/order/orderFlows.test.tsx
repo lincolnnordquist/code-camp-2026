@@ -106,9 +106,9 @@ describe('reserve retry (FR-08)', () => {
       </MemoryRouter>,
     )
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.co' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Reserve$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reserve · \$/ }))
     await screen.findByText(/Could not reach the server/)
-    fireEvent.click(screen.getByRole('button', { name: /^Reserve$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reserve · \$/ }))
     await screen.findByText('order page')
 
     const [first, second] = api.createReservation.mock.calls.map((c) => c[0].requestId)
@@ -134,7 +134,7 @@ describe('reserve retry (FR-08)', () => {
         </Routes>
       </MemoryRouter>,
     )
-    const reserve = screen.getByRole('button', { name: /^Reserve$/ }) as HTMLButtonElement
+    const reserve = screen.getByRole('button', { name: /^Reserve · \$/ }) as HTMLButtonElement
     // Inside the form, the sticky dock could rise no higher than the form's top (over the field, past the screen).
     expect(reserve.closest('form')).toBeNull()
     expect(reserve.closest('.cart__dock')?.closest('form')).toBeNull()
@@ -517,7 +517,7 @@ describe('focus when the focused control is replaced', () => {
     const { addToCart } = await import('./cartStore')
     addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
     await renderCart()
-    fireEvent.click(screen.getByRole('button', { name: /^Reserve$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reserve · \$/ }))
     const field = screen.getByLabelText(/email/i)
     expect(document.activeElement).toBe(field)
     expect(field.getAttribute('aria-invalid')).toBe('true')
@@ -1153,7 +1153,7 @@ describe('offline controls keep focus (FR-26)', () => {
     addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
     await renderCart()
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.co' } })
-    const submit = screen.getByRole('button', { name: /^Reserve$/ })
+    const submit = screen.getByRole('button', { name: /^Reserve · \$/ })
     expect(submit.hasAttribute('disabled')).toBe(false)
     expect(submit.getAttribute('aria-disabled')).toBe('true')
     fireEvent.click(submit)
@@ -1187,10 +1187,13 @@ async function renderCart(extraRoutes: React.ReactNode = null, at = '/e/ev/cart/
   )
 }
 
-const submitCart = (name: RegExp = /^Reserve$/) => {
+const submitCart = (name: RegExp = /^Reserve · \$/) => {
   fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.co' } })
   fireEvent.click(screen.getByRole('button', { name }))
 }
+
+// The checkout's Items card. The Summary panel of the wide layout lists the same lines a second time.
+const itemsCard = () => within(screen.getByRole('region', { name: 'Items' }))
 
 describe('cart then checkout (design: Cart, CheckoutReserve, CheckoutPrepay)', () => {
   it('Continue opens the checkout step, named for the booth; Change cart goes back after a refusal', async () => {
@@ -1202,7 +1205,11 @@ describe('cart then checkout (design: Cart, CheckoutReserve, CheckoutPrepay)', (
     expect(screen.queryByLabelText(/email/i)).toBeNull()
     fireEvent.click(screen.getByRole('link', { name: 'Continue' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Reserve from Vendor' })).toBeTruthy()
-    expect(screen.getByText('Pay $5.00 at the booth when you pick up.')).toBeTruthy()
+    // The hold's length is the event's setting (120 minutes here), read with the catalog.
+    await waitFor(() =>
+      expect(document.querySelector('.checkout .ec-banner')?.textContent).toBe("We'll hold these for 2 hours. Pay $5.00 at the booth when you pick up."),
+    )
+    expect(screen.getByRole('button', { name: 'Reserve · $5.00' })).toBeTruthy()
     submitCart()
     // Standing alone, the reason reads as a sentence, with what it means for this cart under it.
     const title = await screen.findByText('This booth has paused online orders.')
@@ -1221,12 +1228,52 @@ describe('cart then checkout (design: Cart, CheckoutReserve, CheckoutPrepay)', (
     await renderCart()
     expect(screen.getByRole('heading', { level: 1, name: 'Check out with Vendor' })).toBeTruthy()
     expect(screen.getByText("You pay on Square's page. Your items are held while you pay.")).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Pay with Square' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Pay $5.00 with Square' })).toBeTruthy()
   })
 
   it('checkout with an empty cart shows the empty cart', async () => {
     await renderCart()
     expect(screen.getByRole('heading', { level: 1, name: 'Your cart is empty' })).toBeTruthy()
+  })
+
+  it('without the catalog, the hold notice still says how the reservation is paid, with no length', async () => {
+    const { addToCart } = await import('./cartStore')
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
+    api.getEventCatalog.mockRejectedValue(new Error('offline'))
+    await renderCart()
+    expect(document.querySelector('.checkout .ec-banner')?.textContent).toBe('Pay $5.00 at the booth when you pick up.')
+  })
+
+  it('the email of the last order is kept on the device, filled in next time, and the help text says so while the field holds it', async () => {
+    const { addToCart } = await import('./cartStore')
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
+    api.createReservation.mockResolvedValue({ ok: true, value: order() })
+    await renderCart(<Route path="/orders/:orderId" element={<p>order page</p>} />)
+    expect((screen.getByLabelText(/email/i) as HTMLInputElement).value).toBe('')
+    expect(screen.getByText('Your order link is sent here.')).toBeTruthy()
+    submitCart()
+    await screen.findByText('order page')
+
+    cleanup()
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
+    await renderCart()
+    const field = screen.getByLabelText(/email/i) as HTMLInputElement
+    expect(field.value).toBe('a@b.co')
+    expect(screen.getByText('Saved on this device. Your order link is sent here.')).toBeTruthy()
+    fireEvent.change(field, { target: { value: 'c@d.co' } })
+    expect(screen.getByText('Your order link is sent here.')).toBeTruthy()
+  })
+
+  it('a refused order does not save the email', async () => {
+    const { addToCart } = await import('./cartStore')
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
+    api.createReservation.mockResolvedValue({ ok: false, reason: 'ordering_paused' })
+    await renderCart()
+    submitCart()
+    await screen.findByText('This booth has paused online orders.')
+    cleanup()
+    await renderCart()
+    expect((screen.getByLabelText(/email/i) as HTMLInputElement).value).toBe('')
   })
 })
 
@@ -1248,7 +1295,7 @@ describe('a hung submit has a time limit (D4)', () => {
     const error = screen.getByText(/Could not reach the server/).closest('.cart__alert-message')!
     expect(error.textContent).toContain('Not sure it went through? Check your orders before trying again.')
     expect(document.activeElement).toBe(error)
-    fireEvent.click(screen.getByRole('button', { name: /^Reserve$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reserve · \$/ }))
     const [first, second] = api.createReservation.mock.calls.map((c) => c[0].requestId)
     expect(second).toBe(first)
   })
@@ -1350,7 +1397,7 @@ describe('accessibility review (order side)', () => {
       await renderCart()
       const field = screen.getByLabelText(/email/i)
       expect(field.getAttribute('aria-required')).toBe('true')
-      expect(screen.getByText('Required. Your order link is sent here.')).toBeTruthy()
+      expect(screen.getByText('Your order link is sent here.')).toBeTruthy()
       const region = document.querySelector('.reserve-form [aria-live="polite"]')!
       fireEvent.submit(field.closest('form')!)
       await act(async () => vi.advanceTimersByTime(100))
@@ -1395,11 +1442,34 @@ describe('accessibility review (order side)', () => {
 describe('order-screens QA round', () => {
   beforeEach(() => sessionStorage.clear())
 
-  it('the cart says how a reservation is paid in the label module wording (D7)', async () => {
+  it('the cart names the booth, how it takes orders in the label module wording, and how a reservation is paid', async () => {
     const { addToCart } = await import('./cartStore')
     addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
     await renderCart(null, '/e/ev/cart')
-    expect(screen.getByText('Booth A1 · Pay at pickup')).toBeTruthy()
+    const identity = document.querySelector('.booth-identity')!
+    expect(within(identity as HTMLElement).getByText('Reserve online')).toBeTruthy()
+    expect(identity.querySelector('.ec-booth-plate')?.textContent).toBe('Booth A1')
+    expect(screen.getByText('Pay at the booth when you pick up.')).toBeTruthy()
+  })
+
+  it('a prepay cart reads Pay online and never says to pay at the booth', async () => {
+    const { addToCart } = await import('./cartStore')
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: { ...boothB, mode: 'prepay' }, product: product('p') })
+    await renderCart(null, '/e/ev/cart')
+    expect(within(document.querySelector('.booth-identity') as HTMLElement).getByText('Pay online')).toBeTruthy()
+    expect(screen.queryByText('Pay at the booth when you pick up.')).toBeNull()
+  })
+
+  it('each line shows its unit price, without the word each, and its line total', async () => {
+    const { addToCart } = await import('./cartStore')
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
+    await renderCart(null, '/e/ev/cart')
+    fireEvent.click(screen.getByRole('button', { name: 'One more Item p' }))
+    const line = document.querySelector('.cart__line')!
+    // "each" stays in the markup for screen readers only.
+    expect(line.querySelector('.cart__each')?.textContent).toBe('$5.00 each')
+    expect(line.querySelector('.cart__each .visually-hidden')?.textContent).toBe(' each')
+    expect(line.querySelector('.cart__price')?.textContent).toBe('$10.00')
   })
 
   it('offline, Continue is inert and says why (D4)', async () => {
@@ -1518,8 +1588,8 @@ describe('a lost stock race can be fixed from the cart (D10)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Change to what is left' }))
     expect(screen.queryByText(/^Not enough stock left/)).toBeNull()
     expect(screen.queryByText(/Item q/)).toBeNull()
-    expect(screen.getByText('1 × Item p')).toBeTruthy()
-    expect(screen.getByText('1 × Item r')).toBeTruthy()
+    expect(itemsCard().getByText('1 × Item p')).toBeTruthy()
+    expect(itemsCard().getByText('1 × Item r')).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Reserve from Vendor' }))
     // Back in the cart, the capped line says the stock is what binds.
     cleanup()
@@ -1547,7 +1617,7 @@ describe('a lost stock race can be fixed from the cart (D10)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove sold-out items' }))
     expect(screen.queryByText(/Item p/)).toBeNull()
     expect(screen.queryByText(/Item q/)).toBeNull()
-    expect(screen.getByText('1 × Item r')).toBeTruthy()
+    expect(itemsCard().getByText('1 × Item r')).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Reserve from Vendor' }))
   })
 
@@ -1559,7 +1629,8 @@ describe('a lost stock race can be fixed from the cart (D10)', () => {
     submitCart()
     await screen.findByText(/Could not reach the server/)
     expect(screen.queryByRole('button', { name: /^(Remove sold-out items|Remove these items|Change to what is left|Lower to the limit)$/ })).toBeNull()
-    expect(api.getEventCatalog).not.toHaveBeenCalled()
+    // Checkout reads the catalog once on opening, for the hold's length; the refusal adds no stock lookup.
+    expect(api.getEventCatalog).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -1590,13 +1661,14 @@ describe('order refusals from the database rule (place_order)', () => {
     await renderCart()
     submitCart()
     await screen.findByText(/^Some items are no longer sold/)
-    // A product that is gone has no stock to read, so the item is never called sold out.
-    expect(api.getEventCatalog).not.toHaveBeenCalled()
+    // A product that is gone has no stock to read, so the item is never called sold out. The one
+    // catalog read is checkout's own on opening, for the hold's length.
+    expect(api.getEventCatalog).toHaveBeenCalledTimes(1)
     expect(screen.queryByText(/sold out/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Remove these items' }))
     expect(screen.queryByText(/^Some items are no longer sold/)).toBeNull()
     expect(screen.queryByText(/Item q/)).toBeNull()
-    expect(screen.getByText('1 × Item p')).toBeTruthy()
+    expect(itemsCard().getByText('1 × Item p')).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'Reserve from Vendor' }))
   })
 
@@ -1611,7 +1683,7 @@ describe('order refusals from the database rule (place_order)', () => {
     submitCart(/^Pay /)
     const error = await screen.findByText(wording)
     expect(error.textContent).toBe(wording)
-    expect(screen.getByText('1 × Item p')).toBeTruthy()
+    expect(itemsCard().getByText('1 × Item p')).toBeTruthy()
   })
 })
 
@@ -1663,7 +1735,7 @@ describe('copy for ended and unpaid orders (D9, D12)', () => {
     addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
     await renderCart()
     const note = screen.getByText("You're offline. Reserve when you're back online.")
-    expect(screen.getByRole('button', { name: /^Reserve$/ }).getAttribute('aria-describedby')).toBe(note.id)
+    expect(screen.getByRole('button', { name: /^Reserve · \$/ }).getAttribute('aria-describedby')).toBe(note.id)
   })
 })
 

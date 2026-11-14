@@ -7,22 +7,20 @@
   font: var(--type-body-large);
 }
 
-/* Identity: the logo, the vendor in Headline small, then the booth, its mode and the map link. */
 .storefront__header {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  /* Logo to name 8, name to slogan 4, slogan to the booth row 12, the row to the chips 16. */
-  gap: 0;
+  gap: var(--space-16);
   margin: 0 0 var(--space-16);
 }
 
 /* The vendor's banner across the top, edge to edge on a phone (it fills the main padding), a rounded
    card wider. Kept short so the products start soon; the card tone shows while it loads. */
 /* The banner runs up behind the safe area and the transparent over-media header (the shell's
-   --app-header-block), edge to edge, so 120 px of it shows below the header. */
+   --app-header-block), edge to edge: 72 px of it shows below the 48 px header row, 120 in all. */
 .storefront__banner {
-  --banner-visible: 120px;
+  --banner-visible: 72px;
+  position: relative;
   align-self: stretch;
   height: calc(var(--banner-visible) + var(--app-header-block));
   margin: calc(-1 * var(--app-header-block)) calc(-1 * var(--space-16)) 0;
@@ -53,9 +51,9 @@
 /* Wider, it stays within the content column with rounded lower corners. */
 @media (min-width: 45rem) {
   .storefront__banner {
-    --banner-visible: 180px;
+    --banner-visible: 152px;
     margin-inline: 0;
-    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
 }
 
@@ -75,18 +73,83 @@
   block-size: calc(var(--banner-visible) + var(--app-header-block));
 }
 
-/* The round logo overlaps the banner's lower edge, ringed in the page tone so it reads on any banner.
-   The frame is the logo's final circle from the first frame, in the banner placeholder's neutral, so
+/* Level with the shell's Back in the header row; the 40 px chip sits inside a 48 px target. */
+.storefront__share {
+  position: absolute;
+  top: calc(var(--app-safe-top, 0px) + (var(--header-height) - var(--touch-target)) / 2 + var(--offline-banner-block, 0px));
+  right: var(--space-8);
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  isolation: isolate;
+}
+
+.storefront__share::before,
+.storefront__share::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: var(--radius-full);
+  pointer-events: none;
+}
+
+.storefront__share::before {
+  z-index: -1;
+  background: var(--card);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+}
+
+.storefront__share::after {
+  background: currentColor;
+  opacity: 0;
+}
+
+.storefront__share svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .storefront__share:hover::after {
+    opacity: var(--state-hover);
+  }
+}
+
+.storefront__share:active::after {
+  opacity: var(--state-pressed);
+}
+
+.storefront__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+/* The frame is the logo's final circle from the first frame, in the banner placeholder's neutral, so
    the ring never changes size or colour; the logo arrives inside it. */
 .storefront__logo {
   display: inline-grid;
-  width: 64px;
-  height: 64px;
-  margin: -40px 0 var(--space-8) 0;
+  flex: none;
+  width: 56px;
+  height: 56px;
   overflow: hidden;
   border-radius: var(--radius-full);
   background: var(--neutral-200);
-  box-shadow: 0 0 0 3px var(--page);
+  box-shadow: 0 0 0 1px var(--neutral-200);
+}
+
+.storefront__logo .booth-logo {
+  width: 100%;
+  height: 100%;
 }
 
 /* A logo still loading is see-through, so the frame's neutral shows, not the code tile's violet.
@@ -96,31 +159,36 @@
   background: var(--neutral-200);
 }
 
-@media (min-width: 45rem) {
-  .storefront__logo {
-    margin-left: var(--space-16);
-  }
+.storefront__name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The loading name and slogan bars take widths as a share of the row. */
+.storefront__name--loading {
+  flex: 1;
+  gap: var(--space-4);
 }
 
 .storefront__header h1 {
   margin: 0;
-  font: var(--type-headline-small);
+  font: var(--type-title-large);
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 
 .storefront__tagline {
-  margin: 4px 0 0;
+  margin: 0;
   color: var(--text-secondary);
   font: var(--type-body-medium);
 }
 
 /* On a phone the header hands over to the app bar as the page scrolls, driven by the scroll itself
-   (no script, so scroll restore and the sheet are untouched): the banner drifts at half speed, the
-   logo shrinks and fades before it reaches the bar, and the name fades just before the bar's own
-   title takes its place. Ranges are the phone layout's: banner 120 below a 48 px bar, the logo's
-   top 128 down, the name's 200. Browsers without scroll timelines, and reduced motion, keep the
-   plain scroll. */
+   (no script, so scroll restore and the sheet are untouched): the banner drifts at half speed, and
+   the logo and name fade just before the bar's own title takes their place. Ranges are the phone
+   layout's: banner 72 below a 48 px bar, the identity row's top 136 down. Browsers without scroll
+   timelines, and reduced motion, keep the plain scroll. */
 @supports (animation-timeline: scroll()) {
   @media (prefers-reduced-motion: no-preference) and (max-width: 44.99rem) {
     .storefront__banner img {
@@ -129,16 +197,10 @@
       animation-range: 0 calc(var(--banner-visible) + var(--app-header-block));
     }
 
-    .storefront__header .storefront__logo {
-      animation: storefront-logo-settle linear both;
-      animation-timeline: scroll(root);
-      animation-range: 24px 96px;
-    }
-
-    .storefront__header h1 {
+    .storefront__identity {
       animation: storefront-name-settle linear both;
       animation-timeline: scroll(root);
-      animation-range: 112px 164px;
+      animation-range: 56px 108px;
     }
   }
 }
@@ -150,13 +212,6 @@
   }
 }
 
-@keyframes storefront-logo-settle {
-  to {
-    opacity: 0;
-    transform: scale(0.55);
-  }
-}
-
 @keyframes storefront-name-settle {
   to {
     opacity: 0;
@@ -164,76 +219,195 @@
   }
 }
 
-.storefront__badges {
-  margin-top: var(--space-12);
+.storefront__facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin: 0;
+}
+
+.storefront__facts > div {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 var(--space-12);
+  border-left: 1px solid var(--neutral-200);
+}
+
+.storefront__facts > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.storefront__facts dt {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.storefront__facts dd {
+  margin: 0;
+  font: var(--type-title-medium);
+}
+
+.storefront__paused {
+  display: inline-flex;
   align-items: center;
-  gap: 0 var(--space-8);
-  align-self: stretch;
-  font: var(--type-body-medium);
+  gap: var(--space-4);
+  color: var(--warning-900);
 }
 
-.storefront__code {
-  white-space: nowrap;
+.storefront__paused svg {
+  flex: none;
 }
 
-/* "Share" and "Map" as text buttons at the row's end, Map's 48 px target reaching the screen margin. */
-.storefront__map,
-.storefront__share {
+/* The link's 48 px target reaches past the 24 px line it sits on. */
+.storefront__map {
   position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: var(--touch-target);
-  /* The 48 px target overhangs the row, so the row is as tall as its 24 px badge. */
-  margin: calc((24px - var(--touch-target)) / 2) calc(-1 * var(--space-12)) calc((24px - var(--touch-target)) / 2) auto;
-  padding: 0 var(--space-12);
-  overflow: hidden;
-  border-radius: var(--radius-full);
-  color: var(--primary-700);
-  font: var(--type-button-small);
+  color: var(--primary-800);
+  font: var(--type-button-medium);
   text-decoration: none;
 }
 
-.storefront__share {
-  gap: var(--space-4);
-  /* Share leads the pair at the row's end; Map follows it with the row's gap. */
-  margin-right: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-}
-
-.storefront__share + .storefront__map {
-  margin-left: 0;
-}
-
-.storefront__share svg {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.25;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.storefront__map::after,
-.storefront__share::after {
+.storefront__map::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: currentColor;
-  opacity: 0;
-  pointer-events: none;
+  inset: calc((24px - var(--touch-target)) / 2) calc(-1 * var(--space-12));
 }
 
-.storefront__map:hover::after,
-.storefront__share:hover::after {
-  opacity: var(--state-hover);
+/* The design system's banner is one 56 px line; the vendor's note may need more. */
+.storefront__pickup {
+  margin: 0 0 var(--space-16);
 }
 
-.storefront__map:active::after,
-.storefront__share:active::after {
-  opacity: var(--state-pressed);
+.storefront__pickup .ec-banner {
+  height: auto;
+  min-height: 56px;
+  padding: var(--space-16);
+  align-items: flex-start;
+}
+
+.storefront__tabs-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-16);
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.storefront__tabs {
+  display: flex;
+  flex: 1;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: var(--touch-target);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.storefront__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.storefront__tab {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--touch-target);
+  padding: 0 var(--space-12);
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.storefront__tab[aria-selected='true'] {
+  box-shadow: inset 0 -3px 0 var(--primary-600);
+  color: var(--primary-900);
+}
+
+.storefront__tab:focus-visible {
+  outline-offset: -3px;
+}
+
+.storefront__tab-label {
+  font: var(--type-title-medium);
+}
+
+.storefront__tab-count {
+  color: var(--text-secondary);
+  font: var(--type-label-large);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront__tab {
+    transition: none;
+  }
+}
+
+/* The Filters chip is an icon-only 40 px button on a phone; its label shows from the wide layout. */
+.storefront__filters {
+  flex: none;
+}
+
+.storefront__filters .chip--filters {
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  margin: 4px 0;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: var(--card);
+  box-shadow: none;
+}
+
+.storefront__filters .chip--filters::after {
+  inset: -4px;
+}
+
+.storefront__filters .chip--filters.is-active {
+  padding: 0 var(--space-8);
+  background: var(--quiet-action);
+}
+
+.storefront__filters .chip__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.storefront__filters .chip__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 45rem) {
+  .storefront__filters .chip--filters,
+  .storefront__filters .chip--filters.is-active {
+    padding: 0 var(--space-16);
+  }
+
+  .storefront__filters .chip__icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .storefront__filters .chip__label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
 }
 
 /* Paused: a neutral banner, since a pause is not one of the status colours. */
@@ -265,16 +439,6 @@
 
 .storefront__notice strong {
   font-weight: 600;
-}
-
-.storefront__chips {
-  /* Row to chips 16 and chips to the grid 12: no row padding, each chip keeps 8 of target around it. */
-  margin-top: calc(-1 * var(--space-8));
-  margin-bottom: 4px;
-  padding-block: 0;
-  /* The row fades at the screen edges so a cut-off chip reads as "more this way". */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--space-16), #000 calc(100% - var(--space-24)), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 var(--space-16), #000 calc(100% - var(--space-24)), transparent);
 }
 
 .storefront__empty {
@@ -442,8 +606,9 @@
 
 
 
-.storefront__bar .mode {
-  box-shadow: inset 0 0 0 1px var(--outline-on-card);
+.storefront__bar-type {
+  color: var(--text-secondary);
+  font: var(--type-label-large);
 }
 
 @media (max-height: 30rem) {
@@ -452,19 +617,18 @@
   }
 }
 
-/* Each card spans two rows of the grid (card, then its order control), so the buttons in a row
-   line up even when one card's control grows ("1 in cart"). */
-@supports (grid-template-rows: subgrid) {
-  .storefront__grid > li {
-    display: grid;
-    grid-row: span 2;
-    grid-template-rows: subgrid;
-    row-gap: var(--space-8);
-  }
+/* The card's order control sits over the photo's lower right corner: its 48 px target 4 in from
+   the photo's edges, so the 40 px button shows 8 in. The photo is 4:5 of the card's width. */
+.storefront__grid > li {
+  position: relative;
+  container-type: inline-size;
+}
 
-  .product-card__order {
-    margin-top: 0;
-  }
+.storefront__grid .product-card__order {
+  position: absolute;
+  top: calc(125cqw - var(--touch-target) - var(--space-4));
+  right: var(--space-4);
+  margin: 0;
 }
 
 .storefront__grid > li {
@@ -901,27 +1065,6 @@
   overflow-wrap: anywhere;
 }
 
-.sheet__badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-8);
-}
-
-/* The booth code as the booths list draws it, on the card tone so it reads inside the grouped card. */
-.sheet__code {
-  display: inline-grid;
-  place-items: center;
-  min-width: 36px;
-  height: 24px;
-  padding: 0 6px;
-  border-radius: var(--radius-sm);
-  background: var(--card);
-  color: var(--text);
-  font: 700 13px/1 var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
 .sheet__chevron {
   flex: none;
   color: var(--text-secondary);
@@ -1107,137 +1250,261 @@
   }
 }
 
-/* Shop-style brand page: the logo lifts off the banner on a page-tone ring with a soft shadow, the
-   name takes the headline role, and Share and Map become a row of tonal pill buttons under the booth
-   and its mode, each half the width (they used to be text links squeezed onto the booth's line). */
-.storefront__logo {
-  box-shadow: 0 0 0 4px var(--page), var(--shadow-faint);
-}
-
-.storefront__header h1 {
-  font: 800 30px/36px var(--font-display);
-  letter-spacing: -0.02em;
-}
-
-.storefront__tagline {
-  margin-top: 2px;
-  font: var(--type-body-large);
-}
-
-.storefront__badges {
-  gap: var(--space-8);
-  font: var(--type-label-large);
-}
-
-/* A zero-height full-width item: the pills wrap onto their own line after the booth and mode. */
-.storefront__badges::before {
-  content: '';
-  flex-basis: 100%;
-  order: 1;
-  height: 0;
-}
-
-.storefront__badges .storefront__share,
-.storefront__badges .storefront__map {
-  flex: 1 1 0;
-  order: 2;
-  justify-content: center;
-  gap: var(--space-8);
-  min-height: 44px;
-  margin: var(--space-4) 0 0;
-  padding: 0 var(--space-16);
-  border-radius: var(--radius-full);
-  background: var(--quiet-action);
-  color: var(--on-quiet-action);
-}
-
-.storefront__badges .storefront__map::before {
-  content: '';
-  width: 20px;
-  height: 20px;
-  background: currentColor;
-  /* The map glyph the tab bar uses, as a mask so it takes the button's text colour. */
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linejoin='round'%3E%3Cpath d='M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linejoin='round'%3E%3Cpath d='M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14'/%3E%3C/svg%3E") center / contain no-repeat;
-}
-
 @media (min-width: 45rem) {
-  .storefront__badges .storefront__share,
-  .storefront__badges .storefront__map {
-    flex: 0 0 auto;
-    min-width: 140px;
+  main:has(> .storefront) {
+    max-width: 1152px;
+    padding-inline: var(--space-24);
+  }
+
+  /* The shell's Back sits inside the banner's corner, as Share does at the other end. */
+  .app-header:has(~ main > .storefront) .app-header__inner {
+    max-width: 1152px;
+    padding-inline: calc(var(--space-24) + var(--space-8));
+  }
+
+  .storefront__header {
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-16) var(--space-24);
+    margin-bottom: var(--space-24);
+  }
+
+  .storefront__banner {
+    flex: 0 0 100%;
+    margin-bottom: var(--space-8);
+  }
+
+  .storefront__identity {
+    gap: var(--space-16);
+    min-width: 0;
+  }
+
+  .storefront__logo {
+    width: 72px;
+    height: 72px;
   }
 
   .storefront__header h1 {
-    font-size: 36px;
-    line-height: 44px;
+    font: var(--type-headline-medium);
+  }
+
+  .storefront__tagline {
+    font: var(--type-body-large);
+  }
+
+  .storefront__facts {
+    display: flex;
+  }
+
+  .storefront__facts > div {
+    padding: 0 var(--space-24);
+  }
+
+  .storefront__facts > div:last-child {
+    padding-right: 0;
+  }
+
+  .storefront__pickup,
+  .storefront__tabs-row {
+    margin-bottom: var(--space-24);
   }
 }
 
-/* The shelf starts a little further from the identity block, so the brand reads as its own band. */
-.storefront__chips {
-  margin-top: var(--space-8);
-}
-
-/* Shop-style product sheet: the photo on the untinted grey tile, taller, meeting the sheet's top
-   edge; the name in confident display type with the price bold under it; the vendor card a quiet grey
-   group on white; the dock unchanged in role (the one primary action). */
+/* These rules follow the base sheet rules above and override them: the bar sits in flow above an
+   inset photo, and the booth and map rows sit inside the card's padding. */
 .sheet {
   background: var(--page);
 }
 
+.sheet__bar {
+  position: static;
+  flex: none;
+  gap: 0;
+  min-height: 56px;
+  padding: 0 var(--space-8);
+}
+
+.sheet__handle {
+  top: var(--space-8);
+  width: 32px;
+  height: 4px;
+  margin-left: -16px;
+  background: var(--neutral-400);
+}
+
+/* Share and Close: 40 px circles in the card tone, each inside its 48 px target. */
+.sheet__bar .sheet__icon-button {
+  overflow: visible;
+  isolation: isolate;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.sheet__bar .sheet__icon-button::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: var(--radius-full);
+  background: var(--card);
+}
+
+.sheet__bar .sheet__icon-button::after {
+  inset: 4px;
+  border-radius: var(--radius-full);
+}
+
+.sheet__scroll {
+  padding: 0 var(--space-16) var(--space-16);
+}
+
 .sheet__media .product-image--large {
-  max-height: 52dvh;
-  background: var(--surface-photo);
+  height: 264px;
+  max-height: 45dvh;
+  aspect-ratio: auto;
+  border-radius: var(--radius-lg);
+  background: var(--surface-white);
 }
 
 .sheet__body {
-  gap: var(--space-8);
-  padding: var(--space-24) var(--space-16) var(--space-16);
-}
-
-.sheet__title {
-  font: 800 28px/34px var(--font-display);
-  letter-spacing: -0.015em;
+  gap: 0;
+  padding: var(--space-16) 0 0;
 }
 
 .sheet__price {
-  font: 700 22px/28px var(--font-display);
-  font-variant-numeric: tabular-nums;
+  align-items: baseline;
+  margin-top: var(--space-4);
 }
 
 .sheet__desc {
-  margin-top: var(--space-8);
-  color: var(--text-secondary);
+  margin-top: var(--space-16);
 }
 
 .sheet__where {
-  margin-top: var(--space-24);
+  margin-top: var(--space-16);
+  padding: 0 var(--space-16);
   border-radius: var(--radius-lg);
-  background: var(--surface-photo);
+  background: var(--card);
+}
+
+/* The rows are inset by the card's padding; their state layers still reach its edges. */
+.sheet__booth {
+  padding: var(--space-16) 0;
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.sheet__booth--link,
+.sheet__map {
+  overflow: visible;
+}
+
+.sheet__booth--link::after,
+.sheet__map::after {
+  inset: 0 calc(-1 * var(--space-16));
+}
+
+.sheet__vendor {
+  gap: 0;
+}
+
+.sheet__vendor-type {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.sheet__paused {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--warning-900);
+  font: var(--type-label-medium);
+}
+
+.sheet__map {
+  padding: var(--space-8) 0;
+  color: var(--text);
+  font: var(--type-title-medium);
+}
+
+.sheet__map::before {
+  display: none;
+}
+
+.sheet__map-icon {
+  margin: 0;
+  color: var(--text-secondary);
 }
 
 .sheet__dock {
   background: color-mix(in oklch, var(--page) var(--bar-opacity, 82%), transparent);
 }
 
-@media (min-width: 45rem) {
-  .sheet__title {
-    font-size: 32px;
-    line-height: 40px;
+/* Wide screens: a centred dialog. The scroll wrapper drops out of the layout, so the sheet's own
+   grid places the photo on the left and the dialog scrolls as one; the last row takes whatever
+   height the photo has over the right column. */
+@media (min-width: 45rem) and (min-height: 30.0625rem) {
+  .sheet-layer {
+    align-items: center;
   }
-}
 
-/* The Share and Map pills' places while the storefront loads. */
-.storefront__badges .skeleton--action {
-  flex: 1 1 0;
-  order: 2;
-  margin-top: var(--space-4);
-}
+  .sheet {
+    display: grid;
+    grid-template-columns: 400px minmax(0, 1fr);
+    grid-template-rows: auto auto auto 1fr;
+    gap: var(--space-16) var(--space-24);
+    width: calc(100% - 2 * var(--space-24));
+    max-width: 880px;
+    max-height: calc(100dvh - 2 * var(--space-48));
+    padding: var(--space-24);
+    overflow: auto;
+    border-radius: var(--radius-xl);
+  }
 
-@media (min-width: 45rem) {
-  .storefront__badges .skeleton--action {
-    flex: 0 0 140px;
+  .sheet__scroll {
+    display: contents;
+  }
+
+  .sheet__photo {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: start;
+  }
+
+  .sheet__media .product-image--large {
+    height: 400px;
+    max-height: none;
+  }
+
+  .sheet__bar {
+    grid-column: 2;
+    min-height: 40px;
+    margin: -4px -4px calc(-1 * var(--space-8) - 4px) 0;
+    padding: 0;
+    cursor: auto;
+  }
+
+  .sheet__handle {
+    display: none;
+  }
+
+  .sheet__body {
+    grid-column: 2;
+    padding: 0;
+  }
+
+  .sheet__title {
+    font: var(--type-headline-medium);
+  }
+
+  .sheet__dock {
+    grid-column: 2;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 

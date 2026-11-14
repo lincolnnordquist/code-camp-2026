@@ -13,10 +13,12 @@ import {
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { bannerPreloadProps } from './bannerPreload'
-import { formatMoney } from '../../shared/ui/labels'
+import { formatMoney, pausedBoothBadge, shopTypeLabels } from '../../shared/ui/labels'
 import type { Booth, Event, EventCatalog, Product } from '../../shared/types'
-import { boothBadgeClass, boothBadgeLabel, isPaused } from './boothLabel'
+import { isPaused } from './boothLabel'
 import { BoothLogo } from '../../shared/ui/BoothLogo'
+import { BoothPlate } from '../../shared/ui/BoothPlate'
+import { Icon } from '../../shared/ui/Icon'
 import { ProductImage } from '../../shared/ui/ProductImage'
 import { PhotoViewer } from './PhotoViewer'
 import { ProductGallery } from './ProductGallery'
@@ -296,19 +298,20 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
     <>
       <BoothLogo booth={booth} />
       <span className="sheet__vendor">
-        <span className="sheet__vendor-name">
-          <span className="visually-hidden">Booth {booth.code}, </span>
-          {booth.vendorName}
-        </span>
-        <span className="sheet__badges">
-          {/* Already spoken first in the link's name, so shown here only to the eye, as in the booths list. */}
-          <span className="sheet__code" aria-hidden="true">
-            {booth.code}
+        <span className="sheet__vendor-name">{booth.vendorName}</span>
+        <span className="visually-hidden">, </span>
+        {/* How the booth takes orders, in the label module's words; a paused booth never reads as taking them (FR-05). */}
+        {isPaused(booth) ? (
+          <span className="sheet__paused">
+            <Icon name="pause_circle" size={16} />
+            {pausedBoothBadge.label}
           </span>
-          <span className="visually-hidden">, </span>
-          <span className={boothBadgeClass(booth)}>{boothBadgeLabel(booth)}</span>
-        </span>
+        ) : (
+          <span className="sheet__vendor-type">{shopTypeLabels[booth.mode].label}</span>
+        )}
+        <span className="visually-hidden">, </span>
       </span>
+      <BoothPlate code={booth.code} />
     </>
   )
 
@@ -427,7 +430,7 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
                 <svg className="sheet__map-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
                   <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14" />
                 </svg>
-                Find on map
+                Find it on the map
                 <svg className="sheet__chevron" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
                   <path d="M9 5l7 7-7 7" />
                 </svg>
