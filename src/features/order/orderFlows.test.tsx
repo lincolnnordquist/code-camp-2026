@@ -571,6 +571,104 @@ describe('focus when the focused control is replaced', () => {
     }
   })
 
+  it('Ready celebrates once per order: a burst and a buzz, not again on re-render or reload', async () => {
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate })
+    vi.useFakeTimers()
+    try {
+      const { OrderView } = await import('./OrderView')
+      const view = (status: Order['status']) => (
+        <MemoryRouter useTransitions={false}>
+          <OrderView order={order({ status })} onChange={() => undefined} />
+        </MemoryRouter>
+      )
+      const first = render(view('confirmed'))
+      const burst = () => first.container.querySelector('.order-steps__burst')
+      expect(burst()).toBeNull()
+      first.rerender(view('ready'))
+      expect(burst()).not.toBeNull()
+      expect(vibrate).toHaveBeenCalledTimes(1)
+      // Under a second, then gone; later renders do not bring it back.
+      act(() => {
+        vi.advanceTimersByTime(1000)
+      })
+      expect(burst()).toBeNull()
+      first.rerender(view('ready'))
+      expect(burst()).toBeNull()
+      first.unmount()
+      // A reload of the same order: already seen on this device.
+      vi.resetModules()
+      const { OrderView: Reloaded } = await import('./OrderView')
+      const again = render(
+        <MemoryRouter useTransitions={false}>
+          <Reloaded order={order({ status: 'ready' })} onChange={() => undefined} />
+        </MemoryRouter>,
+      )
+      expect(again.container.querySelector('.order-steps__burst')).toBeNull()
+      expect(vibrate).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+      Reflect.deleteProperty(navigator, 'vibrate')
+    }
+  })
+
+  it('a saved copy that says ready is not celebrated until the server confirms it', async () => {
+    const { OrderView } = await import('./OrderView')
+    const view = (provisional: boolean) => (
+      <MemoryRouter useTransitions={false}>
+        <OrderView order={order({ status: 'ready' })} provisional={provisional} onChange={() => undefined} />
+      </MemoryRouter>
+    )
+    const { container, rerender } = render(view(true))
+    expect(container.querySelector('.order-steps__burst')).toBeNull()
+    rerender(view(false))
+    expect(container.querySelector('.order-steps__burst')).not.toBeNull()
+  })
+
+  it('with reduced motion Ready still buzzes and is remembered, but nothing flashes', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate })
+    try {
+      const { OrderView } = await import('./OrderView')
+      const { container } = render(
+        <MemoryRouter useTransitions={false}>
+          <OrderView order={order({ status: 'ready' })} onChange={() => undefined} />
+        </MemoryRouter>,
+      )
+      expect(container.querySelector('.order-steps__burst')).toBeNull()
+      expect(vibrate).toHaveBeenCalledTimes(1)
+      expect(localStorage.getItem('order.readyCelebrated.v1')).toBe('["o1"]')
+    } finally {
+      Reflect.deleteProperty(window, 'matchMedia')
+      Reflect.deleteProperty(navigator, 'vibrate')
+    }
+  })
+
+  it('coming back to the page breathes the current marker again without replaying the arrival pop', async () => {
+    const { OrderView } = await import('./OrderView')
+    const view = (status: Order['status']) => (
+      <MemoryRouter useTransitions={false}>
+        <OrderView order={order({ status })} onChange={() => undefined} />
+      </MemoryRouter>
+    )
+    const { container, rerender } = render(view('confirmed'))
+    rerender(view('ready'))
+    const steps = container.querySelector('.order-steps')!
+    const dot = () => steps.querySelector('li.is-current .order-steps__dot')
+    const before = dot()
+    expect(steps.classList.contains('order-steps--arrived')).toBe(true)
+    for (const value of ['hidden', 'visible']) {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value })
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'))
+      })
+    }
+    // A new marker element restarts its breath; the pop class is gone so it does not pop again.
+    expect(dot()).not.toBe(before)
+    expect(steps.classList.contains('order-steps--arrived')).toBe(false)
+  })
+
   it('the tracker pauses its loops while the page is hidden', async () => {
     const { OrderView } = await import('./OrderView')
     const { container } = render(

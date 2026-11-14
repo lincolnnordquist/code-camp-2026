@@ -13,7 +13,7 @@ const reducedMotion = () => typeof window.matchMedia === 'function' && window.ma
  * small group of chevrons and dots on the photo. Only for two or more photos; one photo is just shown.
  * Keyed by product in the sheet, so another product starts at its first photo.
  */
-export function ProductGallery({ product, photos }: { product: Product; photos: readonly ProductPhoto[] }) {
+export function ProductGallery({ product, photos, onOpen }: { product: Product; photos: readonly ProductPhoto[]; onOpen?: (index: number, e?: MouseEvent) => void }) {
   const trackRef = useRef<HTMLDivElement>(null)
   const [index, setIndex] = useState(0)
   // Spoken only after the person moves, so opening the sheet reads the product, not "Image 1 of 3".
@@ -69,6 +69,12 @@ export function ProductGallery({ product, photos }: { product: Product; photos: 
   // Left and Right move between photos while the photo has focus. Handled here, so the sheet, which
   // skips keys already handled, does not also page to another product.
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    // Enter on the photo opens it full screen, as a tap does.
+    if (e.key === 'Enter' && onOpen) {
+      e.preventDefault()
+      onOpen(indexRef.current)
+      return
+    }
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
     e.preventDefault()
     go(indexRef.current + (e.key === 'ArrowRight' ? 1 : -1))
@@ -76,7 +82,7 @@ export function ProductGallery({ product, photos }: { product: Product; photos: 
 
   return (
     <div className="gallery" role="region" aria-label={`Photos of ${product.name}`}>
-      <div className="gallery__track" ref={trackRef} tabIndex={0} onKeyDown={onKeyDown}>
+      <div className="gallery__track" ref={trackRef} tabIndex={0} onKeyDown={onKeyDown} onClick={(e) => onOpen?.(indexRef.current, e.nativeEvent)}>
         {photos.map((photo, i) => {
           // Each photo is drawn like the main one (cutout treatment), each with its own fallback photo.
           const shown: Product & { fallbackImageUrl?: string } = { ...product, imageUrl: photo.url }

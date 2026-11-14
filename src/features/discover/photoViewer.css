@@ -1,0 +1,194 @@
+/* Travels with PhotoViewer.tsx: the product's photos full screen over a near-black backdrop, white
+   controls on translucent discs, the photo whole and centred until it is zoomed. */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  color: #ffffff;
+  animation: viewer-in 200ms var(--ease-ios) backwards;
+}
+
+/* The dialog takes focus only so keys reach it after a press on the photo; it is not a control. */
+.viewer:focus {
+  outline: none;
+}
+
+.viewer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklch, var(--neutral-950) 60%, black);
+  transition: opacity 180ms ease;
+}
+
+/* All the stage's moves are scripted (swipe, pinch, pan), so the browser does none of its own. */
+.viewer__stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: zoom-in;
+  transition: transform 180ms var(--ease-ios);
+}
+
+.viewer.is-zoomed .viewer__stage {
+  cursor: grab;
+}
+
+.viewer.is-dragging .viewer__stage {
+  cursor: grabbing;
+}
+
+.viewer__strip {
+  display: flex;
+  height: 100%;
+  transition: transform 280ms var(--ease-ios);
+}
+
+/* The same room above and below the photo, so it is centred on the stage, where the zoom measures from. */
+.viewer__slide {
+  flex: 0 0 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: calc(var(--touch-target) + var(--space-16) + env(safe-area-inset-top, 0px)) 0;
+}
+
+.viewer__zoom {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  transition: transform 220ms var(--ease-ios);
+}
+
+.viewer__photo {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+.viewer__missing {
+  margin: 0;
+  color: rgb(255 255 255 / 0.72);
+  font: var(--type-body-large);
+}
+
+.viewer.is-dragging :is(.viewer__stage, .viewer__strip, .viewer__zoom, .viewer__backdrop) {
+  transition: none;
+}
+
+/* The count on the left, Close on the right, under the status bar. The bar itself lets drags through. */
+.viewer__bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: calc(var(--space-8) + env(safe-area-inset-top, 0px)) var(--space-8) var(--space-8) var(--space-16);
+  pointer-events: none;
+}
+
+.viewer__bar > * {
+  pointer-events: auto;
+}
+
+.viewer__count {
+  margin: 0;
+  color: rgb(255 255 255 / 0.85);
+  font: var(--type-label-large);
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer__button {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: rgb(255 255 255 / 0.14);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.viewer__button svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .viewer__button:not([aria-disabled='true']):hover {
+    background: rgb(255 255 255 / 0.22);
+  }
+}
+
+.viewer__button:not([aria-disabled='true']):active {
+  background: rgb(255 255 255 / 0.3);
+}
+
+.viewer__button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.viewer__button[aria-disabled='true'] {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.viewer__close {
+  margin-left: auto;
+}
+
+/* Arrows at the sides for a mouse; on a touch screen the photos swipe and the arrows would cover them. */
+.viewer__nav {
+  position: absolute;
+  top: 50%;
+  margin-top: calc(var(--touch-target) / -2);
+}
+
+.viewer__nav--prev {
+  left: var(--space-16);
+}
+
+.viewer__nav--next {
+  right: var(--space-16);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .viewer__nav {
+    display: none;
+  }
+}
+
+/* Wider, the photo leaves room for the arrows beside it. */
+@media (min-width: 45rem) {
+  .viewer__slide {
+    padding-inline: calc(var(--touch-target) + var(--space-32));
+  }
+}
+
+@keyframes viewer-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewer,
+  .viewer :is(.viewer__stage, .viewer__strip, .viewer__zoom, .viewer__backdrop) {
+    animation: none;
+    transition: none;
+  }
+}

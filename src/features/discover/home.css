@@ -423,8 +423,7 @@ html[data-search-view] :is(.tab-bar, .cart-bar) {
 }
 
 /* A logo still loading shows the neutral of the storefront's logo frame, not the code tile's violet. */
-img.active-order__plate,
-.booth-row__item img.booth-logo {
+img.active-order__plate {
   background: var(--neutral-200);
 }
 
@@ -527,36 +526,6 @@ img.active-order__plate,
   letter-spacing: 0;
 }
 
-.home-section__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
-  /* The See all target is 48 high around the 28 px heading line, 10 px each side: pulled up 10 so
-     the heading has 32 above it, and 2 px more below makes 12. */
-  margin-top: -10px;
-  margin-bottom: 2px;
-}
-
-.home-section__head h2 {
-  margin: 0;
-}
-
-/* "See all" as a text button: primary 700 in the button face, with the full target. */
-.home-section__head .link {
-  position: relative;
-  flex: none;
-  justify-content: center;
-  min-height: var(--touch-target);
-  margin-right: calc(-1 * var(--space-12));
-  padding: 0 var(--space-12);
-  overflow: hidden;
-  border-radius: var(--radius-full);
-  color: var(--primary-700);
-  font: var(--type-button-small);
-  text-decoration: none;
-}
-
 /* Categories: a square photo with the name and count under it, never beside it. Three across on
    a phone, six in one row wider. */
 .category-tiles {
@@ -620,111 +589,6 @@ img.active-order__plate,
   font: var(--type-body-small);
 }
 
-/* Booths: cards with the booth's tile, the vendor and its line. On a phone they scroll sideways
-   and snap; wider, three to a row. */
-.booth-row {
-  display: grid;
-  grid-auto-flow: column;
-  /* Two cards always fit side by side (160 px at most), so every snap position shows whole cards and
-     a card reached by Tab is never left half off screen. */
-  grid-auto-columns: min(160px, calc((100% - var(--space-12)) / 2));
-  gap: var(--space-12);
-  margin: 0 calc(-1 * var(--space-16));
-  padding: 0 var(--space-16);
-  list-style: none;
-  overflow-x: auto;
-  scroll-padding-inline: var(--space-16);
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-
-.booth-row::-webkit-scrollbar {
-  display: none;
-}
-
-.booth-row li {
-  /* Contains the visually hidden booth label, which would otherwise escape the scroller and widen the page. */
-  position: relative;
-  display: grid;
-  scroll-snap-align: start;
-}
-
-.booth-row__item {
-  display: grid;
-  align-content: start;
-  justify-items: start;
-  gap: var(--space-12);
-  min-height: var(--touch-target);
-  padding: var(--space-16);
-  border-radius: var(--radius-md);
-  background: var(--card);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.booth-row__text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.booth-row__name {
-  max-width: 100%;
-  font: var(--type-title-medium);
-  overflow-wrap: anywhere;
-}
-
-.booth-row__tagline {
-  color: var(--text-secondary);
-  font: var(--type-body-medium);
-}
-
-@media (min-width: 45rem) {
-  .booth-row {
-    grid-auto-flow: row;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    overflow: visible;
-  }
-
-  .booth-row__item {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-  }
-}
-
-/* Map: the drawn plan in a card, with one quiet line to open it. */
-.map-preview {
-  display: block;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  background: var(--card);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.map-preview__plan {
-  display: block;
-  padding: var(--space-12) var(--space-12) 0;
-}
-
-.map-preview .floor-map {
-  border-color: var(--neutral-300);
-  border-radius: var(--radius-sm);
-}
-
-.map-preview__label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
-  min-height: var(--touch-target);
-  padding: var(--space-8) var(--space-12) var(--space-8) var(--space-16);
-  font: var(--type-title-medium);
-}
-
-.map-preview__label svg,
 .active-order__chevron {
   flex: none;
   fill: none;
@@ -732,10 +596,6 @@ img.active-order__plate,
   stroke-width: 2.25;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.map-preview__label svg {
-  color: var(--text-secondary);
 }
 
 /* While searching the results lead: the open orders step aside (their status line stays mounted

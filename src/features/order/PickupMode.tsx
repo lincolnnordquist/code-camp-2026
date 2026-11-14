@@ -102,6 +102,7 @@ export function PickupMode({ slides, initialIndex = 0, note = null, detailsLink 
   // Whether content has scrolled under the sticky bar, which then shows its divider.
   const [scrolledUnder, setScrolledUnder] = useState(false)
   const titleId = useId()
+  const codeId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -268,7 +269,8 @@ export function PickupMode({ slides, initialIndex = 0, note = null, detailsLink 
       // The shell's pull-to-refresh and edge swipe-back stay out of the view's own gestures.
       data-no-pull=""
       data-no-swipe-back=""
-      aria-labelledby={titleId}
+      // The name, then the booth: "Vendor, Booth A1".
+      aria-labelledby={order ? `${titleId} ${codeId}` : titleId}
       // Focusable, so a tap on empty space keeps focus (and Escape) inside the view.
       tabIndex={-1}
       data-scrolls={scrolls ? '' : undefined}
@@ -329,25 +331,22 @@ export function PickupMode({ slides, initialIndex = 0, note = null, detailsLink 
             {order ? <OrderPassStrip order={order} /> : <PassStrip />}
             <div className="pickup-pass__head">
               {/* The dialog's name comes from this paragraph, so the storefront link sits beside it. */}
-              <div className="pass-identity">
-                <p className="pickup-mode__booth" id={titleId}>
-                  {order ? (
-                    <>
-                      <OrderBoothLogo order={order} className="pickup-mode__logo" size="lg" />
-                      <span className="pickup-mode__vendor">
-                        {order.boothName}
-                        <NameChevron order={order} />
-                      </span>
-                      {/* The space stays outside the hidden span, where every name computation keeps it. */}
-                      <span className="visually-hidden">,</span>{' '}
-                      <span className="pickup-mode__booth-code">Booth {order.boothCode}</span>
-                    </>
-                  ) : (
-                    <span className="pickup-mode__vendor">Order</span>
-                  )}
-                </p>
-                {/* Pickup mode closes as the storefront opens. */}
-                {order && <StorefrontLink order={order} onFollow={onClose} />}
+              <div className="pass-identity pickup-mode__booth">
+                {order && <OrderBoothLogo order={order} className="pickup-mode__logo" size="lg" />}
+                {/* The link is stretched over the name alone; pickup mode closes as the storefront opens. */}
+                <div className="pass-name">
+                  <p className="pickup-mode__vendor" id={titleId}>
+                    {order ? order.boothName : 'Order'}
+                    {order && <NameChevron order={order} />}
+                    {order && <span className="visually-hidden">,</span>}
+                  </p>
+                  {order && <StorefrontLink order={order} onFollow={onClose} />}
+                </div>
+                {order && (
+                  <p className="pickup-mode__booth-code" id={codeId}>
+                    Booth {order.boothCode}
+                  </p>
+                )}
               </div>
 
               <div className="pickup-mode__status">

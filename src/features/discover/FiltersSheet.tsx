@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type MouseEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type MouseEvent } from 'react'
 import { focusQuietly } from '../../shell/inputModality'
 import { activeFilterCount, NO_FILTERS, PRICE_BANDS, SORT_LABELS, type ProductFilters, type SortOrder } from './filters'
 
@@ -81,6 +81,20 @@ export function FiltersSheet({ open, filters, onChange, onClose, defaultSortLabe
       if (target) focusQuietly(target)
     }
   }, [open, returnFocus])
+
+  // The page behind stops scrolling while the sheet is up, as under the product sheet: a drag in the
+  // sheet scrolls the sheet (iOS otherwise chains it to the page), and the page is where it was after.
+  useLayoutEffect(() => {
+    if (!open) return
+    const root = document.documentElement
+    const overflow = root.style.overflow
+    const scrollY = window.scrollY
+    root.style.overflow = 'hidden'
+    return () => {
+      root.style.overflow = overflow
+      if (window.scrollY !== scrollY) window.scrollTo({ top: scrollY, behavior: 'instant' })
+    }
+  }, [open])
 
   const set = (patch: Partial<ProductFilters>) => {
     onChange({ ...filters, ...patch })

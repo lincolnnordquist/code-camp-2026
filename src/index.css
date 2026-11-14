@@ -599,10 +599,13 @@ main.main--under-header {
   list-style: none;
 }
 
-/* Content is exactly 64: 4 + indicator 36 + 4 + label 16 + 4, so every label sits on one
-   baseline. The badge offsets are measured from this box, so they move with it. */
+/* Content is exactly 64: 6 + indicator 36 + 4 + label 16 + 2, so every label sits on one
+   baseline. The label's 16 px line leaves about 4 px empty under the letters, so the padding is 6
+   above and 2 below: the indicator's top and the labels' baseline then sit the same distance from
+   the bar's edges (measured 6 and 5.5). The device's home-indicator inset is added below that, on
+   the bar (.tab-bar). The badge offsets are measured from this box, so they move with it. */
 .tab-bar__link {
-  --tab-badge-top: var(--space-4);
+  --tab-badge-top: 6px;
   --tab-badge-left: calc(50% + 6px);
   position: relative;
   display: flex;
@@ -611,7 +614,7 @@ main.main--under-header {
   justify-content: flex-start;
   gap: var(--space-4);
   min-height: var(--tab-bar-height);
-  padding: var(--space-4) 2px;
+  padding: 6px 2px 2px;
   border-radius: var(--radius-md);
   /* At large text sizes a label wraps inside its quarter instead of overflowing it. */
   text-align: center;
@@ -1024,8 +1027,6 @@ main h1 {
     .category-tile,
     .result__main,
     .directory__row,
-    .booth-row__item,
-    .map-preview,
     .wallet-stub,
     .past-order,
     .active-order,
@@ -1053,8 +1054,6 @@ main h1 {
       .category-tile,
       .result__main,
       .directory__row,
-      .booth-row__item,
-      .map-preview,
       .wallet-stub,
       .past-order,
       .active-order,
@@ -1079,8 +1078,6 @@ main h1 {
       .category-tile,
       .result__main,
       .directory__row,
-      .booth-row__item,
-      .map-preview,
       .wallet-stub,
       .past-order,
       .active-order,

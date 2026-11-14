@@ -96,9 +96,11 @@
   inset: calc(-1 * var(--space-8)) 0;
 }
 
+/* Selected keeps its 1 px edge (an inset shadow, so nothing moves), in the primary tone over the
+   tonal fill, so a selected chip still reads as a chip. */
 .chip[aria-pressed='true'] {
   padding-left: var(--space-8);
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px var(--primary-700);
   background: var(--quiet-action);
   color: var(--on-quiet-action);
 }
@@ -395,7 +397,7 @@
 }
 
 /* Slogans, snippets and descriptions avoid a lone last word. */
-:is(.directory__meta, .result__snippet, .booth-row__tagline, .storefront__tagline, .sheet__desc, .booth-card__head p) {
+:is(.directory__meta, .result__snippet, .storefront__tagline, .sheet__desc, .booth-card__head p) {
   text-wrap: pretty;
 }
 
@@ -697,7 +699,7 @@ button.floor-map__booth::after {
 
 /* With filters on, the chip takes the selected tone and shows how many. */
 .chip--filters.is-active {
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px var(--primary-700);
   background: var(--quiet-action);
   color: var(--on-quiet-action);
 }
@@ -725,6 +727,9 @@ button.floor-map__booth::after {
   margin: 0 auto;
   padding: 0;
   overflow: hidden auto;
+  /* The sheet is its own scroller: reaching its end does not hand the drag to the page behind. */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   border: 0;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   background: var(--card);

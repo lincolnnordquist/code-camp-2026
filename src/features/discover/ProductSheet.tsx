@@ -18,10 +18,13 @@ import type { Booth, Event, EventCatalog, Product } from '../../shared/types'
 import { boothBadgeClass, boothBadgeLabel, isPaused } from './boothLabel'
 import { BoothLogo } from '../../shared/ui/BoothLogo'
 import { ProductImage } from '../../shared/ui/ProductImage'
+import { PhotoViewer } from './PhotoViewer'
 import { ProductGallery } from './ProductGallery'
 import { productImages } from './productImages'
+import { productShareUrl } from './share'
+import { ShareButton, ShareIcon } from './ShareButton'
 import { StockBadge } from './StockBadge'
-import { PRODUCT_PARAM, withProduct, type SheetState } from './productSheetLink'
+import { PRODUCT_PARAM, withProduct, type PhotoViewerState, type SheetState } from './productSheetLink'
 import './storefront.css'
 
 export type RenderOrderControl = (args: { product: Product; booth: Booth; event: Event; variant?: 'card' | 'sheet' }) => ReactNode
@@ -143,13 +146,36 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
     else navigate({ pathname: location.pathname, search: withProduct(location.search, null) }, { replace: true })
   }
 
+  // The full-screen photos have their own history entry on the same URL, so Back closes them and
+  // leaves the sheet open; the shell neither animates nor scrolls for a same-screen entry.
+  const viewerOpen = !closing && photos.length > 0 && (location.state as Partial<PhotoViewerState> | null)?.photoViewer === true
+  const [viewerStart, setViewerStart] = useState(0)
+  const viewerOpener = useRef<HTMLElement | null>(null)
+  // Where the pointer went down on the photo, so a drag of the sheet that ends on it is not a tap.
+  const photoPress = useRef<{ x: number; y: number } | null>(null)
+  const openViewer = (index: number) => {
+    if (viewerOpen || photos.length === 0) return
+    const active = document.activeElement
+    viewerOpener.current = active instanceof HTMLElement && sheetRef.current?.contains(active) && active !== sheetRef.current ? active : null
+    setViewerStart(index)
+    const state: SheetState & PhotoViewerState = { ...(location.state as SheetState | null), productSheet: true, photoViewer: true }
+    navigate({ pathname: location.pathname, search: location.search }, { state })
+  }
+  const closeViewer = () => navigate(-1)
+  const pressedInPlace = (e: MouseEvent) => {
+    const press = photoPress.current
+    photoPress.current = null
+    return !press || Math.hypot(e.clientX - press.x, e.clientY - press.y) <= DRAG_SLOP_PX
+  }
+
   // Everything behind the sheet leaves the tab order and the accessibility tree, and the page stops scrolling.
   useLayoutEffect(() => {
     const layer = layerRef.current
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const openedOn = window.location.pathname
+    // The share toast's layer stays reachable, so "Link copied" is still said over the sheet.
     const behind = Array.from(document.body.children).filter(
-      (el): el is HTMLElement => el instanceof HTMLElement && el !== layer && !el.inert,
+      (el): el is HTMLElement => el instanceof HTMLElement && el !== layer && !el.inert && !el.classList.contains('share-toast'),
     )
     behind.forEach((el) => {
       el.inert = true
@@ -284,7 +310,14 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
     </>
   )
 
-  return createPortal(
+  /** The gallery photo showing now (its track's scroll position), so the viewer opens on it. */
+  const currentPhoto = () => {
+    const track = sheetRef.current?.querySelector<HTMLElement>('.gallery__track')
+    if (!track || track.clientWidth === 0) return 0
+    return Math.max(0, Math.min(photos.length - 1, Math.round(track.scrollLeft / track.clientWidth)))
+  }
+
+  const sheet = createPortal(
     // While it slides away the sheet is out of reach: no taps, no focus.
     <div className={`sheet-layer${closing ? ' is-closing' : ''}`} ref={layerRef} inert={closing}>
       <div className="sheet-scrim" aria-hidden="true" onClick={close} />
@@ -306,6 +339,17 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
       >
         <div className="sheet__bar" {...gesture}>
           <span className="sheet__handle" aria-hidden="true" />
+          <ShareButton
+            className="sheet__icon-button sheet__share"
+            label="Share"
+            data={() => ({
+              title: product.name,
+              text: `${product.name} at ${booth.vendorName}, Booth ${booth.code}`,
+              url: productShareUrl(window.location.origin, slug, booth.id, product.id),
+            })}
+          >
+            <ShareIcon size={22} />
+          </ShareButton>
           <button type="button" className="sheet__icon-button sheet__close" aria-label="Close" onClick={close}>
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -315,13 +359,45 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
         <div className="sheet__scroll" ref={scrollRef}>
           {/* Several photos make a gallery (a sideways swipe moves between them); one is just shown. */}
           <div className="sheet__photo">
-            <div className={`sheet__media${photos.length > 1 ? ' sheet__media--gallery' : ''}`} {...gesture}>
+            <div
+              className={`sheet__media${photos.length > 1 ? ' sheet__media--gallery' : ''}${photos.length > 0 ? ' sheet__media--zoomable' : ''}`}
+              {...gesture}
+              onPointerDownCapture={(e) => {
+                photoPress.current = { x: e.clientX, y: e.clientY }
+              }}
+            >
               {photos.length > 1 ? (
-                <ProductGallery key={product.id} product={product} photos={photos} />
+                <ProductGallery
+                  key={product.id}
+                  product={product}
+                  photos={photos}
+                  onOpen={(i, e) => {
+                    if (!e || pressedInPlace(e)) openViewer(i)
+                  }}
+                />
               ) : (
-                <ProductImage key={product.id} product={product} size="large" />
+                // The tap target for the eye; the expand button below is the way in for keys and screen readers.
+                <div
+                  onClick={(e) => {
+                    if (photos.length > 0 && pressedInPlace(e.nativeEvent)) openViewer(0)
+                  }}
+                >
+                  <ProductImage key={product.id} product={product} size="large" />
+                </div>
               )}
             </div>
+            {photos.length > 0 && (
+              <button
+                type="button"
+                className="sheet__icon-button sheet__expand"
+                aria-label={photos.length > 1 ? 'View photos full screen' : 'View photo full screen'}
+                onClick={() => openViewer(currentPhoto())}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                  <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="sheet__body">
             <h2 id={titleId} ref={headingRef} tabIndex={-1} className="sheet__title">
@@ -364,5 +440,19 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
       </div>
     </div>,
     document.body,
+  )
+  return (
+    <>
+      {sheet}
+      {viewerOpen && (
+        <PhotoViewer
+          product={product}
+          photos={photos}
+          startIndex={viewerStart}
+          onClose={closeViewer}
+          returnFocusTo={() => viewerOpener.current ?? sheetRef.current?.querySelector<HTMLElement>('.sheet__expand') ?? null}
+        />
+      )}
+    </>
   )
 }

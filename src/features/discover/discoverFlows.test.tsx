@@ -556,6 +556,15 @@ describe('search through the event home (FR-04)', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search products, booths or vendors' }), { target: { value } })
   }
 
+  it('browses by category and products only: Booths and Map live in their own tabs', async () => {
+    await renderEventHome()
+    const sections = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(sections).toEqual(['Browse by category', 'All products'])
+    expect(screen.queryByRole('link', { name: /see all/i })).toBeNull()
+    expect(screen.queryByRole('link', { name: /map of the hall/i })).toBeNull()
+    expect(screen.getByRole('searchbox', { name: 'Search products, booths or vendors' })).toBeTruthy()
+  })
+
   it('Enter moves focus to the result count, and Escape on an empty field keeps focus in the field', async () => {
     await renderEventHome()
     const field = screen.getByRole('searchbox', { name: 'Search products, booths or vendors' })

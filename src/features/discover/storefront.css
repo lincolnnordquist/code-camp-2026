@@ -115,6 +115,55 @@
   font: var(--type-body-medium);
 }
 
+/* On a phone the header hands over to the app bar as the page scrolls, driven by the scroll itself
+   (no script, so scroll restore and the sheet are untouched): the banner drifts at half speed, the
+   logo shrinks and fades before it reaches the bar, and the name fades just before the bar's own
+   title takes its place. Ranges are the phone layout's: banner 120 below a 48 px bar, the logo's
+   top 128 down, the name's 200. Browsers without scroll timelines, and reduced motion, keep the
+   plain scroll. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) and (max-width: 44.99rem) {
+    .storefront__banner img {
+      animation: storefront-banner-drift linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 calc(var(--banner-visible) + var(--app-header-block));
+    }
+
+    .storefront__header .storefront__logo {
+      animation: storefront-logo-settle linear both;
+      animation-timeline: scroll(root);
+      animation-range: 24px 96px;
+    }
+
+    .storefront__header h1 {
+      animation: storefront-name-settle linear both;
+      animation-timeline: scroll(root);
+      animation-range: 112px 164px;
+    }
+  }
+}
+
+@keyframes storefront-banner-drift {
+  to {
+    transform: translateY(50%);
+    filter: brightness(0.85);
+  }
+}
+
+@keyframes storefront-logo-settle {
+  to {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+}
+
+@keyframes storefront-name-settle {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 .storefront__badges {
   margin-top: var(--space-12);
   display: flex;
@@ -129,8 +178,9 @@
   white-space: nowrap;
 }
 
-/* "Map" as a text button at the row's end, its 48 px target reaching the screen margin. */
-.storefront__map {
+/* "Share" and "Map" as text buttons at the row's end, Map's 48 px target reaching the screen margin. */
+.storefront__map,
+.storefront__share {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -145,7 +195,29 @@
   text-decoration: none;
 }
 
-.storefront__map::after {
+.storefront__share {
+  gap: var(--space-4);
+  /* Share leads the pair at the row's end; Map follows it with the row's gap. */
+  margin-right: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.storefront__share + .storefront__map {
+  margin-left: 0;
+}
+
+.storefront__share svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.storefront__map::after,
+.storefront__share::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -154,11 +226,13 @@
   pointer-events: none;
 }
 
-.storefront__map:hover::after {
+.storefront__map:hover::after,
+.storefront__share:hover::after {
   opacity: var(--state-hover);
 }
 
-.storefront__map:active::after {
+.storefront__map:active::after,
+.storefront__share:active::after {
   opacity: var(--state-pressed);
 }
 
@@ -482,7 +556,7 @@
   position: relative;
 }
 
-.sheet__icon-button.sheet__close {
+.sheet__icon-button:is(.sheet__close, .sheet__share) {
   background: color-mix(in oklch, var(--card) var(--bar-opacity, 82%), transparent);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
@@ -542,8 +616,18 @@
   margin-left: auto;
 }
 
+/* Share leads the pair on the right; Close follows it with the bar's gap. */
+.sheet__share {
+  margin-left: auto;
+}
+
+.sheet__share + .sheet__close {
+  margin-left: 0;
+}
+
 @media (prefers-reduced-transparency: reduce) {
-  .sheet__close {
+  .sheet__close,
+  .sheet__share {
     background: var(--card);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -566,6 +650,29 @@
 
 .sheet__media--gallery {
   touch-action: pan-x pan-y;
+}
+
+/* A tap on the photo opens it full screen (PhotoViewer); the expand button is the way in for keys. */
+.sheet__media--zoomable {
+  cursor: zoom-in;
+}
+
+.sheet__icon-button.sheet__expand {
+  position: absolute;
+  right: var(--space-8);
+  bottom: var(--space-8);
+  z-index: 1;
+  background: color-mix(in oklch, var(--card) var(--bar-opacity, 82%), transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sheet__icon-button.sheet__expand {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 /* The gallery: a scroll-snap track, one photo per page, with the browser's own momentum. */
