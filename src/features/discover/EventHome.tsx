@@ -2,6 +2,7 @@ import { focusQuietly } from '../../shell/inputModality'
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { EventBanner } from '../../shared/ui/EventBanner'
 import { formatMoney } from '../../shared/ui/labels'
 import type { EventCatalog, Product } from '../../shared/types'
 import { ActiveOrders } from './ActiveOrders'
@@ -504,10 +505,11 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
     <div
       className={`discover${searching ? ' discover--searching' : ''}${docked ? ' discover--docked' : ''}${showRecents ? ' discover--recents' : ''}`}
     >
+      <EventBanner name={catalog.event.name} venue={venue} decorative />
       <header className="discover__header">
-        <h1>{catalog.event.name}</h1>
+        <h1 className="visually-hidden">{catalog.event.name}</h1>
         {venue && (
-          <p className="discover__venue">
+          <p className="discover__venue visually-hidden">
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
               <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
               <circle cx="12" cy="10" r="2.25" />
