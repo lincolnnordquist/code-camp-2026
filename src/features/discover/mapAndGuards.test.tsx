@@ -168,9 +168,8 @@ describe('map placement from the floor layout (M4, FR-02)', () => {
 
     expectPlateAt(code, exp)
 
-    // The drawn table with that label is at the same plan point, so plate and table coincide.
+    // The drawn table for that code is at the same plan point, so plate and table coincide.
     const table = mapRegion().querySelector(`.plan__table[data-code="${code}"]`)
-    expect(table?.querySelector('text')?.textContent, `drawn table ${code}`).toBe(code)
     const rect = table!.querySelector('rect')!
     expect(Number(rect.getAttribute('x'))).toBe(exp.plan.x)
     expect(Number(rect.getAttribute('y'))).toBe(exp.plan.y)
@@ -201,7 +200,8 @@ describe('map placement from the floor layout (M4, FR-02)', () => {
     const expected = Array.from({ length: LAYOUT.rows }, (_, r) => LAYOUT.columns.map((c) => `${c}${r + 1}`)).flat()
     expect(expected).toHaveLength(63)
     expect(codes.sort()).toEqual([...expected].sort())
-    for (const t of tables) expect(t.querySelector('text')?.textContent).toBe(t.getAttribute('data-code'))
+    // An empty table carries no code; only a vendor's plate is lettered.
+    for (const t of tables) expect(t.querySelector('text')).toBeNull()
 
     const buttons = within(mapRegion()).getAllByRole('button')
     const boothCount = sampleCatalog.booths.length + unparsable.length
@@ -279,7 +279,7 @@ describe('the team table and the row order (hall layout)', () => {
     expect(screen.getByText('Select a booth to see who is there.')).toBeTruthy()
   })
 
-  it("H6, second row from the stage, is the team's booth Snag: a plate like any booth, its card offers only Centre on booth", async () => {
+  it("H6, second row from the stage, is the team's booth Snag: a plate like any booth, its card names it and offers no storefront", async () => {
     await renderMapPage()
     const { gutter } = drawnBox()
     expectPlateAt('H6', expectedFromTable(LAYOUT, 'H6', gutter))
@@ -288,7 +288,9 @@ describe('the team table and the row order (hall layout)', () => {
     const card = await screen.findByRole('heading', { name: 'Snag' })
     const section = card.closest('section')!
     expect(within(section).getByText('The team behind this app')).toBeTruthy()
-    expect(within(section).getByRole('button', { name: 'Centre on booth' })).toBeTruthy()
+    expect(section.querySelector('.ec-booth-plate')?.textContent).toBe('Booth H6')
+    expect(within(section).getByText('Browse only')).toBeTruthy()
+    expect(within(section).queryByRole('button', { name: 'Centre on booth' })).toBeNull()
     expect(within(section).queryByRole('link', { name: 'Open storefront' })).toBeNull()
   })
 
