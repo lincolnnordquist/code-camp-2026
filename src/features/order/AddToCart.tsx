@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import type { Booth, Event, Product } from '../../shared/types'
 import { useOnlineStatus } from '../../shared/live'
-import { addToCart, cartCount, isOtherBooth, limitNote, maxQtyFor, setQty, useCart } from './cartStore'
+import { addToCart, capsFor, cartCount, isOtherBooth, limitNote, maxQtyFor, setQty, useCart } from './cartStore'
 import { StepIcon } from './StepIcon'
 
 /** Where focus goes after the next render, because the control that had it was replaced. */
@@ -255,8 +255,9 @@ export function AddToCart({
     )
   }
 
-  // The reason the plus stops: the booth's per-order limit or the stock left, as the cart line says it.
-  const note = atMax ? limitNote(line) : null
+  // The reason the plus stops, from the product's current caps: stock can drop below what the line
+  // saved when it was added, and the note must name the cap that stops the plus now.
+  const note = atMax ? limitNote({ ...line, ...capsFor(product), maxQty: maxQtyFor(product) }) : null
   const plusReason = [online ? null : offlineReasonId, note ? limitNoteId : null].filter(Boolean).join(' ') || undefined
   const step = (qty: number) => {
     if (qty === 0) {

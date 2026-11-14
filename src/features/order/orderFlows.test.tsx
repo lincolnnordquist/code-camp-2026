@@ -405,6 +405,24 @@ describe('focus when the focused control is replaced', () => {
     expect(screen.queryByText('Up to 2 per order')).toBeNull()
   })
 
+  it('product sheet: when stock drops below the line after adding, the plus names the stock left', async () => {
+    const { addToCart } = await import('./cartStore')
+    const { AddToCart } = await import('./AddToCart')
+    // Added three of five (up to five per order); a refresh then says two are left.
+    const roomy = { ...product('p'), availableQty: 5, maxPerOrder: 5 }
+    for (let i = 0; i < 3; i++) addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: roomy })
+    render(
+      <MemoryRouter useTransitions={false}>
+        <AddToCart product={{ ...roomy, availableQty: 2 }} booth={boothB} event={event} />
+      </MemoryRouter>,
+    )
+    const plus = screen.getByRole('button', { name: 'One more Item p' })
+    expect(plus.getAttribute('aria-disabled')).toBe('true')
+    const reason = document.getElementById(plus.getAttribute('aria-describedby') ?? '')
+    expect(reason?.textContent).toBe('Only 2 left')
+    expect(screen.getByText('Only 2 left').classList.contains('sheet-cart__note')).toBe(true)
+  })
+
   it('product sheet: at one the minus removes the line, and Add to cart takes focus again', async () => {
     const { AddToCart } = await import('./AddToCart')
     const { useCart } = await import('./cartStore')
