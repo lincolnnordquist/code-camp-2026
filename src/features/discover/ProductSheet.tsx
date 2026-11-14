@@ -23,7 +23,7 @@ import { ProductGallery } from './ProductGallery'
 import { productImages } from './productImages'
 import { productShareUrl } from './share'
 import { ShareButton, ShareIcon } from './ShareButton'
-import { StockBadge } from './StockBadge'
+import { StockLine } from './StockLine'
 import { PRODUCT_PARAM, withProduct, type PhotoViewerState, type SheetState } from './productSheetLink'
 import './storefront.css'
 
@@ -407,7 +407,7 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
             </h2>
             <p className="sheet__price">
               {formatMoney(product.priceCents, catalog.event.currency)}
-              <StockBadge qty={product.availableQty} />
+              <StockLine qty={product.availableQty} />
             </p>
             {product.description && <p className="sheet__desc">{product.description}</p>}
             {/* Who sells it and where, as one grouped card: the booths-list row (the whole row a link to

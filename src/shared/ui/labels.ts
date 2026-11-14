@@ -176,3 +176,10 @@ export const pausedBoothBadge: BadgeLabel = { label: "Online orders paused", ton
 export const orderStatusLabels = Object.fromEntries(
   Object.entries(statusBadges).map(([status, badge]) => [status, badge.label]),
 ) as Record<OrderStatus, string>;
+
+/** How each kind of booth takes orders, as the Booths tab groups them. A paused booth also says so on its card (FR-05). */
+export const shopTypeLabels: Record<BoothMode, { label: string; subtitle: string }> = {
+  reservation: { label: "Reserve online", subtitle: "Pay when you pick up" },
+  prepay: { label: "Pay online", subtitle: "Pay in the app and pick up" },
+  discovery: { label: "Browse only", subtitle: "Purchase at the table only" },
+};

@@ -2,6 +2,7 @@ import { focusQuietly } from '../../shell/inputModality'
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { EventBanner } from '../../shared/ui/EventBanner'
 import { formatMoney } from '../../shared/ui/labels'
 import type { EventCatalog, Product } from '../../shared/types'
 import { ActiveOrders } from './ActiveOrders'
@@ -14,8 +15,8 @@ import { addRecentSearch, clearRecentSearches, readRecentSearches, removeRecentS
 import { categoriesOf, descriptionSnippet, groupHitsByBooth, highlightParts, searchBooths, searchCatalog, topCategories, type SearchHit } from './search'
 import { BoothListRow } from './BoothListRow'
 import { SavedCopyNote } from './SavedCopyNote'
-import { StockBadge } from './StockBadge'
-import { stockState } from './stockState'
+import { StockLine } from './StockLine'
+import { soldOutLast, stockState } from './stockState'
 import { CatalogError } from './CatalogError'
 import { useCatalog } from './useCatalog'
 import { applyFilters, narrowingLabels, NO_FILTERS, readFilters, writeFilters, type ProductFilters } from './filters'
@@ -481,7 +482,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
                 {formatMoney(product.priceCents, catalog.event.currency)}
               </span>
               {stockState(product.availableQty) && <span className="visually-hidden">, </span>}
-              <StockBadge qty={product.availableQty} />
+              <StockLine qty={product.availableQty} />
             </span>
           </span>
         </Link>
@@ -504,10 +505,11 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
     <div
       className={`discover${searching ? ' discover--searching' : ''}${docked ? ' discover--docked' : ''}${showRecents ? ' discover--recents' : ''}`}
     >
+      <EventBanner name={catalog.event.name} venue={venue} decorative />
       <header className="discover__header">
-        <h1>{catalog.event.name}</h1>
+        <h1 className="visually-hidden">{catalog.event.name}</h1>
         {venue && (
-          <p className="discover__venue">
+          <p className="discover__venue visually-hidden">
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
               <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" />
               <circle cx="12" cy="10" r="2.25" />
@@ -797,7 +799,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
           <section className="home-section" aria-labelledby="home-products">
             <h2 id="home-products">All products</h2>
             <ul className="product-grid" role="list" {...productsEntrance}>
-              {catalog.products.map((product, i) => {
+              {soldOutLast(catalog.products).map((product, i) => {
                 const booth = boothsById.get(product.boothId)
                 if (!booth) return null
                 return (

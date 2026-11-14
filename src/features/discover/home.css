@@ -1196,3 +1196,24 @@ img.active-order__plate {
 .discover .skeleton--field {
   border-radius: var(--radius-full);
 }
+
+/* Under the event banner the header keeps only the saved-copy note on screen; the banner replaces
+   the title and its wash. */
+.event-banner ~ .discover__header {
+  margin: 0;
+}
+
+.event-banner ~ .discover__header::before {
+  display: none;
+}
+
+.event-banner ~ .search-region {
+  margin-top: var(--space-16);
+}
+
+/* The phone search view takes the whole screen, so the pinned banner leaves with the rest of Home. */
+@media (max-width: 40rem) {
+  .discover--docked :is(.event-banner, .event-banner__space) {
+    display: none;
+  }
+}

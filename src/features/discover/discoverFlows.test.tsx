@@ -459,34 +459,73 @@ describe('BoothsPage', () => {
     await settle()
   }
 
-  const expectedBadge: Record<string, string> = {
-    'b-res': 'Reserve',
-    'b-pre': 'Prepay',
-    'b-figs': 'Reserve',
-    'b-plush': 'Online orders paused',
-    'b-dice': 'Online orders paused',
-    'b-art': 'Browse only',
-  }
+  const cards = () => within(screen.getByRole('tabpanel')).getAllByRole('link')
 
-  it('lists every booth with its code and vendor name, and paused booths read as paused', async () => {
+  it('shows every booth under All as a card, reserve-online booths first, and paused booths read as paused', async () => {
     saveCatalog(makeCatalog())
     api.getEventCatalog.mockResolvedValue(ok(makeCatalog()))
     await renderBoothsPage()
 
-    const rows = within(screen.getByRole('list')).getAllByRole('link')
-    expect(rows).toHaveLength(Object.keys(booths).length)
+    expect(screen.getByRole('tab', { name: /^All, 6 booths/ }).getAttribute('aria-selected')).toBe('true')
+    expect(cards().map((c) => c.getAttribute('href'))).toEqual(
+      ['b-res', 'b-figs', 'b-plush', 'b-pre', 'b-dice', 'b-art'].map((id) => `/e/${SLUG}/booth/${id}`),
+    )
     for (const b of Object.values(booths)) {
-      // jsdom has no layout, so its accessible name drops the space after the comma that a browser keeps.
-      const row = screen.getByRole('link', { name: new RegExp(`^Booth ${b.code},\\s*${b.vendorName}`) })
-      expect(row.getAttribute('href')).toBe(`/e/${SLUG}/booth/${b.id}`)
-      expect(within(row).getByText(expectedBadge[b.id])).toBeTruthy()
-      if (b.orderingPaused && b.mode !== 'discovery') {
-        expect(within(row).queryByText(/^(Reserve|Prepay)$/)).toBeNull()
-      } else {
-        expect(within(row).queryByText(/paused/i)).toBeNull()
-      }
+      const card = screen.getByRole('link', { name: new RegExp(`^${b.vendorName}, Booth ${b.code}`) })
+      if (b.orderingPaused && b.mode !== 'discovery') expect(within(card).getByText('Online orders paused')).toBeTruthy()
+      else expect(within(card).queryByText(/paused/i)).toBeNull()
     }
     expect(screen.queryByText(/Showing saved info/)).toBeNull()
+  })
+
+  it('shows the event banner with the event name and venue', async () => {
+    const catalog = makeCatalog()
+    saveCatalog(catalog)
+    api.getEventCatalog.mockResolvedValue(ok(catalog))
+    await renderBoothsPage()
+
+    const banner = document.querySelector('.event-banner')
+    expect(banner?.textContent).toContain(catalog.event.name)
+    expect(banner?.textContent).toContain(catalog.event.venueName)
+  })
+
+  it('shows only the chosen shop type, with its subtitle', async () => {
+    saveCatalog(makeCatalog())
+    api.getEventCatalog.mockResolvedValue(ok(makeCatalog()))
+    await renderBoothsPage()
+
+    expect(screen.queryByText('Pay in the app and pick up')).toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: /^Pay online, 2 booths/ }))
+    expect(screen.getByRole('tab', { name: /^Pay online/ }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByText('Pay in the app and pick up')).toBeTruthy()
+    expect(cards().map((c) => c.getAttribute('href'))).toEqual([`/e/${SLUG}/booth/b-pre`, `/e/${SLUG}/booth/b-dice`])
+  })
+
+  it('moves between shop types with the arrow keys, wrapping at the ends, and keeps one tab in the tab order', async () => {
+    saveCatalog(makeCatalog())
+    api.getEventCatalog.mockResolvedValue(ok(makeCatalog()))
+    await renderBoothsPage()
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: /^All/ }), { key: 'ArrowLeft' })
+    const browse = screen.getByRole('tab', { name: /^Browse only, 1 booth\b/ })
+    expect(browse.getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(browse)
+    expect(screen.getAllByRole('tab').filter((t) => t.tabIndex === 0)).toEqual([browse])
+    fireEvent.keyDown(browse, { key: 'ArrowRight' })
+    expect(screen.getByRole('tab', { name: /^All/ }).getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('a booth with one product adds a See booth tile', async () => {
+    const catalog = makeCatalog()
+    saveCatalog(catalog)
+    api.getEventCatalog.mockResolvedValue(ok(catalog))
+    await renderBoothsPage()
+
+    for (const b of Object.values(booths)) {
+      const card = screen.getByRole('link', { name: new RegExp(`^${b.vendorName}, Booth ${b.code}`) })
+      const count = catalog.products.filter((p) => p.boothId === b.id).length
+      expect(within(card).queryByText('See booth') !== null).toBe(count < 2)
+    }
   })
 
   it('keeps listing the saved booths with a saved-info note when the refresh fails', async () => {
@@ -495,7 +534,7 @@ describe('BoothsPage', () => {
     await renderBoothsPage()
 
     expect(screen.getByText('Showing saved info. Stock may have changed.')).toBeTruthy()
-    expect(within(screen.getByRole('list')).getAllByRole('link')).toHaveLength(Object.keys(booths).length)
+    expect(cards()).toHaveLength(Object.keys(booths).length)
   })
 })
 
