@@ -2273,6 +2273,50 @@
   text-align: center;
 }
 
+/* The product sheet's dock once the product is in the cart (AddToCart, sheet): this product's
+   quantity on a tonal pill, the same 56 px height as the filled "View cart" beside it, which takes
+   the rest of the row. The pill is the surface, so its 48 px buttons are transparent inside it and
+   keep their state layers. */
+.sheet-cart {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.sheet-cart__stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+}
+
+.sheet-cart__stepper .stepper__btn {
+  background: transparent;
+}
+
+.sheet-cart__stepper .stepper__btn[aria-disabled='true'] {
+  background: transparent;
+  color: var(--on-disabled);
+}
+
+.sheet-cart__view {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* Why the plus stopped, under the row and named by it (aria-describedby). */
+.sheet-cart__note {
+  margin: var(--space-8) 0 0;
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
 .cart__total {
   display: flex;
   justify-content: space-between;
@@ -2290,6 +2334,12 @@
 
 /* The flow's one action, docked at the bottom above the safe area while the page scrolls under it;
    at the end of the page it rests in place, so nothing stays hidden behind it. */
+/* The dock's height without an offline note (its padding, the 56 px button, the safe area), set on
+   the page so the fields above the dock can keep clear of it. */
+.cart {
+  --cart-dock-block: calc(var(--space-12) + 56px + var(--space-16) + env(safe-area-inset-bottom, 0px));
+}
+
 .cart__dock {
   position: sticky;
   bottom: 0;
@@ -2298,8 +2348,31 @@
   flex-direction: column;
   gap: var(--space-8);
   margin: 0 calc(var(--space-16) * -1);
-  padding: var(--space-12) var(--space-16) calc(var(--space-16) + env(safe-area-inset-bottom, 0px));
+  padding: var(--space-12) max(var(--space-16), env(safe-area-inset-right, 0px)) calc(var(--space-16) + env(safe-area-inset-bottom, 0px))
+    max(var(--space-16), env(safe-area-inset-left, 0px));
   background: var(--page);
+}
+
+/* A focused field scrolls clear of the dock rather than under it. */
+.reserve-form .text-field {
+  scroll-margin-bottom: calc(var(--cart-dock-block, 0px) + var(--space-8));
+}
+
+/* A short screen (a phone in landscape, large text): a compact dock, so the button and the field
+   above it both fit; the button keeps a full 48 px target. */
+@media (max-height: 30rem) {
+  .cart {
+    --cart-dock-block: calc(var(--space-8) + var(--touch-target) + var(--space-8) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .cart__dock {
+    padding-top: var(--space-8);
+    padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .cart__dock .order-button {
+    min-height: var(--touch-target);
+  }
 }
 
 /* Checkout's summary: a card of label and value rows, the total stronger. */

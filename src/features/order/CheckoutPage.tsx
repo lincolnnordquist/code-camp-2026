@@ -317,7 +317,7 @@ export function CheckoutPage() {
             : `Pay ${total} at the booth when you pick up.`}
         </p>
 
-        <form className="reserve-form" onSubmit={(e) => void submit(e)} noValidate>
+        <form id="reserve-form" className="reserve-form" onSubmit={(e) => void submit(e)} noValidate>
           {/* The design system's outlined text field: the label sits in the outline's top edge. */}
           <div className={`text-field${showEmailError ? ' text-field--error' : ''}`}>
             <label className="text-field__label" htmlFor="email">
@@ -348,24 +348,28 @@ export function CheckoutPage() {
           </div>
           {/* Kept mounted, so writing into it is announced. */}
           <p className="visually-hidden" aria-live="polite" ref={emailAlertRef} />
-          {/* The one action, docked at the bottom like a native flow's. */}
-          <div className="cart__dock">
-            {/* aria-disabled instead of disabled, so focus stays on the button when the device goes offline; submit() refuses then. */}
-            <button
-              type="submit"
-              className="order-button order-button--filled"
-              aria-disabled={submitting || !online}
-              aria-describedby={online ? undefined : 'cart-offline'}
-            >
-              {isPrepay ? (submitting ? 'Opening payment...' : 'Pay with Square') : submitting ? 'Reserving...' : 'Reserve'}
-            </button>
-            {!online && (
-              <p id="cart-offline" className="reserve-form__note">
-                {isPrepay ? "You're offline. Pay when you're back online." : "You're offline. Reserve when you're back online."}
-              </p>
-            )}
-          </div>
         </form>
+        {/* The one action, docked at the bottom like a native flow's. Outside the form so the whole
+            page, not the form, is what it sticks within: inside it, a form starting below the fold
+            held the dock down over the email field and past the screen's bottom (QA D7). The
+            button still submits the form (form="reserve-form"), Enter in the field included. */}
+        <div className="cart__dock">
+          {/* aria-disabled instead of disabled, so focus stays on the button when the device goes offline; submit() refuses then. */}
+          <button
+            type="submit"
+            form="reserve-form"
+            className="order-button order-button--filled"
+            aria-disabled={submitting || !online}
+            aria-describedby={online ? undefined : 'cart-offline'}
+          >
+            {isPrepay ? (submitting ? 'Opening payment...' : 'Pay with Square') : submitting ? 'Reserving...' : 'Reserve'}
+          </button>
+          {!online && (
+            <p id="cart-offline" className="reserve-form__note">
+              {isPrepay ? "You're offline. Pay when you're back online." : "You're offline. Reserve when you're back online."}
+            </p>
+          )}
+        </div>
       </div>
     </>
   )

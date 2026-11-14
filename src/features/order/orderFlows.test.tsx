@@ -114,6 +114,36 @@ describe('reserve retry (FR-08)', () => {
     expect(first).toBeTruthy()
     expect(second).toBe(first)
   })
+
+  it('the docked Reserve sits outside the form, so it sticks to the screen, and still submits it (QA D7)', async () => {
+    const { addToCart } = await import('./cartStore')
+    const { CheckoutPage } = await import('./CheckoutPage')
+    addToCart({
+      eventSlug: 'ev',
+      currency: 'USD',
+      booth: catalogBooth('b', 'A1', 'Vendor'),
+      product: { id: 'p', boothId: 'b', name: 'Patch', category: 'C', description: '', imageUrl: '', priceCents: 800, availableQty: 5, maxPerOrder: 2 },
+    })
+    api.createReservation.mockResolvedValue({ ok: true, value: order() })
+    render(
+      <MemoryRouter useTransitions={false} initialEntries={['/e/ev/cart/checkout']}>
+        <Routes>
+          <Route path="/e/:eventSlug/cart/checkout" element={<CheckoutPage />} />
+          <Route path="/orders/:orderId" element={<p>order page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    const reserve = screen.getByRole('button', { name: /^Reserve$/ }) as HTMLButtonElement
+    // Inside the form, the sticky dock could rise no higher than the form's top (over the field, past the screen).
+    expect(reserve.closest('form')).toBeNull()
+    expect(reserve.closest('.cart__dock')?.closest('form')).toBeNull()
+    expect(reserve.form?.id).toBe('reserve-form')
+    const email = screen.getByLabelText(/email/i)
+    fireEvent.change(email, { target: { value: 'a@b.co' } })
+    fireEvent.submit(reserve.form!)
+    await screen.findByText('order page')
+    expect(api.createReservation).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('useLiveOrder (FR-17)', () => {
@@ -259,7 +289,7 @@ const product = (id: string, boothId = 'b') => ({ id, boothId, name: `Item ${id}
 const event = EVENT
 
 describe('focus when the focused control is replaced', () => {
-  it('replace-cart dialog: focuses the question, Escape keeps the cart, Replace focuses the cart link', async () => {
+  it('replace-cart dialog: focuses the question, Escape keeps the cart, Replace focuses View cart', async () => {
     const { addToCart } = await import('./cartStore')
     const { AddToCart } = await import('./AddToCart')
     addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
@@ -287,7 +317,7 @@ describe('focus when the focused control is replaced', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }))
     fireEvent.click(screen.getByRole('button', { name: 'Replace' }))
-    expect(document.activeElement).toBe(screen.getByRole('link', { name: '1 in cart' }))
+    expect(document.activeElement).toBe(screen.getByRole('link', { name: 'View cart (1)' }))
     expect(screen.getByRole('status').textContent).toBe('Added Item q. 1 in cart.')
   })
 
@@ -329,22 +359,120 @@ describe('focus when the focused control is replaced', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Added, add another Item q, 1 in cart' }))
   })
 
-  it('Add stays focused and inert at its limit', async () => {
+  it('product sheet: Add to cart gives way to a stepper for the line, focus on its plus', async () => {
     const { AddToCart } = await import('./AddToCart')
     render(
       <MemoryRouter useTransitions={false}>
         <AddToCart product={product('p')} booth={boothB} event={event} />
       </MemoryRouter>,
     )
-    const button = screen.getByRole('button', { name: 'Add to cart' })
-    button.focus()
-    fireEvent.click(button)
-    fireEvent.click(button)
-    expect(button.textContent).toBe('Limit reached')
-    expect(button.getAttribute('aria-disabled')).toBe('true')
-    expect(document.activeElement).toBe(button)
-    fireEvent.click(button)
-    expect(screen.getByRole('link', { name: '2 in cart' })).toBeTruthy()
+    expect(screen.queryByRole('group')).toBeNull()
+    expect(screen.queryByRole('link')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }))
+    expect(screen.queryByRole('button', { name: 'Add to cart' })).toBeNull()
+    const stepper = screen.getByRole('group', { name: 'Quantity of Item p' })
+    expect(stepper.textContent).toBe('1')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'One more Item p' }))
+    expect(screen.getByRole('status').textContent).toBe('Added Item p. 1 in cart.')
+    // No underlined text link in the dock: the way on is a filled button.
+    expect(document.querySelector('.link')).toBeNull()
+  })
+
+  it('product sheet: the plus stops at the limit with its reason, focus kept, and the minus steps back', async () => {
+    const { AddToCart } = await import('./AddToCart')
+    render(
+      <MemoryRouter useTransitions={false}>
+        <AddToCart product={product('p')} booth={boothB} event={event} />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }))
+    const plus = screen.getByRole('button', { name: 'One more Item p' })
+    fireEvent.click(plus)
+    expect(screen.getByRole('group', { name: 'Quantity of Item p' }).textContent).toBe('2')
+    expect(screen.getByRole('status').textContent).toBe('Item p: 2 in cart')
+    expect(plus.getAttribute('aria-disabled')).toBe('true')
+    expect(document.activeElement).toBe(plus)
+    const reason = document.getElementById(plus.getAttribute('aria-describedby') ?? '')
+    expect(reason?.textContent).toBe('Up to 2 per order')
+    fireEvent.click(plus)
+    expect(screen.getByRole('group', { name: 'Quantity of Item p' }).textContent).toBe('2')
+
+    fireEvent.click(screen.getByRole('button', { name: 'One fewer Item p' }))
+    expect(screen.getByRole('group', { name: 'Quantity of Item p' }).textContent).toBe('1')
+    expect(screen.getByRole('status').textContent).toBe('Item p: 1 in cart')
+    expect(plus.getAttribute('aria-disabled')).toBe('false')
+    expect(screen.queryByText('Up to 2 per order')).toBeNull()
+  })
+
+  it('product sheet: at one the minus removes the line, and Add to cart takes focus again', async () => {
+    const { AddToCart } = await import('./AddToCart')
+    const { useCart } = await import('./cartStore')
+    let lines = -1
+    function Probe() {
+      lines = useCart()?.items.length ?? 0
+      return null
+    }
+    render(
+      <MemoryRouter useTransitions={false}>
+        <AddToCart product={product('p')} booth={boothB} event={event} />
+        <Probe />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Add to cart' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Item p' }))
+    expect(lines).toBe(0)
+    expect(screen.queryByRole('group')).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add to cart' }))
+    expect(screen.getByRole('status').textContent).toBe('Removed Item p')
+  })
+
+  it("product sheet: View cart counts the whole cart and opens the cart's route", async () => {
+    const { addToCart } = await import('./cartStore')
+    const { AddToCart } = await import('./AddToCart')
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('q') })
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') })
+    render(
+      <MemoryRouter useTransitions={false} initialEntries={['/e/ev/booth/b']}>
+        <Routes>
+          <Route path="/e/:eventSlug/booth/:boothId" element={<AddToCart product={product('p')} booth={boothB} event={event} />} />
+          <Route path="/e/:eventSlug/cart" element={<h1>Cart page</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('group', { name: 'Quantity of Item p' }).textContent).toBe('1')
+    const viewCart = screen.getByRole('link', { name: 'View cart (2)' })
+    expect(viewCart.getAttribute('href')).toBe('/e/ev/cart')
+    fireEvent.click(viewCart)
+    expect(screen.getByRole('heading', { name: 'Cart page' })).toBeTruthy()
+  })
+
+  it('product sheet offline: Add to cart and the plus are inert and say why; the minus still works', async () => {
+    const { addToCart } = await import('./cartStore')
+    const { AddToCart } = await import('./AddToCart')
+    live.online = false
+    const view = render(
+      <MemoryRouter useTransitions={false}>
+        <AddToCart product={product('p')} booth={boothB} event={event} />
+      </MemoryRouter>,
+    )
+    const add = screen.getByRole('button', { name: 'Add to cart' })
+    expect(add.getAttribute('aria-disabled')).toBe('true')
+    expect(document.getElementById(add.getAttribute('aria-describedby') ?? '')?.textContent).toBe("You're offline. Add when you're back online.")
+    fireEvent.click(add)
+    expect(screen.queryByRole('group')).toBeNull()
+
+    act(() => addToCart({ eventSlug: 'ev', currency: 'USD', booth: boothB, product: product('p') }))
+    view.rerender(
+      <MemoryRouter useTransitions={false}>
+        <AddToCart product={product('p')} booth={boothB} event={event} />
+      </MemoryRouter>,
+    )
+    const plus = screen.getByRole('button', { name: 'One more Item p' })
+    expect(plus.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(plus)
+    expect(screen.getByRole('group', { name: 'Quantity of Item p' }).textContent).toBe('1')
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Item p' }))
+    expect(screen.getByRole('button', { name: 'Add to cart' })).toBeTruthy()
   })
 
   it('cart remove: focuses the next line, then the cart heading, then the empty-cart heading', async () => {
