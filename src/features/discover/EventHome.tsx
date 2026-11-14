@@ -19,6 +19,9 @@ import { stockState } from './stockState'
 import { CatalogError } from './CatalogError'
 import { useCatalog } from './useCatalog'
 import { applyFilters, narrowingLabels, NO_FILTERS, readFilters, writeFilters, type ProductFilters } from './filters'
+import { featuredProducts, homeShelves } from './shelves'
+import { HomeHero } from './HomeHero'
+import { HomeProductCard, ProductShelf } from './ProductShelf'
 import { FiltersChip, FiltersSheet } from './FiltersSheet'
 import './storefront.css'
 import './home.css'
@@ -140,8 +143,9 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
   // Queries this page wrote that the URL has not caught up with yet.
   const pendingQueries = useRef<string[]>([])
   const slug = catalog.event.slug
-  const searching = query.trim() !== '' || category !== null
   const filters = readFilters(params)
+  // A shelf's See all opens a filter on its own (?price=under-10), which is a search like a category.
+  const searching = query.trim() !== '' || category !== null || narrowingLabels(filters).length > 0
   const matches = searching ? searchCatalog(catalog, query, category) : []
   const hits = applyFilters(matches, (h) => h.product, filters)
   // Booths the query names (a vendor with nothing listed, a booth code). A category or a product
@@ -752,6 +756,8 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
         </section>
       ) : (
         <>
+          <HomeHero products={featuredProducts(catalog.products)} boothsById={boothsById} currency={catalog.event.currency} />
+
           <section className="home-section" aria-labelledby="home-categories">
             <h2 id="home-categories" ref={categoriesRef} tabIndex={-1}>
               Browse by category
@@ -784,6 +790,10 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
             </ul>
           </section>
 
+          {homeShelves(catalog).map((shelf) => (
+            <ProductShelf key={shelf.id} shelf={shelf} boothsById={boothsById} currency={catalog.event.currency} eventSlug={slug} />
+          ))}
+
           <section className="home-section" aria-labelledby="home-products">
             <h2 id="home-products">All products</h2>
             <ul className="product-grid" role="list" {...productsEntrance}>
@@ -792,27 +802,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
                 if (!booth) return null
                 return (
                   <li key={product.id}>
-                    <Link className="product-card" {...sheetLink(product.id)}>
-                      <ProductImage product={product} size="large" priority={i === 0} />
-                      <span className="product-card__body">
-                        <span className="product-card__name">{product.name}</span>
-                        <span className="product-card__row">
-                          <span className="product-card__price">
-                            <span className="visually-hidden">, </span>
-                            {formatMoney(product.priceCents, catalog.event.currency)}
-                          </span>
-                          {stockState(product.availableQty) && (
-                            <>
-                              <span className="visually-hidden">, </span>
-                              <StockBadge qty={product.availableQty} />
-                            </>
-                          )}
-                        </span>
-                        <span className="product-card__booth">
-                          <span className="visually-hidden">, </span>Booth {booth.code}
-                        </span>
-                      </span>
-                    </Link>
+                    <HomeProductCard product={product} booth={booth} currency={catalog.event.currency} priority={i === 0} />
                   </li>
                 )
               })}

@@ -316,7 +316,7 @@ html:not([data-input='pointer']) .search__input:focus-visible {
     white-space: nowrap;
   }
 
-  .discover--docked :is(.active-orders, .home-section) {
+  .discover--docked :is(.active-orders, .home-section, .hero, .shelf) {
     display: none;
   }
 
@@ -767,4 +767,427 @@ img.active-order__plate {
 /* The place held for the open-orders strip while this visit's orders load: the card's shape. */
 .active-orders--loading {
   border-radius: var(--radius-md);
+}
+
+/* Shop-style home, calm: a white page, a soft brand wash only behind the event title, a magazine-cover
+   featured carousel, quiet sideways shelves, and compact category tiles. Violet is kept for actions. */
+.discover__header {
+  position: relative;
+  isolation: isolate;
+  margin: var(--space-8) 0 var(--space-24);
+}
+
+/* The wash: a light violet glow in the top corner fading to white within the header's height; it
+   bleeds to the screen edge on a phone and fades before the column's edges wider. */
+.discover__header::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * (var(--space-16) + var(--space-8) + var(--app-safe-top)));
+  right: calc(-1 * var(--space-16));
+  left: calc(-1 * var(--space-16));
+  height: 200px;
+  background:
+    radial-gradient(90% 100% at 0% 0%, color-mix(in oklch, var(--primary-100) 80%, transparent), transparent 70%),
+    radial-gradient(60% 80% at 100% 0%, color-mix(in oklch, var(--tertiary-50) 90%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.discover__header h1 {
+  font: 800 36px/40px var(--font-display);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.discover__venue {
+  margin-top: var(--space-8);
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+@media (min-width: 45rem) {
+  /* Wider, the wash fades out at its sides instead of stopping at the column's edge. */
+  .discover__header::before {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  }
+
+  .discover__header h1 {
+    font-size: 48px;
+    line-height: 52px;
+  }
+}
+
+/* Section titles: confident display type, tight. */
+:is(.home-section, .shelf) h2 {
+  margin: 0;
+  font: 800 24px/32px var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+.home-section h2 {
+  margin-bottom: var(--space-12);
+}
+
+/* Larger section spacing: 48 between sections. */
+:is(.home-section, .shelf) {
+  margin-top: var(--space-48);
+}
+
+/* The search bar on white: a filled field on the untinted grey, no outline or shadow. */
+.discover:not(.discover--docked) .search__input {
+  background: var(--surface-photo);
+}
+
+/* Featured (HomeHero.tsx): one product per slide like a magazine cover. The photo fills the slide;
+   the name and price sit large at the foot, bottom-left, over a dark-to-clear scrim (white on the
+   scrim where the text sits is 4.5:1 or better even over a white photo). A peek of the next slide on
+   a phone; two up wider. */
+.hero {
+  position: relative;
+  margin-top: var(--space-8);
+}
+
+.hero__track {
+  display: grid;
+  grid-auto-columns: calc(100% - 2 * var(--space-16) - var(--space-24));
+  grid-auto-flow: column;
+  gap: var(--space-8);
+  margin: 0 calc(-1 * var(--space-16));
+  padding: 0 var(--space-16) var(--space-12);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--space-16);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  list-style: none;
+}
+
+.hero__track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Wider, the row stays inside the content column: no bleed past its edges. */
+@media (min-width: 45rem) {
+  .hero__track {
+    grid-auto-columns: calc((100% - 2 * var(--space-8) - var(--space-12)) / 2);
+    gap: var(--space-12);
+    /* 8 of room each side for the focus ring, taken back by the margin. */
+    margin-inline: calc(-1 * var(--space-8));
+    padding-inline: var(--space-8);
+    scroll-padding-inline: var(--space-8);
+  }
+}
+
+.hero__slide {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.hero__card {
+  position: relative;
+  display: block;
+  height: 440px;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--surface-photo);
+  color: var(--on-action);
+  text-decoration: none;
+  isolation: isolate;
+}
+
+@media (min-width: 45rem) {
+  .hero__card {
+    height: 480px;
+  }
+}
+
+.hero__card .product-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+  background: var(--surface-photo);
+}
+
+/* Cutouts keep their margin and stand clear of the text at the foot. */
+.hero__card .product-image[data-fit='contain'] {
+  box-shadow: none;
+}
+
+.hero__card .product-image[data-fit='contain'] .product-image__photo {
+  padding: var(--space-32) var(--space-24) 136px;
+  filter: none;
+}
+
+.hero__scrim {
+  position: absolute;
+  inset: 40% 0 0;
+  z-index: 1;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.55) 40%, transparent);
+  pointer-events: none;
+}
+
+.hero__text {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-24);
+}
+
+.hero__name {
+  display: -webkit-box;
+  overflow: hidden;
+  font: 800 30px/34px var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.hero__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.hero__price {
+  flex: none;
+  font: 700 18px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero__vendor {
+  overflow: hidden;
+  font: var(--type-body-medium);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hero__card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .hero__card .product-image__photo {
+    transition: opacity 200ms ease, transform 250ms var(--ease-ios);
+  }
+
+  .hero__card:hover .product-image__photo {
+    transform: scale(1.02);
+  }
+}
+
+/* Story-style progress under the slides, with Pause at the column's end. */
+.hero__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.hero__progress {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  max-width: 200px;
+}
+
+.hero__seg {
+  position: relative;
+  flex: 1;
+  height: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--neutral-200);
+}
+
+.hero__seg.is-done,
+.hero__fill {
+  background: var(--neutral-900);
+}
+
+.hero__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+}
+
+.hero[data-playing='true'] .hero__fill {
+  animation: hero-fill var(--hero-advance) linear both;
+}
+
+@keyframes hero-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.hero__pause {
+  display: inline-grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin-left: auto;
+  margin-right: calc(-1 * var(--space-12));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.hero__pause svg {
+  fill: currentColor;
+}
+
+@media (hover: hover) {
+  .hero__pause:hover {
+    background: var(--surface-photo);
+  }
+}
+
+/* Shelves: a title with a quiet See all, then cards that scroll sideways and snap. On a phone the row
+   runs to the screen edges (the first card still lines up with the page margin); wider it stays in
+   the column. */
+.shelf__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  margin-bottom: var(--space-4);
+}
+
+.shelf__all {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  min-height: var(--touch-target);
+  margin-right: calc(-1 * var(--space-8));
+  padding: 0 var(--space-4) 0 var(--space-12);
+  border-radius: var(--radius-full);
+  color: var(--primary-700);
+  font: var(--type-label-large);
+  text-decoration: none;
+}
+
+.shelf__all svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (hover: hover) {
+  .shelf__all:hover {
+    background: var(--quiet-action);
+  }
+}
+
+.shelf__track {
+  display: grid;
+  grid-auto-columns: 156px;
+  grid-auto-flow: column;
+  gap: var(--space-12);
+  margin: 0 calc(-1 * var(--space-16));
+  /* Room for the tiles' faint shadow and the focus ring, which the scroller would otherwise clip. */
+  padding: var(--space-4) var(--space-16) var(--space-8);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: var(--space-16);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  list-style: none;
+}
+
+.shelf__track::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf__track > li {
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 45rem) {
+  .shelf__track {
+    grid-auto-columns: calc((100% - 2 * var(--space-8) - 4 * var(--space-12)) / 4.4);
+    /* 8 of room each side for the focus ring, taken back by the margin. */
+    margin-inline: calc(-1 * var(--space-8));
+    padding-inline: var(--space-8);
+    scroll-padding-inline: var(--space-8);
+  }
+}
+
+/* Categories: one compact sideways row of photo tiles on a phone, six across wider. */
+@media (max-width: 44.99rem) {
+  .category-tiles {
+    grid-template-columns: none;
+    grid-auto-columns: 88px;
+    grid-auto-flow: column;
+    margin: 0 calc(-1 * var(--space-16));
+    padding: var(--space-4) var(--space-16) var(--space-8);
+    overflow-x: auto;
+    scroll-padding-inline: var(--space-16);
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .category-tiles::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-tiles > li {
+    scroll-snap-align: start;
+  }
+}
+
+.category-tile__image,
+.category-tile__image .product-image {
+  border-radius: var(--radius-lg);
+  background: var(--surface-photo);
+}
+
+.category-tile__image .product-image[data-fit='contain'] {
+  box-shadow: none;
+}
+
+.category-tile__image .product-image[data-fit='contain'] .product-image__photo {
+  padding: var(--space-8);
+  filter: none;
+}
+
+.category-tile__name {
+  font: 600 14px/20px var(--font-text);
+}
+
+.category-tile__count {
+  color: var(--text-secondary);
+}
+
+/* Loading placeholders in the new layout: the featured slide's height and radius. */
+.hero .skeleton--hero {
+  block-size: 440px;
+  border-radius: var(--radius-xl);
+}
+
+@media (min-width: 45rem) {
+  .hero .skeleton--hero {
+    block-size: 480px;
+  }
+}
+
+.shelf .skeleton--heading {
+  margin-block: 8px;
 }

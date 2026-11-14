@@ -857,3 +857,107 @@ button.floor-map__booth::after {
     left: var(--space-16);
   }
 }
+
+/* Shop-style product cards (Home, shelves, search's category grid, storefront). The photo is the
+   card: a tall 4:5 tile on an untinted light grey, no border, a barely-there shadow, and only the
+   stock state over it, small, at its foot. Name, price and seller sit quietly under it. */
+.product-grid {
+  gap: var(--space-24) var(--space-12);
+}
+
+.product-card {
+  position: relative;
+  container-type: inline-size;
+  gap: var(--space-8);
+  border-radius: var(--radius-lg);
+}
+
+.product-card .product-image--large {
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-lg);
+  background: var(--surface-photo);
+  box-shadow: var(--shadow-faint);
+}
+
+/* A cutout already brings its own margin; the tile's faint ring is not needed on the grey. */
+.product-card .product-image[data-fit='contain'] {
+  box-shadow: var(--shadow-faint);
+}
+
+.product-card .product-image[data-fit='contain'] .product-image__photo {
+  padding: var(--space-12);
+  filter: none;
+}
+
+.product-card__body {
+  gap: 2px;
+}
+
+.product-card__name {
+  min-height: 40px;
+  font: 600 15px/20px var(--font-text);
+}
+
+.product-card__price {
+  font: 700 16px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.product-card__booth,
+.product-card__desc {
+  color: var(--text-secondary);
+}
+
+/* The stock chip moves onto the photo's foot (the DOM order, and so the spoken order, is unchanged):
+   the card is a size container, so the chip sits 8 above the 4:5 photo's bottom-left corner. */
+.product-card .stock-badge {
+  position: absolute;
+  top: calc(125cqw - 24px - var(--space-8));
+  left: var(--space-8);
+  min-height: 24px;
+  max-width: calc(100% - 2 * var(--space-8));
+  padding: 2px var(--space-8);
+  font: var(--type-label-small);
+}
+
+/* Sold out reads at a glance: the photo steps back (the chip says why, so colour is not the only cue). */
+.product-card:has(.stock-badge--error) .product-image__photo.is-loaded {
+  opacity: 0.45;
+}
+
+.product-card:has(.stock-badge--error) .product-card__price {
+  color: var(--text-secondary);
+}
+
+/* Quick, quiet motion: the photo eases up a touch on hover and the tile dips on press, 150 to 250 ms
+   with no overshoot (this replaces the shell's press spring on cards and tiles). */
+html :is(.discover, .storefront) :is(.product-card, .category-tile) {
+  transition: transform 150ms var(--ease-ios);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .product-card .product-image__photo {
+    transition: opacity 200ms ease, transform 250ms var(--ease-ios);
+  }
+
+  @media (hover: hover) {
+    .product-card:hover .product-image__photo {
+      transform: scale(1.03);
+    }
+  }
+}
+
+.product-card:focus-visible {
+  outline-offset: 4px;
+}
+
+.product-card .skeleton--photo {
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-lg);
+}
+
+/* Search result thumbnails on the same untinted tile. */
+.result__main .product-image--small {
+  border-radius: var(--radius-md);
+  background: var(--surface-photo);
+}

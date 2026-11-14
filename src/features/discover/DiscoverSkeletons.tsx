@@ -37,15 +37,29 @@ function ProductGridSkeleton({ className = '', storefront = false }: { className
   )
 }
 
-/** The event home on its way: the title block, the search field, the category tiles and the first products. */
+/** Cards a shelf placeholder shows: the first two and a peek of the third on a phone. */
+const SHELF_CARD_COUNT = 4
+
+/** The event home on its way, in the loaded layout: the title block on its wash, the search field,
+    the featured slide, the category row, a shelf, then the first products. */
 export function EventHomeSkeleton() {
   return (
     <SkeletonGroup label="Loading the event..." className="discover">
       <div className="discover__header">
-        <Skeleton width="70%" height={36} className="skeleton--title" />
+        <Skeleton width="70%" height={40} className="skeleton--title" />
         <Skeleton width="40%" height={20} className="skeleton--venue" />
       </div>
-      <Skeleton height={56} className="skeleton--field" />
+      <Skeleton shape="pill" height={48} className="skeleton--field" />
+      <div className="hero" aria-hidden="true">
+        <ul className="hero__track">
+          <li className="hero__slide">
+            <Skeleton shape="card" className="skeleton--hero" />
+          </li>
+          <li className="hero__slide">
+            <Skeleton shape="card" className="skeleton--hero" />
+          </li>
+        </ul>
+      </div>
       <section className="home-section" aria-hidden="true">
         <Skeleton width="55%" height={28} className="skeleton--heading" />
         <ul className="category-tiles">
@@ -54,6 +68,14 @@ export function EventHomeSkeleton() {
               <Skeleton shape="card" className="skeleton--tile" />
               <Skeleton width="70%" height={20} />
             </li>
+          ))}
+        </ul>
+      </section>
+      <section className="shelf" aria-hidden="true">
+        <Skeleton width="40%" height={28} className="skeleton--heading" />
+        <ul className="shelf__track">
+          {Array.from({ length: SHELF_CARD_COUNT }, (_, i) => (
+            <ProductCardSkeleton key={i} />
           ))}
         </ul>
       </section>
@@ -80,6 +102,8 @@ export function StorefrontSkeleton() {
         <div className="storefront__badges">
           <Skeleton width={64} height={20} />
           <Skeleton shape="pill" width={120} height={24} />
+          <Skeleton shape="pill" height={44} className="skeleton--action" />
+          <Skeleton shape="pill" height={44} className="skeleton--action" />
         </div>
       </div>
       <ProductGridSkeleton className="storefront__grid" storefront />

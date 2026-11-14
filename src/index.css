@@ -79,6 +79,14 @@
   --radius: var(--radius-control);
   --tap: var(--touch-target);
   --content-max: 880px;
+  /* Calm surfaces (Shop): white for the attendee page and lifted cards, and a barely grey, untinted
+     tile behind product photos, so the photos and the violet actions carry the colour. */
+  --surface-white: #ffffff;
+  --surface-photo: oklch(96.8% 0 0);
+  /* One barely-there lift for photo tiles and cards. */
+  --shadow-faint: 0 1px 2px rgb(0 0 0 / 0.05), 0 2px 8px -2px rgb(0 0 0 / 0.06);
+  /* The frosted compact header: the page tone, translucent, over a blur of what scrolls under it. */
+  --header-frost: color-mix(in oklch, var(--page) 80%, transparent);
   /* The top app bar at the iOS navigation bar's height (rounded up to a full touch target), so a
      back screen's title starts just under Back; the Material 3 navigation bar below. */
   --header-height: 48px;
@@ -187,6 +195,11 @@ a {
 
 /* Top app bar (Material 3 small): page tone at rest, card tone once the page title has scrolled
    under it, so the bar separates from content by tone, never by a line or a shadow. */
+/* The attendee screens sit on white (the vendor screens keep the design system's page tone). */
+:root:not(:has(.vendor-app)) {
+  --page: var(--surface-white);
+}
+
 /* Home-screen mode draws under a translucent status bar; the inset is 0 in a browser tab. Read once,
    so the header adds it exactly once and the pull spinner lines up with the header's real bottom. */
 :root {
@@ -297,6 +310,7 @@ a {
   left: 0;
   height: var(--header-height);
   background: var(--card);
+  box-shadow: 0 1px 0 color-mix(in oklch, var(--neutral-950) 8%, transparent);
   opacity: 0;
   pointer-events: none;
   transition: opacity 150ms ease;
@@ -467,7 +481,8 @@ main.main--flush {
   /* Indicator one step stronger than quiet-action, so the pill shows clearly on the card. */
   --tab-indicator: var(--primary-200);
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: var(--card);
+  /* The page tone (white on the attendee screens), so the bar is calm chrome, not a tinted band. */
+  background: var(--page);
   box-shadow: inset 0 0.5px 0 color-mix(in oklch, var(--neutral-950) 12%, transparent);
 }
 
@@ -476,7 +491,7 @@ main.main--flush {
    for less transparency, and in forced colours. */
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .tab-bar {
-    background: color-mix(in oklch, var(--card) var(--bar-opacity), transparent);
+    background: color-mix(in oklch, var(--page) var(--bar-opacity), transparent);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     backdrop-filter: saturate(180%) blur(20px);
   }
@@ -1433,3 +1448,13 @@ html.is-swiping-back body {
   }
 }
 
+
+/* Frosted compact header (Shop and iOS): where backdrop blur is supported the collapsed row is the
+   page tone, translucent, over a blur of the content scrolling under it; elsewhere it stays solid. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-header--root::after {
+    background: var(--header-frost);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+}
