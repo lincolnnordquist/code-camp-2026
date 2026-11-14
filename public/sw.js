@@ -3,7 +3,7 @@
 // Square) go to other origins and are never cached here, so stock and order
 // status always come from the server or the app's own saved copies.
 
-const CACHE = 'con-guide-v4'
+const CACHE = 'dibspot-v1'
 const SHELL = '/'
 const STATIC_FILES = [
   '/manifest.webmanifest',

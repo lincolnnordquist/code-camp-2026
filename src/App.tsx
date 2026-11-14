@@ -178,8 +178,8 @@ function ScreenLoading({ label }: { label: string }) {
 
 // The seeded event (supabase/seed.sql). The shared API has no event list yet, so `/` opens this one.
 const DEMO_EVENT_SLUG = 'code-camp-2026'
-/** Shown when no event is loaded (an order link opened cold). Events supply their own name. */
-const PRODUCT_NAME = 'Con Guide'
+/** The app's name: the tab title's suffix, and the header's when no event is loaded (an order link opened cold). */
+const PRODUCT_NAME = 'DibSpot'
 /** The shell's own copy of each event's name, so the header shows it at once on the next visit. */
 const EVENT_NAME_KEY = 'shell.eventName.'
 /** The most recently loaded event's name, for pages outside any event (orders, the Square return, not found). */
@@ -255,7 +255,7 @@ function useRouteHeading(siteName: string) {
     const syncTitle = () => {
       const text = main.querySelector('h1')?.textContent?.trim()
       setHeading(text ?? '')
-      // The event home's h1 is the event name itself, so it is not repeated.
+      // "<screen> | DibSpot"; a screen with no h1 yet is titled with the app's name alone.
       const next = text && text !== siteName ? `${text} | ${siteName}` : siteName
       if (document.title !== next) document.title = next
     }
@@ -550,8 +550,8 @@ function Shell({ children }: { children: ReactNode }) {
   const online = useOnlineStatus()
   const eventName = useEventName()
   const { pathname, search } = useLocation()
-  // The tab title can name the product while the event name loads; the header stays blank instead.
-  const { mainRef, heading } = useRouteHeading(eventName ?? PRODUCT_NAME)
+  // The tab title is the screen's h1 and the app's name ("Booths | DibSpot"); the header names the event.
+  const { mainRef, heading } = useRouteHeading(PRODUCT_NAME)
   const { title: collapsedTitle, scrolled } = useCollapsedTitle(mainRef)
   const overMedia = useOverMediaHeader(mainRef)
   const offlineBannerRef = useRef<HTMLParagraphElement>(null)

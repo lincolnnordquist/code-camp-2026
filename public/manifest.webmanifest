@@ -1,6 +1,6 @@
 {
-  "name": "Code Camp Con",
-  "short_name": "Con Guide",
+  "name": "DibSpot",
+  "short_name": "DibSpot",
   "description": "Find products, reserve them, and pick them up at the booth.",
   "start_url": "/",
   "scope": "/",
