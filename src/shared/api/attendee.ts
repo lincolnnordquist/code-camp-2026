@@ -50,7 +50,13 @@ export async function createReservation(
     p_request_id: request.requestId,
   });
   if (!reply.ok) return refusal(reply, ORDER_REFUSALS);
-  return { ok: true, value: orderFromPayload(reply as OrderPayload) };
+  const order = orderFromPayload(reply as OrderPayload);
+  // A failed email never changes the order (FR-18), so the reservation does not wait for it.
+  // A repeated request returns the same order, and send-order-email sends once per order.
+  void supabase.functions
+    .invoke("send-order-email", { body: { orderId: order.id } })
+    .catch(() => {});
+  return { ok: true, value: order };
 }
 
 // Calls the create-checkout Edge Function, which holds the stock and creates the Square
