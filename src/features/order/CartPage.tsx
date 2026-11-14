@@ -12,7 +12,7 @@ import { StepIcon } from './StepIcon'
 
 /** The label module's wording for a reservation's payment, as the order page shows it. */
 // How a reservation is paid, in the label module's words for a confirmed one.
-const PAY_AT_PICKUP = orderLabels({ type: 'reservation', status: 'confirmed', refundStatus: 'none', totalCents: 0, currency: 'USD' }).paymentBadge?.label
+const PAY_AT_PICKUP = orderLabels({ type: 'reservation', status: 'confirmed', refundStatus: 'none', refundedCents: 0, totalCents: 0, currency: 'USD' }).paymentBadge?.label
 
 /**
  * Where focus goes after a line is removed, because its stepper is gone: the

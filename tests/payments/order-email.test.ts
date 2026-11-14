@@ -237,6 +237,7 @@ test("the email's headline and payment line match the label module for a confirm
       type,
       status: "confirmed",
       refundStatus: "none",
+      refundedCents: 0,
       totalCents: 3600,
       currency: "USD",
     });

@@ -10,6 +10,7 @@ import { createSquareProvider } from "../../supabase/functions/_shared/providers
 import {
   ProviderError,
   type ProviderPayment,
+  type ProviderRefund,
 } from "../../supabase/functions/_shared/providers/types";
 
 const ORDER_ID = "0a000000-0000-4000-8000-000000000001";
@@ -47,6 +48,16 @@ function payment(overrides: Partial<ProviderPayment> = {}): ProviderPayment {
   };
 }
 
+function refund(overrides: Partial<ProviderRefund> = {}): ProviderRefund {
+  return {
+    status: "completed",
+    paymentId: "PAY_1",
+    amountCents: 3200,
+    currency: "USD",
+    ...overrides,
+  };
+}
+
 function paymentMessage(
   type: string,
   fields: Record<string, unknown> = {},
@@ -72,7 +83,10 @@ function paymentMessage(
   });
 }
 
-function refundMessage(type: string): string {
+function refundMessage(
+  type: string,
+  fields: Record<string, unknown> = {},
+): string {
   return JSON.stringify({
     merchant_id: "MERCHANT_1",
     type,
@@ -87,6 +101,7 @@ function refundMessage(type: string): string {
           order_id: "SQ_RETURN_ORDER_1",
           location_id: LOCATION,
           status: "COMPLETED",
+          ...fields,
         },
       },
     },
@@ -111,8 +126,11 @@ function signedRequest(body: string, signature: string | null = sign(body)) {
 
 type Setup = {
   byOrder?: Record<string, unknown>;
+  byPayment?: Record<string, unknown>;
   confirm?: Record<string, unknown>;
+  markRefunded?: Record<string, unknown>;
   payment?: ProviderPayment | null | Error;
+  refund?: ProviderRefund | Error;
   secret?: string;
   email?: ConfirmationOutcome;
 };
@@ -124,8 +142,10 @@ function setup(options: Setup = {}) {
   const square = createSquareProvider("sandbox");
   const replies: Record<string, unknown> = {
     svc_get_checkout_by_provider_order: options.byOrder ?? checkout(),
+    svc_get_checkout_by_provider_payment: options.byPayment ?? checkout({ status: "confirmed" }),
     svc_confirm_paid_order: options.confirm ??
       { ok: true, outcome: "confirmed", status: "confirmed", changed: true },
+    svc_mark_refunded: options.markRefunded ?? { ok: true, changed: true },
   };
   const unused = () => Promise.reject(new Error("not used"));
   const deps: SquareWebhookDeps = {
@@ -144,7 +164,11 @@ function setup(options: Setup = {}) {
       },
       closeCheckout: unused,
       getOrderState: unused,
-      getRefund: unused,
+      getRefund(connection, refundId) {
+        squareCalls.push(`getRefund ${connection.accessToken} ${refundId}`);
+        const result = options.refund ?? refund();
+        return result instanceof Error ? Promise.reject(result) : Promise.resolve(result);
+      },
       verifyWebhookSignature: square.verifyWebhookSignature,
       parseWebhookEvent: square.parseWebhookEvent,
     },
@@ -227,14 +251,6 @@ test("a signed payment message without an order id is answered 200 and changes n
   );
   assert.deepEqual(reply, { status: 200, body: { ok: false, reason: "malformed" } });
   assert.deepEqual(calls, []);
-});
-
-test("a refund message is answered 200 and changes nothing", async () => {
-  const { deps, calls, squareCalls } = setup();
-  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
-  assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "ignored" } });
-  assert.deepEqual(calls, []);
-  assert.deepEqual(squareCalls, []);
 });
 
 test("an event type the function does not handle is answered 200 and changes nothing", async () => {
@@ -391,6 +407,15 @@ test("Square refusing the lookup is answered 500, so a fixed seller token gets t
   assert.deepEqual(reply, { status: 500, body: { ok: false, reason: "provider_rejected" } });
 });
 
+test("a refund Square cannot find yet is answered 500 for redelivery", async () => {
+  const { deps, calls } = setup({
+    refund: new ProviderError("rejected", "INVALID_VALUE", "unknown refund"),
+  });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.created")));
+  assert.deepEqual(reply, { status: 500, body: { ok: false, reason: "provider_rejected" } });
+  assert.deepEqual(rpcNames(calls), ["svc_get_checkout_by_provider_payment"]);
+});
+
 test("a message saying COMPLETED while Square's first tender shows a cancelled payment is answered 500 for redelivery", async () => {
   const { deps, calls } = setup({ payment: payment({ status: "cancelled" }) });
   const reply = await deliver(deps, signedRequest(paymentMessage("payment.updated")));
@@ -414,3 +439,93 @@ test("a database error is thrown to the entry point, which answers 500", async (
   );
 });
 
+test("a completed refund marks the payment Square names as refunded, with Square's amount and currency", async () => {
+  const { deps, calls, squareCalls, emails } = setup({
+    refund: refund({ amountCents: 500, currency: "USD" }),
+  });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "refunded" } });
+  assert.deepEqual(calls, [
+    ["svc_get_checkout_by_provider_payment", { p_provider_payment_id: "PAY_1" }],
+    ["svc_mark_refunded", {
+      p_provider_payment_id: "PAY_1",
+      p_provider_refund_id: "REFUND_1",
+      p_amount_cents: 500,
+      p_currency: "USD",
+    }],
+  ]);
+  assert.deepEqual(squareCalls, ["getRefund seller-token REFUND_1"]);
+  assert.deepEqual(emails, []);
+});
+
+test("a refund message saying COMPLETED while Square shows it pending marks nothing and is answered 500 for redelivery", async () => {
+  const { deps, calls } = setup({ refund: refund({ status: "pending" }) });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 500, body: { ok: false, reason: "refund_not_settled" } });
+  assert.deepEqual(rpcNames(calls), ["svc_get_checkout_by_provider_payment"]);
+});
+
+test("refund.created saying PENDING while Square shows it pending marks nothing and is answered 200", async () => {
+  const { deps, calls } = setup({ refund: refund({ status: "pending" }) });
+  const reply = await deliver(
+    deps,
+    signedRequest(refundMessage("refund.created", { status: "PENDING" })),
+  );
+  assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "refund_pending" } });
+  assert.deepEqual(rpcNames(calls), ["svc_get_checkout_by_provider_payment"]);
+});
+
+test("a refund message saying COMPLETED while Square shows it rejected marks nothing and is answered 200", async () => {
+  const { deps, calls } = setup({ refund: refund({ status: "rejected" }) });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "refund_rejected" } });
+  assert.deepEqual(rpcNames(calls), ["svc_get_checkout_by_provider_payment"]);
+});
+
+test("a refund whose seller token secret is not set is answered 500 without asking Square", async () => {
+  const { deps, squareCalls } = setup({ secret: "" });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 500, body: { ok: false, reason: "secret_missing" } });
+  assert.deepEqual(squareCalls, []);
+});
+
+test("a refund Square reports for another payment marks nothing", async () => {
+  const { deps, calls } = setup({ refund: refund({ paymentId: "PAY_OTHER" }) });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, {
+    status: 200,
+    body: { ok: false, reason: "refund_payment_mismatch" },
+  });
+  assert.deepEqual(rpcNames(calls), ["svc_get_checkout_by_provider_payment"]);
+});
+
+test("a refund for a payment not recorded yet is answered 500 for redelivery without asking Square", async () => {
+  const { deps, squareCalls } = setup({
+    byPayment: { ok: false, reason: "order_not_found" },
+  });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.created")));
+  assert.deepEqual(reply, { status: 500, body: { ok: false, reason: "payment_not_found" } });
+  assert.deepEqual(squareCalls, []);
+});
+
+test("a refund the database refuses for another currency is answered 200", async () => {
+  const { deps } = setup({ markRefunded: { ok: false, reason: "currency_mismatch" } });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 200, body: { ok: false, reason: "currency_mismatch" } });
+});
+
+test("a repeated refund message is answered 200 as already refunded", async () => {
+  const { deps } = setup({ markRefunded: { ok: true, changed: false } });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "already_refunded" } });
+});
+
+test("a signed refund message without a payment id is answered 200 and changes nothing", async () => {
+  const { deps, calls } = setup();
+  const reply = await deliver(
+    deps,
+    signedRequest(refundMessage("refund.updated", { payment_id: "" })),
+  );
+  assert.deepEqual(reply, { status: 200, body: { ok: false, reason: "malformed" } });
+  assert.deepEqual(calls, []);
+});
