@@ -487,7 +487,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
         </Link>
         {!grouped && (
           <Link className="booth-plate result__plate" to={`/e/${slug}/map?booth=${booth.id}`}>
-            <span className="visually-hidden">Booth </span>
+            <span className="booth-plate__label">Booth </span>
             {booth.code}
             <span className="visually-hidden"> on the map</span>
           </Link>
@@ -735,7 +735,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
               <section key={booth.id} className="result-group" aria-labelledby={`result-group-${booth.id}`}>
                 <div className="result-group__head">
                   <Link className="booth-plate" to={`/e/${slug}/map?booth=${booth.id}`}>
-                    <span className="visually-hidden">Booth </span>
+                    <span className="booth-plate__label">Booth </span>
                     {booth.code}
                     <span className="visually-hidden"> on the map</span>
                   </Link>

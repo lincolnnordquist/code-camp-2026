@@ -195,9 +195,15 @@ a {
 
 /* Top app bar (Material 3 small): page tone at rest, card tone once the page title has scrolled
    under it, so the bar separates from content by tone, never by a line or a shadow. */
-/* The attendee screens sit on white (the vendor screens keep the design system's page tone). */
+/* The attendee screens sit on white, and their tonal surfaces (cards, the order pass, chips' fills)
+   on the untinted light grey, so violet stays for actions (the vendor screens keep the design
+   system's tones). */
 :root:not(:has(.vendor-app)) {
   --page: var(--surface-white);
+  --card: var(--surface-photo);
+  /* Loading placeholders in the same untinted grey family, a step darker than the photo tile. */
+  --skeleton: oklch(92.5% 0 0);
+  --skeleton-sheen: rgb(255 255 255 / 0.55);
 }
 
 /* Home-screen mode draws under a translucent status bar; the inset is 0 in a browser tab. Read once,
@@ -1457,4 +1463,20 @@ html.is-swiping-back body {
     -webkit-backdrop-filter: saturate(180%) blur(20px);
     backdrop-filter: saturate(180%) blur(20px);
   }
+}
+
+/* Screen errors (a catalog that did not load, an unknown event) lead with a quiet illustration-like
+   mark: a large grey disc with an outlined glyph, so the state reads as deliberate, not broken. The
+   mark is decorative (a pseudo-element); the sentence carries the meaning. */
+.screen-state:not(.screen-state--loading)::before {
+  content: '';
+  display: block;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto var(--space-8);
+  border-radius: var(--radius-full);
+  background:
+    no-repeat center / 40px 40px
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23615e68' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 7.97'/%3E%3Cpath d='M12 12v3.5'/%3E%3Cpath d='M12 18.5h.01'/%3E%3C/svg%3E"),
+    var(--card);
 }

@@ -1241,3 +1241,17 @@
   }
 }
 
+
+/* Empty states: the glyph sits in a white disc on the grey card, an illustration-like mark. */
+.storefront__empty {
+  padding: var(--space-32) var(--space-24);
+  border-radius: var(--radius-lg);
+}
+
+.storefront__empty svg {
+  box-sizing: content-box;
+  padding: var(--space-16);
+  border-radius: var(--radius-full);
+  background: var(--surface-white);
+  color: var(--text-secondary);
+}

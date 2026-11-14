@@ -2791,3 +2791,109 @@ img.pickup-mode__logo,
     border: 1px solid CanvasText;
   }
 }
+
+/* Shop-style cart and checkout, in the discover screens' calm language: bigger product photos on the
+   untinted grey tile, whitespace instead of hairlines between lines, one quiet stepper pill per line,
+   and a total set large so the single primary action under it reads as the next step. */
+.cart__line {
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: var(--space-16);
+}
+
+.cart__line + .cart__line {
+  margin-top: var(--space-24);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.cart__photo,
+.cart__photo .product-image {
+  width: 88px;
+  height: 88px;
+}
+
+.cart__photo,
+.order-item__photo {
+  border-radius: var(--radius-md);
+  background: var(--surface-photo);
+}
+
+.cart__name {
+  font: 600 16px/22px var(--font-text);
+}
+
+.cart__price {
+  margin-top: var(--space-4);
+  font: 700 16px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The stepper as one grey pill: transparent buttons with dark glyphs inside it, the quantity between. */
+.cart__line-controls .stepper {
+  gap: 0;
+  padding: 0 2px;
+  border-radius: var(--radius-full);
+  background: var(--surface-photo);
+}
+
+.cart__line-controls .stepper__btn {
+  background: transparent;
+  color: var(--text);
+}
+
+.cart__line-controls .stepper__btn[aria-disabled='true'] {
+  background: transparent;
+  color: var(--on-disabled);
+}
+
+.cart__line-controls .stepper__qty {
+  min-width: 1.5rem;
+  font: 700 16px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+@container (max-width: 21rem) {
+  .cart__line {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+}
+
+.cart__total {
+  align-items: baseline;
+  margin-top: var(--space-8);
+  padding-top: var(--space-24);
+  border-top: 1px solid var(--neutral-200);
+  font: 800 22px/28px var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.checkout__summary {
+  padding: var(--space-24) var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--surface-photo);
+}
+
+.checkout__summary .order-items__total {
+  padding-top: var(--space-16);
+  font: 800 22px/28px var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* The pickup code is the order page's hero: set larger, with generous room above and below, since it
+   is what the attendee shows across the table. */
+.order-code__body {
+  gap: var(--space-8);
+  padding-block: var(--space-24) var(--space-12);
+}
+
+.order-code__value {
+  font-size: 56px;
+  line-height: 64px;
+  letter-spacing: 8px;
+}
+
+.order-code__label {
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

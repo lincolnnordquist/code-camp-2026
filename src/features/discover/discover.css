@@ -207,8 +207,8 @@
 }
 
 
-/* Search results: the booths-list rhythm. A 56 thumbnail, the facts, and the booth's tile as the
-   link to the map; a hairline between rows starts where the text does (56 + 12). */
+/* Search results: the booths-list rhythm. A 72 thumbnail, the facts, and the booth's tile as the
+   link to the map; a hairline between rows starts where the text does (72 + 12). */
 .results {
   display: grid;
   margin: 0;
@@ -229,7 +229,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  left: calc(56px + var(--space-12));
+  left: calc(72px + var(--space-12));
   border-top: 1px solid color-mix(in oklch, var(--neutral-950) 12%, transparent);
 }
 
@@ -249,8 +249,8 @@
 
 .result__main .product-image--small {
   flex: none;
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
 }
 
 .result__text {
@@ -960,4 +960,37 @@ html :is(.discover, .storefront) :is(.product-card, .category-tile) {
 .result__main .product-image--small {
   border-radius: var(--radius-md);
   background: var(--surface-photo);
+}
+
+/* In search results the plate says "Booth" above the code, so "Booth E4" reads at a glance as the
+   place to go (the plate is also the way to it on the map). */
+.discover a.booth-plate:has(.booth-plate__label) {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 56px;
+  min-height: 52px;
+  padding: 4px var(--space-8);
+  border-radius: var(--radius-md);
+}
+
+.booth-plate__label {
+  font: var(--type-label-small);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The map's booth card in the calm language: white over the grey map card, a soft shadow instead of
+   elevation 3, and the vendor's name in display type. Chrome only: the map's own rules (map.css) stay
+   untouched, so this lifts specificity with html rather than editing them. */
+html .map-page .booth-card {
+  background: var(--surface-white);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px -8px rgb(0 0 0 / 0.18);
+}
+
+html .map-page .booth-card h2 {
+  font: 800 24px/30px var(--font-display);
+  letter-spacing: -0.015em;
 }
