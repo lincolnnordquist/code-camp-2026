@@ -97,7 +97,14 @@ Work in the folders of the role you are assisting (`TEAM-PLAN.md`, "The three ro
 
 ## Commits
 
-Small and frequent, straight to `main`, which deploys. One short imperative sentence saying what changed, for example `Add last-item test for create_reservation`. Pull before starting new work.
+Small and frequent. Small changes go straight to `main`, which deploys. Open a pull request instead when a change:
+
+- touches another role's folders,
+- changes shared code others build on (`src/shared/`),
+- is in an order function, access rule, or payment handling, or
+- is large enough that a teammate should see it before it deploys.
+
+The message is one short imperative sentence saying what changed, for example `Add last-item test for create_reservation`. Pull before starting new work.
 
 ## Before saying something is done
 
