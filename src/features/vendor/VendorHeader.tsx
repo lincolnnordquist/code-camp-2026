@@ -22,9 +22,9 @@ function useScrolled(): boolean {
   return scrolled;
 }
 
-// The vendor top app bar, after the attendee shell's: page tone at rest, frosted card once content
-// scrolls under it. A tab screen shows the product and the booth it runs; a pushed screen shows
-// Back and its title, as the attendee order page does.
+// A tab screen shows the booth's header: its banner, logo, name and booth code. A pushed screen
+// shows Back and its title in the top app bar, which takes the frosted card tone once content
+// scrolls under it. Before the booth has loaded, the bar shows the product name.
 export function VendorHeader({ title, back }: VendorHeaderProps) {
   const { boothState } = useVendor();
   const scrolled = useScrolled();
@@ -32,6 +32,25 @@ export function VendorHeader({ title, back }: VendorHeaderProps) {
   useEffect(() => {
     document.title = `${title} | Vendor`;
   }, [title]);
+
+  if (!back && booth) {
+    return (
+      <header className="vendor-booth-header">
+        {booth.bannerUrl && <img className="vendor-booth-header__banner" src={booth.bannerUrl} alt="" />}
+        <div className="vendor-booth-header__row">
+          <BoothLogo booth={booth} size="md" className="vendor-booth-header__logo" />
+          <p className="vendor-booth-header__text">
+            <span className="title-medium vendor-booth-header__name">{booth.vendorName}</span>
+            <span className="label-medium">Vendor</span>
+          </p>
+          <p className="vendor-booth-header__plate">
+            <span className="label-small">Booth </span>
+            <span className="vendor-booth-header__code">{booth.code}</span>
+          </p>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className={`vendor-bar${scrolled ? " is-scrolled" : ""}`}>
@@ -50,19 +69,10 @@ export function VendorHeader({ title, back }: VendorHeaderProps) {
             <p className="vendor-bar__title">{title}</p>
           </>
         ) : (
-          <>
-            <p className="vendor-bar__brand">
-              <span className="vendor-wordmark">DibSpot</span>
-              <span className="vendor-bar__kicker">Vendor</span>
-            </p>
-            {booth && (
-              <p className="vendor-bar__booth">
-                <BoothLogo booth={booth} size="sm" />
-                <span className="vendor-bar__booth-name">{booth.vendorName}</span>
-                <span className="vendor-bar__booth-code">Booth {booth.code}</span>
-              </p>
-            )}
-          </>
+          <p className="vendor-bar__brand">
+            <span className="vendor-wordmark">DibSpot</span>
+            <span className="vendor-bar__kicker">Vendor</span>
+          </p>
         )}
       </div>
     </header>

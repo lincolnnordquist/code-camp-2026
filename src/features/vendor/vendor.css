@@ -25,13 +25,10 @@
 
 /* Prices, counts and times use Gabarito with tabular figures, as the attendee screens do, so amounts
    line up and never show the body face's slashed zero. Pickup codes keep the mono Code role. */
-.vendor-order__meta,
 .vendor-item__price,
 .vendor-items__total,
 .vendor-product__price,
-.vendor-timer,
 .vendor-hold time,
-.vendor-segment__count,
 .vendor-stepper__input {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
@@ -166,7 +163,7 @@
 }
 
 .vendor-bar__back::after,
-.vendor-segment::after,
+.vendor-tab::after,
 .vendor-order__open::after,
 .vendor-stepper__button::after {
   content: '';
@@ -181,7 +178,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .vendor-bar__back:hover::after,
-  .vendor-segment:hover::after,
+  .vendor-tab:hover::after,
   .vendor-order__open:hover::after,
   .vendor-stepper__button:not(:disabled):hover::after {
     opacity: var(--state-hover);
@@ -189,7 +186,7 @@
 }
 
 .vendor-bar__back:active::after,
-.vendor-segment:active::after,
+.vendor-tab:active::after,
 .vendor-order__open:active::after,
 .vendor-stepper__button:not(:disabled):active::after {
   opacity: var(--state-pressed);
@@ -221,9 +218,9 @@
 
 /* A screen: the one content column, its sections spaced 16 apart. Overrides the shell's main box. */
 .vendor-screen {
-  display: flex;
+  display: grid;
   flex: 1;
-  flex-direction: column;
+  align-content: start;
   gap: var(--space-16);
   width: 100%;
   max-width: var(--vendor-column);
@@ -327,72 +324,6 @@
   margin-top: var(--space-16);
 }
 
-/* Queue tabs: a segmented track in card tone, the selected segment in the navigation bar's
-   indicator colour, each with its count as a badge. Scrolls sideways rather than squeezing a label. */
-.vendor-segments {
-  display: flex;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  overflow-x: auto;
-  border-radius: var(--radius-full);
-  background: var(--card);
-  scrollbar-width: none;
-}
-
-.vendor-segment {
-  position: relative;
-  display: inline-flex;
-  flex: 1 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-8);
-  min-height: 44px;
-  padding: 0 var(--space-12);
-  border: 0;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--text-secondary);
-  font: var(--type-label-large);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease;
-}
-
-.vendor-segment[aria-selected='true'] {
-  background: var(--primary-200);
-  color: var(--on-quiet-action);
-}
-
-/* Inside the scrolling track a ring outside the segment would be clipped. */
-.vendor-segment:focus-visible {
-  outline-offset: -3px;
-}
-
-.vendor-segment__count {
-  display: inline-grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: var(--radius-full);
-  background: var(--neutral-200);
-  color: var(--neutral-800);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 16px;
-}
-
-.vendor-segment[aria-selected='true'] .vendor-segment__count {
-  background: var(--action);
-  color: var(--on-action);
-}
-
-/* An owed refund is a status, so its count takes the refund-due badge colours. */
-.vendor-segment.has-refund .vendor-segment__count {
-  background: var(--warning-100);
-  color: var(--warning-800);
-}
-
 .vendor-queue__panel {
   display: flex;
   flex: 1;
@@ -408,186 +339,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-/* An order card, after the attendee wallet pass: the pickup code first, its badges, what and when,
-   then the one action. The whole card opens the order; the action sits above that link. */
-.vendor-order {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  height: 100%;
-  padding: var(--space-16);
-  border-radius: var(--radius-md);
-  background: var(--card);
-  color: var(--text);
-}
-
-.vendor-order:has(.vendor-order__open:focus-visible) {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.vendor-order__top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: var(--space-8);
-}
-
-.vendor-order__open {
-  display: flex;
-  flex-direction: column;
-  color: inherit;
-  text-decoration: none;
-}
-
-.vendor-order__open::after {
-  border-radius: var(--radius-md);
-}
-
-.vendor-order__open:focus-visible {
-  outline: none;
-}
-
-.vendor-order__label {
-  color: var(--text-secondary);
-  font: var(--type-label-medium);
-  letter-spacing: 0.01em;
-}
-
-.vendor-order__code {
-  font: 700 28px/36px var(--font-mono);
-  letter-spacing: 3px;
-}
-
-.vendor-order__badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-4);
-}
-
-.vendor-order__chevron {
-  color: var(--text-secondary);
-}
-
-.vendor-order__meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--space-4) var(--space-12);
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-}
-
-.vendor-order__action {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  margin-top: auto;
-}
-
-/* Order page: the pass card with the code, then the facts, items and actions, as the attendee
-   order page stacks them. */
-.vendor-badges {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-8);
-}
-
-.vendor-pass {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-24) var(--space-16);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-  text-align: center;
-}
-
-.vendor-pass p,
-.vendor-pass h1 {
-  margin: 0;
-}
-
-.vendor-pass .vendor-badges {
-  margin-bottom: var(--space-12);
-}
-
-.vendor-pass__label {
-  color: var(--text-secondary);
-  font: var(--type-label-medium);
-  letter-spacing: 0.01em;
-}
-
-/* The pickup code in the attendee order page's face: Gabarito, large, tabular, tracked; a step
-   larger here, read across a counter. */
-.vendor-pass__code {
-  padding-left: 0.12em;
-  font: 800 44px/52px var(--font-display);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.12em;
-}
-
-.vendor-pass__meta {
-  color: var(--text-secondary);
-  font: var(--type-body-small);
-}
-
-/* Label and value rows split by hairlines (order.css .order-details). */
-.vendor-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  margin: 0;
-  padding: var(--space-16);
-  border-radius: var(--radius-md);
-  background: var(--card);
-}
-
-.vendor-facts > div {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.vendor-facts > div + div {
-  padding-top: var(--space-12);
-  box-shadow: var(--hairline);
-}
-
-.vendor-facts dt {
-  color: var(--text-secondary);
-  font: var(--type-body-small);
-}
-
-.vendor-facts dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font: var(--type-body-large);
-}
-
-.vendor-facts .vendor-facts__code {
-  font: 700 22px/28px var(--font-mono);
-  letter-spacing: 2px;
-}
-
-.vendor-hold {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-}
-
-.vendor-timer {
-  font-weight: 600;
 }
 
 /* Items: photo, quantity pill, name and line price, then the total (order.css .order-items). */
@@ -615,26 +366,6 @@
   align-items: center;
   gap: var(--space-12);
   min-height: 48px;
-}
-
-.vendor-item__photo .product-image,
-.vendor-product__photo .product-image {
-  width: 48px;
-  height: 48px;
-  font: var(--type-label-small);
-}
-
-.vendor-item__qty {
-  display: inline-grid;
-  place-items: center;
-  min-width: 28px;
-  height: 24px;
-  padding: 0 var(--space-8);
-  border-radius: var(--radius-full);
-  background: var(--neutral-200);
-  color: var(--neutral-800);
-  font: var(--type-label-medium);
-  font-variant-numeric: tabular-nums;
 }
 
 .vendor-item__name {
@@ -682,12 +413,6 @@
   color: var(--text-secondary);
   font: var(--type-body-small);
   text-align: center;
-}
-
-@media (max-width: 599px) {
-  .vendor-actions {
-    margin-top: auto;
-  }
 }
 
 /* Cancel: the attendee cancel sheet (order.css .cancel-sheet) with a reason field. */
@@ -836,100 +561,6 @@
 }
 
 /* Pickup: the code card, with boxes large enough to read across a counter. */
-.vendor-code-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-16);
-  padding: var(--space-24) var(--space-16);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-  text-align: center;
-  --outline: var(--outline-on-card);
-}
-
-.vendor-screen .vendor-code-card__title {
-  font: var(--type-title-medium);
-}
-
-.vendor-code-entry .ec-code-entry {
-  justify-content: center;
-  gap: var(--space-12);
-}
-
-.vendor-code-entry .ec-code-entry-box {
-  width: 64px;
-  height: 80px;
-  border-radius: var(--radius-md);
-  background: var(--page);
-  font: 700 44px/52px var(--font-mono);
-}
-
-.vendor-code-entry .ec-code-entry.is-vendor .ec-code-entry-box.is-active {
-  box-shadow: inset 0 0 0 2px var(--primary-600);
-}
-
-.vendor-code-entry .ec-code-entry.is-error .ec-code-entry-box {
-  box-shadow: inset 0 0 0 2px var(--error-700);
-}
-
-.vendor-code-entry .ec-code-entry-error {
-  font: var(--type-body-medium);
-}
-
-.vendor-code-card__status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-  margin: 0;
-  color: var(--text-secondary);
-  font: var(--type-body-medium);
-}
-
-/* The outcome of a code: one large mark in the outcome's status colour, then the words. */
-.vendor-outcome {
-  gap: var(--space-8);
-}
-
-.vendor-outcome__icon {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: var(--space-8);
-  border-radius: var(--radius-full);
-}
-
-.vendor-outcome--success .vendor-outcome__icon {
-  background: var(--success-100);
-  color: var(--success-800);
-}
-
-.vendor-outcome--neutral .vendor-outcome__icon {
-  background: var(--neutral-200);
-  color: var(--neutral-800);
-}
-
-.vendor-outcome--error .vendor-outcome__icon {
-  background: var(--error-100);
-  color: var(--error-800);
-}
-
-.vendor-pass .vendor-outcome__title {
-  margin-top: var(--space-4);
-}
-
-.vendor-outcome__body {
-  max-width: 26rem;
-  font: var(--type-body-large);
-}
-
-.vendor-outcome .vendor-outcome__next {
-  width: 100%;
-  max-width: 22rem;
-  margin-top: var(--space-16);
-}
-
 /* Stock: the pause card, then one card per product with its photo and a quantity stepper. */
 .vendor-card {
   --outline: var(--outline-on-card);
@@ -940,14 +571,6 @@
   padding: var(--space-16);
   border-radius: var(--radius-md);
   background: var(--card);
-}
-
-.vendor-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
-  align-self: stretch;
 }
 
 .vendor-card__text {
@@ -1201,38 +824,13 @@
   }
 
   .vendor-bar,
-  .vendor-segment,
+  .vendor-tab,
   .vendor-bar__back::after,
-  .vendor-segment::after,
+  .vendor-tab::after,
   .vendor-order__open::after,
   .vendor-stepper__button::after {
     transition: none;
   }
-}
-
-/* Pickup: scanning is the quick way, typing the equal alternative under it. */
-.vendor-code-card .vendor-code-card__scan {
-  width: 100%;
-  max-width: 22rem;
-}
-
-.vendor-code-card__or {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-  width: 100%;
-  max-width: 22rem;
-  margin: 0;
-  color: var(--text-secondary);
-  font: var(--type-body-small);
-}
-
-.vendor-code-card__or::before,
-.vendor-code-card__or::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: color-mix(in oklch, var(--neutral-950) 12%, transparent);
 }
 
 /* The scanner: the live camera in a square viewfinder inside the sheet. */
@@ -1288,4 +886,663 @@
   .vendor-scanner__video {
     transition: none;
   }
+}
+
+/* The booth header on tab screens: the vendor's banner under a dark overlay, then the logo, name
+   and booth plate along its foot. */
+.vendor-booth-header {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: calc(148px + env(safe-area-inset-top, 0px));
+  overflow: hidden;
+  background: var(--neutral-900);
+  color: #fff;
+}
+
+.vendor-booth-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.35);
+}
+
+.vendor-booth-header__banner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vendor-booth-header__row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  max-width: var(--vendor-column);
+  margin: 0 auto;
+  padding: 0 var(--space-16) var(--space-16);
+}
+
+.vendor-booth-header .vendor-booth-header__logo {
+  width: 40px;
+  height: 40px;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.vendor-booth-header__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+}
+
+.vendor-booth-header__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vendor-booth-header__plate {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
+}
+
+.vendor-booth-header__code {
+  font: 800 16px/20px var(--font-display);
+}
+
+/* Queue tabs: three equal underlined tabs. */
+.vendor-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.vendor-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  height: var(--touch-target);
+  padding: 0 var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 200ms,
+    box-shadow 200ms;
+}
+
+.vendor-tab[aria-selected='true'] {
+  color: var(--primary-900);
+  box-shadow: inset 0 -3px 0 var(--primary-600);
+}
+
+.vendor-tab:focus-visible {
+  outline-offset: -3px;
+}
+
+.vendor-tab__count {
+  font: var(--type-button-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-tab.has-refund .vendor-tab__count {
+  color: var(--error-700);
+}
+
+/* An order card: the pickup code and time, the items, then the payment and total. The code link's
+   layer covers the whole card, so tapping anywhere opens the order. */
+.vendor-order {
+  position: relative;
+  display: grid;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.vendor-order__top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+}
+
+.vendor-order__open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.vendor-order__label,
+.vendor-order__time,
+.vendor-order__chevron {
+  color: var(--text-secondary);
+}
+
+.vendor-order__code,
+.vendor-pass__code .code {
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-order__items,
+.vendor-pass-items {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vendor-order__item,
+.vendor-pass-item {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.vendor-pass-item + .vendor-pass-item {
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--neutral-200);
+}
+
+.vendor-order__item-name,
+.vendor-pass-item__name {
+  overflow-wrap: anywhere;
+}
+
+.vendor-order__qty,
+.vendor-order__total {
+  font: var(--type-button-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-order__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin: 0;
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--neutral-200);
+}
+
+.vendor-order .vendor-order__action {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: var(--touch-target);
+}
+
+/* A product photo in an order: a 48 px white tile. */
+.vendor-photo {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.vendor-photo .product-image {
+  width: 100%;
+  height: 100%;
+  font: var(--type-label-small);
+}
+
+/* Pickup entry: scan first, typing the equal alternative under it. */
+.vendor-screen .vendor-scan {
+  width: 100%;
+}
+
+.vendor-or {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.vendor-or::before,
+.vendor-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--neutral-200);
+}
+
+.vendor-code-card {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--neutral-200);
+}
+
+.vendor-screen .vendor-code-card__title {
+  font: var(--type-label-medium);
+}
+
+.vendor-code-entry .ec-code-entry {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+
+.vendor-code-entry .ec-code-entry-box {
+  width: auto;
+  height: 64px;
+  border-radius: var(--radius-md);
+  background: var(--page);
+  box-shadow: inset 0 0 0 1px var(--neutral-400);
+  font: 700 32px/40px var(--font-mono);
+}
+
+.vendor-code-entry .ec-code-entry.is-vendor .ec-code-entry-box.is-active {
+  box-shadow: inset 0 0 0 2px var(--primary-600);
+}
+
+.vendor-code-entry .ec-code-entry.is-error .ec-code-entry-box {
+  box-shadow: inset 0 0 0 2px var(--error-700);
+}
+
+.vendor-code-entry .ec-code-entry-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.vendor-code-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+/* A pickup result: the outcome's mark beside its title, the pass, then the next code. */
+.vendor-result__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+}
+
+.vendor-result__head h1,
+.vendor-result__head p {
+  margin: 0;
+}
+
+.vendor-result__head--success .vendor-result__icon {
+  color: var(--success-800);
+}
+
+.vendor-result__head--neutral .vendor-result__icon {
+  color: var(--text-secondary);
+}
+
+.vendor-result__head--error .vendor-result__icon {
+  color: var(--error-700);
+}
+
+.vendor-result__icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.vendor-screen .vendor-result__next {
+  width: 100%;
+  height: var(--touch-target);
+}
+
+/* The order's pass: violet while it can be handed over, grey once it must not be. */
+.vendor-pass {
+  display: grid;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  border-radius: var(--radius-lg);
+}
+
+.vendor-pass--violet {
+  background: var(--primary-600);
+  color: #fff;
+}
+
+.vendor-pass--grey {
+  background: var(--neutral-200);
+  color: var(--text);
+}
+
+.vendor-pass__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+
+.vendor-screen .vendor-pass__title {
+  margin: 0;
+  font: var(--type-title-large);
+}
+
+.vendor-pass__aside {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.vendor-pass__booth {
+  font: 800 24px/28px var(--font-display);
+}
+
+.vendor-pass__card {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--text);
+}
+
+.vendor-pass__card > * + * {
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--neutral-200);
+}
+
+.vendor-pass__code,
+.vendor-pass__reason {
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-pass__code-label {
+  color: var(--text-secondary);
+}
+
+.vendor-pass--grey .vendor-pass__code .code {
+  color: var(--text-secondary);
+}
+
+.vendor-pass--grey .vendor-photo .product-image {
+  opacity: 0.6;
+}
+
+.vendor-progress {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.vendor-progress__track {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.vendor-progress__segment {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: rgb(255 255 255 / 0.3);
+}
+
+.vendor-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+  transform-origin: left;
+  animation: vendor-fill 320ms ease-out both;
+  animation-delay: calc(var(--i) * 90ms);
+}
+
+@keyframes vendor-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.vendor-progress__labels {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vendor-progress__labels .is-current {
+  font-weight: 700;
+}
+
+.vendor-progress__labels .is-ahead {
+  opacity: 0.75;
+}
+
+/* Label and value rows, 48 high, divided by rules. */
+.vendor-facts {
+  display: grid;
+  margin: 0;
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.vendor-facts > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  min-height: var(--touch-target);
+  padding: var(--space-12) 0;
+  box-sizing: border-box;
+}
+
+.vendor-facts > div + div {
+  border-top: 1px solid var(--neutral-200);
+}
+
+.vendor-facts dt {
+  color: var(--text-secondary);
+  font: var(--type-body-medium);
+}
+
+.vendor-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: var(--type-label-large);
+  text-align: right;
+}
+
+.vendor-hold {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.vendor-hold__left {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-items {
+  border-radius: var(--radius-lg);
+}
+
+.vendor-item__qty {
+  font: var(--type-button-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-actions .ec-btn {
+  height: var(--touch-target);
+}
+
+/* The cancel sheet's reason: three lines, required. */
+.vendor-sheet__panel {
+  gap: var(--space-16);
+  padding-top: var(--space-12);
+}
+
+.vendor-reason {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.vendor-reason__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-12) var(--space-16);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--page);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--outline);
+  resize: vertical;
+}
+
+.vendor-reason__input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--primary-600);
+}
+
+.vendor-reason.is-error .vendor-reason__input {
+  box-shadow: inset 0 0 0 2px var(--error-700);
+}
+
+.vendor-reason__error {
+  margin: 0;
+  color: var(--error-700);
+}
+
+.vendor-sheet__buttons .ec-btn {
+  height: var(--touch-target);
+}
+
+/* Stock: the online-orders line in its status colour, then product cards with a 96 px photo. */
+.vendor-card {
+  border-radius: var(--radius-lg);
+}
+
+.vendor-online__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  color: var(--success-800);
+}
+
+.vendor-online__status.is-paused {
+  color: var(--warning-900);
+}
+
+.vendor-card .ec-btn {
+  align-self: stretch;
+  height: var(--touch-target);
+}
+
+.vendor-section__head p {
+  font: var(--type-body-medium);
+}
+
+.vendor-product {
+  padding: var(--space-12);
+  border-radius: var(--radius-lg);
+}
+
+.vendor-product__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+}
+
+.vendor-product__photo {
+  display: grid;
+  flex: none;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.vendor-product__photo .product-image {
+  width: 100%;
+  height: 100%;
+}
+
+.vendor-product__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vendor-product__soldout {
+  color: var(--error-700);
+}
+
+.vendor-stepper {
+  flex: 1;
+  min-width: 0;
+  box-shadow: inset 0 0 0 1px var(--neutral-600);
+}
+
+.vendor-stepper__input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  font: var(--type-button-medium);
+}
+
+.vendor-product__edit .vendor-save {
+  flex: none;
+  height: var(--touch-target);
+  padding: 0 var(--space-24);
+}
+
+.vendor-signout .ec-btn {
+  height: var(--touch-target);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vendor-progress__fill {
+    animation: none;
+  }
+}
+
+.vendor-sheet .vendor-sheet__note {
+  color: var(--text-secondary);
+  font: var(--type-body-small);
+}
+
+.vendor-screen .title-large {
+  font: var(--type-title-large);
+}
+
+.vendor-signout .ec-btn {
+  width: 100%;
+}
+
+.vendor-sheet__text .body-medium {
+  font: var(--type-body-medium);
 }

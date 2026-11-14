@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import { markOrderReady } from "../../shared/api";
 import { useOnlineStatus } from "../../shared/live";
 import type { Order } from "../../shared/types";
-import { Badge, Banner, Button, Icon, orderLabels } from "../../shared/ui";
-import { refusalLabels } from "../../shared/ui/labels";
+import { Banner, Button, formatMoney, Icon, orderLabels } from "../../shared/ui";
+import { orderStatusLabels, refusalLabels } from "../../shared/ui/labels";
+import { ItemPhoto } from "./OrderItems";
 import { Skeleton, SkeletonGroup } from "../../shell/Skeleton";
 import { VendorHeader, VendorTitle } from "./VendorHeader";
 import { VendorState } from "./VendorState";
-import { clockTime, inTab, orderSummary, QUEUE_TABS, tabCounts, type QueueTab } from "./queueModel";
+import { clockTime, inTab, QUEUE_TABS, tabCounts, type QueueTab } from "./queueModel";
 import { useVendor } from "./vendorSession";
 
 const emptyText: Record<QueueTab, { title: string; body: string; icon: "receipt_long" | "check_circle" | "info" }> = {
@@ -93,8 +94,8 @@ export function OrderQueue() {
     <>
       <VendorHeader title="Orders" />
       <main className="vendor-screen vendor-queue">
-        <VendorTitle title="Orders" />
-        <div role="tablist" aria-label="Order status" className="vendor-segments">
+        <h1 className="visually-hidden">Orders</h1>
+        <div role="tablist" aria-label="Order status" className="vendor-tabs">
           {QUEUE_TABS.map((t) => (
             <button
               key={t.id}
@@ -107,14 +108,14 @@ export function OrderQueue() {
               aria-selected={tab === t.id}
               aria-controls="queue-panel"
               tabIndex={tab === t.id ? 0 : -1}
-              className={`vendor-segment${t.id === "refund" && counts.refund > 0 ? " has-refund" : ""}`}
+              className={`vendor-tab${t.id === "refund" && counts.refund > 0 ? " has-refund" : ""}`}
               onClick={() => setTab(t.id)}
               onKeyDown={onTabKey}
             >
-              {/* The count shows as a badge; the tab's name stays "Confirmed (3)" for screen readers. */}
-              {t.label}{" "}
+              {/* The tab's name stays "Confirmed (3)" for screen readers. */}
+              <span className="title-medium">{t.label}</span>{" "}
               <span className="visually-hidden">({counts[t.id]})</span>
-              <span className="vendor-segment__count" aria-hidden="true">
+              <span className="vendor-tab__count" aria-hidden="true">
                 {counts[t.id]}
               </span>
             </button>
@@ -136,31 +137,39 @@ export function OrderQueue() {
           ) : (
             <ul className="vendor-queue__list" role="list">
               {shown.map((order) => {
-                const labels = orderLabels(order);
+                const payment = orderLabels(order).paymentBadge?.label;
                 return (
                   <li key={order.id}>
-                    <article className={`vendor-order vendor-order--${order.status}`}>
+                    <article className="vendor-order">
                       <div className="vendor-order__top">
                         <Link className="vendor-order__open" to={`/vendor/orders/${order.id}`}>
-                          <span className="vendor-order__label">Pickup code</span>
-                          <span className="vendor-order__code">{order.pickupCode}</span>
+                          <span className="label-medium vendor-order__label">Pickup code</span>
+                          <span className="code vendor-order__code">{order.pickupCode}</span>
                         </Link>
-                        <span className="vendor-order__badges">
-                          {tab === "refund" && <Badge tone={labels.statusBadge.tone}>{labels.statusBadge.label}</Badge>}
-                          {labels.paymentBadge && <Badge tone={labels.paymentBadge.tone}>{labels.paymentBadge.label}</Badge>}
-                        </span>
+                        {/* Orders carry no time they were marked ready, so every tab shows when the order was placed. */}
+                        <time className="body-small vendor-order__time" dateTime={order.createdAt}>
+                          {clockTime(order.createdAt)}
+                        </time>
                         <Icon name="chevron_right" className="vendor-order__chevron" />
                       </div>
-                      <p className="vendor-order__meta">
-                        <span>{orderSummary(order)}</span>
-                        <time dateTime={order.createdAt}>{clockTime(order.createdAt)}</time>
+                      <ul className="vendor-order__items" role="list">
+                        {order.items.map((item) => (
+                          <li key={item.productId} className="vendor-order__item">
+                            <ItemPhoto productId={item.productId} />
+                            <span className="body-medium vendor-order__item-name">{item.name}</span>
+                            <span className="vendor-order__qty">×{item.quantity}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="vendor-order__foot">
+                        <span className="body-medium">{payment ?? orderStatusLabels[order.status]}</span>
+                        <span className="vendor-order__total">{formatMoney(order.totalCents, order.currency)}</span>
                       </p>
                       {order.status === "confirmed" &&
                         (busyId === order.id ? (
-                          <Button variant="tonal" className="vendor-order__action" loadingLabel={`Marking order ${order.pickupCode} ready`} />
+                          <Button className="vendor-order__action" loadingLabel={`Marking order ${order.pickupCode} ready`} />
                         ) : (
                           <Button
-                            variant="tonal"
                             className="vendor-order__action"
                             disabled={!online}
                             aria-label={`Mark order ${order.pickupCode} ready`}

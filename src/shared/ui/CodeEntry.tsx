@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { Icon } from "./Icon";
 import "./components.css";
 
 const CODE_LENGTH = 4;
@@ -47,6 +48,7 @@ export function CodeEntry({ label, value, onChange, vendorSide = false, error }:
       </div>
       {error && (
         <div id={errorId} className="body-small ec-code-entry-error">
+          <Icon name="error" size={16} />
           {error}
         </div>
       )}

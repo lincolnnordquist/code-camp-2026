@@ -115,7 +115,11 @@ describe("order queue", () => {
     open("/vendor/orders");
 
     expect(await screen.findByRole("tab", { name: "Confirmed (1)" })).toBeTruthy();
-    expect(screen.getByText("2 items · $36.00")).toBeTruthy();
+    // The card lists what to set aside and how it is paid, with no badges.
+    expect(screen.getByText("Patch")).toBeTruthy();
+    expect(screen.getByText("×2")).toBeTruthy();
+    expect(screen.getByText("Pay at pickup")).toBeTruthy();
+    expect(screen.getByText("$36.00")).toBeTruthy();
     expect(screen.getByText("Pay at pickup")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Mark order 0427 ready" }));
@@ -196,7 +200,8 @@ describe("order detail and cancelling", () => {
     fireEvent.change(within(dialog).getByLabelText("Reason"), { target: { value: "Sold out" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel order" }));
     await waitFor(() => expect(api.cancelOrder).toHaveBeenCalledWith("o1", "Sold out"));
-    expect(await screen.findByText("Refund due")).toBeTruthy();
+    expect(await screen.findByText(/Refund \$12\.00 in Square/)).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Cancelled" })).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
@@ -211,7 +216,7 @@ describe("pickup", () => {
     const input = await screen.findByLabelText("Pickup code");
     fireEvent.change(input, { target: { value: "0427" } });
     await waitFor(() => expect(api.collectOrder).toHaveBeenCalledWith("b1", "0427"));
-    expect(await screen.findByText("Payment of $36.00 taken at the booth")).toBeTruthy();
+    expect(await screen.findByText("Hand over the items. Payment of $36.00 taken at the booth.")).toBeTruthy();
   });
 
   it("says an unknown code was not found and keeps the entry open", async () => {
@@ -231,9 +236,9 @@ describe("pickup", () => {
     open("/vendor/pickup");
     fireEvent.change(await screen.findByLabelText("Pickup code"), { target: { value: "0427" } });
     expect(await screen.findByRole("heading", { name: "Already collected" })).toBeTruthy();
-    // The refusal names the order, so its items and total are shown.
+    // The refusal names the order, so its items are shown on a grey pass.
     expect(screen.getByText("Patch")).toBeTruthy();
-    expect(screen.getByText("$36.00", { selector: ".vendor-items__total span" })).toBeTruthy();
+    expect(document.querySelector(".vendor-pass--grey")).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Enter another code" }));
 
     api.collectOrder.mockResolvedValueOnce({
@@ -242,7 +247,7 @@ describe("pickup", () => {
       order: order({ status: "cancelled", cancelReason: "Sold out" }),
     });
     fireEvent.change(await screen.findByLabelText("Pickup code"), { target: { value: "1111" } });
-    expect(await screen.findByText("This order was cancelled. Don't hand over the items.")).toBeTruthy();
+    expect(await screen.findByText("This order was cancelled. Items stay at the booth.")).toBeTruthy();
     expect(screen.getByText("Sold out")).toBeTruthy();
   });
 });
