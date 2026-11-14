@@ -34,6 +34,7 @@ function depsWith(
     },
     provider: {
       webhookSignatureHeaderName: "x-test-signature",
+      pendingRecheckMs: 2000,
       createCheckout,
       getPayment: unused,
       closeCheckout: closeCheckout ?? unused,

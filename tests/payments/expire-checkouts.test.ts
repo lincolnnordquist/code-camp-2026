@@ -64,13 +64,17 @@ function setup(
   orders: OverdueCheckout[],
   square: Square = {},
   expireReplies: Record<string, unknown> = {},
+  confirmReply: unknown = { ok: true, outcome: "confirmed", status: "confirmed" },
 ) {
   const calls: string[] = [];
   const expireCalls: Record<string, unknown>[] = [];
+  const confirmCalls: Record<string, unknown>[] = [];
+  const emails: [string, string | null][] = [];
   const unused = () => Promise.reject(new Error("not used by expire-checkouts"));
   const name = (id: string) => id.replace(/^(SQ|LINK)_/, "");
   const provider: PaymentProvider = {
     webhookSignatureHeaderName: "x-test-signature",
+    pendingRecheckMs: 2000,
     createCheckout: unused,
     getPayment(_connection, providerOrderId) {
       calls.push(`getPayment ${providerOrderId}`);
@@ -100,6 +104,10 @@ function setup(
       if (rpcName === "svc_list_overdue_checkouts") {
         return Promise.resolve({ ok: true, orders });
       }
+      if (rpcName === "svc_confirm_paid_order") {
+        confirmCalls.push(args);
+        return Promise.resolve(confirmReply);
+      }
       expireCalls.push(args);
       const reply = expireReplies[args.p_order_id as string] ??
         { ok: true, changed: true };
@@ -110,8 +118,14 @@ function setup(
     provider,
     readSecret: (secret) =>
       secret === "SQUARE_ACCESS_TOKEN_TEST" ? "seller-token" : undefined,
+    email: {
+      sendConfirmation(orderId, userId) {
+        emails.push([orderId, userId]);
+        return Promise.resolve("sent");
+      },
+    },
   };
-  return { deps, calls, expireCalls };
+  return { deps, calls, expireCalls, confirmCalls, emails };
 }
 
 function run(deps: ExpireCheckoutsDeps, key: string | null = SERVICE_KEY) {
@@ -129,7 +143,7 @@ function run(deps: ExpireCheckoutsDeps, key: string | null = SERVICE_KEY) {
 const noCounts = {
   expired: 0,
   left: 0,
-  paidAwaitingConfirmation: 0,
+  confirmed: 0,
   paidNotVerified: 0,
   failed: 0,
 };
@@ -191,6 +205,8 @@ type Case = {
   name: string;
   square?: Square;
   expireReply?: unknown;
+  confirmReply?: unknown;
+  confirms?: boolean;
   linked?: boolean;
   outcome: keyof typeof noCounts;
   closed: boolean;
@@ -204,9 +220,10 @@ const pending = payment("t", "pending");
 // must still expire, so a run that stopped at "t" fails the case.
 const cases: Case[] = [
   {
-    name: "a verified payment is left for confirmation and its link is kept",
+    name: "a verified payment confirms the order and its link is kept",
+    confirms: true,
     square: { payments: { t: [done] } },
-    outcome: "paidAwaitingConfirmation",
+    outcome: "confirmed",
     closed: false,
   },
   {
@@ -222,9 +239,10 @@ const cases: Case[] = [
     closed: false,
   },
   {
-    name: "a payment completed while the link was deleted is not expired",
+    name: "a payment completed while the link was deleted confirms the order",
+    confirms: true,
     square: { payments: { t: [null, done] }, closes: { t: null } },
-    outcome: "paidAwaitingConfirmation",
+    outcome: "confirmed",
     closed: true,
   },
   {
@@ -308,6 +326,30 @@ const cases: Case[] = [
     outcome: "left",
     closed: true,
   },
+  {
+    name: "a payment the return page already recorded counts as confirmed",
+    confirms: true,
+    square: { payments: { t: [done] } },
+    confirmReply: { ok: true, outcome: "already_confirmed", status: "confirmed" },
+    outcome: "confirmed",
+    closed: false,
+  },
+  {
+    name: "a payment the database records as refund due is left",
+    confirms: true,
+    square: { payments: { t: [done] } },
+    confirmReply: { ok: true, outcome: "refund_due", status: "cancelled" },
+    outcome: "left",
+    closed: false,
+  },
+  {
+    name: "a payment the database refuses to record counts as paid but not verified",
+    confirms: true,
+    square: { payments: { t: [done] } },
+    confirmReply: { ok: false, reason: "amount_mismatch" },
+    outcome: "paidNotVerified",
+    closed: false,
+  },
   ...(["rejected", "not_found"] as const).map((reason): Case => ({
     name: `a Square ${reason} reply counts as failed`,
     square: { payments: { t: [new ProviderError(reason, "CODE", "refused")] } },
@@ -318,10 +360,11 @@ const cases: Case[] = [
 
 for (const c of cases) {
   test(c.name, async () => {
-    const { deps, calls, expireCalls } = setup(
+    const { deps, calls, expireCalls, confirmCalls, emails } = setup(
       [overdue("t", c.linked ?? true), overdue("control")],
       c.square,
       c.expireReply === undefined ? {} : { "order-t": c.expireReply },
+      c.confirmReply,
     );
     const body = await (await run(deps)).json();
 
@@ -333,6 +376,19 @@ for (const c of cases) {
       expireCalls.some((args) => args.p_order_id === "order-control"),
       "the order after it is still expired",
     );
+    assert.deepEqual(
+      confirmCalls,
+      c.confirms
+        ? [{
+          p_provider_order_id: "SQ_t",
+          p_provider_payment_id: "PAY_t",
+          p_amount_cents: 3200,
+          p_currency: "USD",
+          p_location_id: LOCATION,
+        }]
+        : [],
+    );
+    assert.deepEqual(emails, c.outcome === "confirmed" ? [["order-t", null]] : []);
     if (c.expireArgs) {
       assert.deepEqual(
         expireCalls.find((args) => args.p_order_id === "order-t"),

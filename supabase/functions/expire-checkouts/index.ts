@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.119.0";
 import { providerFromEnvironment } from "../_shared/providers/index.ts";
+import { orderEmailFromEnvironment } from "../_shared/order-email.ts";
 import { handleExpireCheckouts, json } from "./handler.ts";
 
 function requiredEnv(name: string): string {
@@ -13,15 +14,20 @@ const admin = createClient(requiredEnv("SUPABASE_URL"), serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+async function rpc(name: string, args: Record<string, unknown>) {
+  const { data, error } = await admin.rpc(name, args);
+  if (error) throw new Error(`${name} failed: ${error.message}`);
+  return data;
+}
+
+const readEnv = (name: string) => Deno.env.get(name);
+
 const deps = {
   serviceKey,
-  async rpc(name: string, args: Record<string, unknown>) {
-    const { data, error } = await admin.rpc(name, args);
-    if (error) throw new Error(`${name} failed: ${error.message}`);
-    return data;
-  },
-  provider: providerFromEnvironment((name) => Deno.env.get(name)),
-  readSecret: (name: string) => Deno.env.get(name),
+  rpc,
+  provider: providerFromEnvironment(readEnv),
+  readSecret: readEnv,
+  email: orderEmailFromEnvironment(readEnv, rpc),
 };
 
 Deno.serve(async (request) => {

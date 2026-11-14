@@ -78,6 +78,9 @@ export class ProviderError extends Error {
 export interface PaymentProvider {
   readonly webhookSignatureHeaderName: string;
 
+  // How long to wait before reading a pending payment once more.
+  readonly pendingRecheckMs: number;
+
   createCheckout(input: CreateCheckoutInput): Promise<Checkout>;
 
   // Resolves to null when the provider order has no payment.

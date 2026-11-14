@@ -130,6 +130,9 @@ export function createSquareProvider(
 
   return {
     webhookSignatureHeaderName: "x-square-hmacsha256-signature",
+    // A card payment shows as APPROVED for about two seconds before it is
+    // COMPLETED, and an attendee can land back on the order page inside that time.
+    pendingRecheckMs: 2000,
 
     async createCheckout(input) {
       const reply = await request<PaymentLinkReply>(
