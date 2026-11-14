@@ -112,9 +112,7 @@ async function handleRefund(
   deps: SquareWebhookDeps,
   event: Extract<WebhookEvent, { kind: "refund" }>,
 ): Promise<Response> {
-  // Delivery order is not guaranteed, so a refund can arrive before its
-  // payment is recorded; a redelivery finds it once the payment message lands.
-  // A payment that is never recorded is retried until Square stops redelivering.
+  // A refund can arrive before its payment message; the 500 gets a redelivery.
   const found = await deps.rpc("svc_get_checkout_by_provider_payment", {
     p_provider_payment_id: event.paymentId,
   }) as Found;
@@ -136,7 +134,7 @@ async function handleRefund(
     return json(200, { ok: false, reason: "refund_payment_mismatch" });
   }
   if (refund.status !== "completed") {
-    if (event.reportedCompleted) {
+    if (event.reportedCompleted && refund.status === "pending") {
       log("square_webhook_refund_not_settled", {
         orderId: found.orderId,
         refundId: event.refundId,
@@ -155,9 +153,7 @@ async function handleRefund(
       orderId: found.orderId,
       reason: marked.reason,
     });
-    return marked.reason === "payment_not_found"
-      ? retryLater(marked.reason)
-      : json(200, { ok: false, reason: marked.reason });
+    return json(200, { ok: false, reason: marked.reason });
   }
   return json(200, {
     ok: true,

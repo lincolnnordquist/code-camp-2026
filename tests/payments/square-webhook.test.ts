@@ -468,6 +468,20 @@ test("refund.created saying PENDING while Square shows it pending marks nothing 
   assert.deepEqual(rpcNames(calls), ["svc_get_checkout_by_provider_payment"]);
 });
 
+test("a refund message saying COMPLETED while Square shows it rejected marks nothing and is answered 200", async () => {
+  const { deps, calls } = setup({ refund: refund({ status: "rejected" }) });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "refund_rejected" } });
+  assert.deepEqual(rpcNames(calls), ["svc_get_checkout_by_provider_payment"]);
+});
+
+test("a refund whose seller token secret is not set is answered 500 without asking Square", async () => {
+  const { deps, squareCalls } = setup({ secret: "" });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 500, body: { ok: false, reason: "secret_missing" } });
+  assert.deepEqual(squareCalls, []);
+});
+
 test("a refund Square reports for another payment marks nothing", async () => {
   const { deps, calls } = setup({ refund: refund({ paymentId: "PAY_OTHER" }) });
   const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
