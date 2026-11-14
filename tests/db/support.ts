@@ -193,13 +193,42 @@ beforeAll(async () => {
   });
 });
 
+// Removes everything the tests created, and fails the run if any of it cannot be removed,
+// so a cleanup problem is never silent. Payments point at orders, so they go first.
 afterAll(async () => {
-  if (boothIds.length > 0)
-    await admin.from("orders").delete().in("booth_id", boothIds);
-  await admin.from("events").delete().eq("id", eventId);
-  if (vendorIds.length > 0)
-    await admin.from("vendors").delete().in("id", vendorIds);
-  for (const id of userIds) await admin.auth.admin.deleteUser(id);
+  const failures: string[] = [];
+  const check = (what: string, error: { message: string } | null) => {
+    if (error) failures.push(`${what}: ${error.message}`);
+  };
+
+  if (boothIds.length > 0) {
+    const { data: orders } = await admin
+      .from("orders")
+      .select("id")
+      .in("booth_id", boothIds);
+    const orderIds = (orders ?? []).map((order) => order.id as string);
+    if (orderIds.length > 0) {
+      check(
+        "payments",
+        (await admin.from("payments").delete().in("order_id", orderIds)).error,
+      );
+    }
+    check(
+      "orders",
+      (await admin.from("orders").delete().in("booth_id", boothIds)).error,
+    );
+  }
+  check("event", (await admin.from("events").delete().eq("id", eventId)).error);
+  if (vendorIds.length > 0) {
+    check(
+      "vendors",
+      (await admin.from("vendors").delete().in("id", vendorIds)).error,
+    );
+  }
+  for (const id of userIds) {
+    check("user", (await admin.auth.admin.deleteUser(id)).error);
+  }
+  assert.deepEqual(failures, [], "test data could not be removed");
 });
 
 // A client signed in as staff of the vendor, the way a vendor signs in at /vendor.
