@@ -147,6 +147,8 @@ async function handleRefund(
   const marked = await deps.rpc("svc_mark_refunded", {
     p_provider_payment_id: refund.paymentId,
     p_provider_refund_id: event.refundId,
+    p_amount_cents: refund.amountCents,
+    p_currency: refund.currency,
   }) as { ok: true; changed: boolean } | { ok: false; reason: string };
   if (!marked.ok) {
     log("square_webhook_refund_not_recorded", {

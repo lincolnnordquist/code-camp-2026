@@ -22,7 +22,10 @@ export type OrderLabels = {
   refundBanner: { title: string; body: string; tone: BannerTone; icon: IconName } | null;
 };
 
-type LabelledOrder = Pick<Order, "type" | "status" | "refundStatus" | "totalCents" | "currency">;
+type LabelledOrder = Pick<
+  Order,
+  "type" | "status" | "refundStatus" | "refundedCents" | "totalCents" | "currency"
+>;
 
 export function formatMoney(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
@@ -101,7 +104,7 @@ function prepaidLabels(order: LabelledOrder, amount: string, statusBadge: BadgeL
   }
 
   const paid = `Paid ${amount} with Square`;
-  const refund = refundLabels(order.refundStatus, amount);
+  const refund = refundLabels(order, amount);
   return {
     statusBadge,
     paymentBadge: refund?.badge ?? { label: "Paid", tone: "outlined" },
@@ -112,18 +115,22 @@ function prepaidLabels(order: LabelledOrder, amount: string, statusBadge: BadgeL
   };
 }
 
-function refundLabels(refundStatus: LabelledOrder["refundStatus"], amount: string) {
-  switch (refundStatus) {
+// A partial refund also counts as refunded, so the refunded banner names the amount
+// refunded, not the order total.
+function refundLabels(order: LabelledOrder, amount: string) {
+  switch (order.refundStatus) {
     case "due":
       return {
         badge: { label: "Refund due", tone: "warning" } as const,
         banner: { title: "Refund due:", body: `${amount} back to your card`, tone: "warning", icon: "error" } as const,
       };
-    case "refunded":
+    case "refunded": {
+      const refunded = formatMoney(order.refundedCents, order.currency);
       return {
         badge: { label: "Refunded", tone: "neutral" } as const,
-        banner: { title: "Refunded:", body: `${amount} back to your card`, tone: "neutral", icon: "info" } as const,
+        banner: { title: "Refunded:", body: `${refunded} back to your card`, tone: "neutral", icon: "info" } as const,
       };
+    }
     case "none":
       return null;
   }

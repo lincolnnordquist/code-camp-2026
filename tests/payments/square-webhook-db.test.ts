@@ -69,6 +69,7 @@ function paidWith(order: { providerOrderId: string; totalCents: number }): Provi
 function stubProvider(
   payment: ProviderPayment,
   refundStatus: RefundStatus = "completed",
+  refundCents: Record<string, number> = {},
 ): PaymentProvider {
   const unused = () => Promise.reject(new Error("not used"));
   return {
@@ -78,11 +79,11 @@ function stubProvider(
     getPayment: () => Promise.resolve(payment),
     closeCheckout: unused,
     getOrderState: unused,
-    getRefund: () =>
+    getRefund: (_connection, refundId) =>
       Promise.resolve({
         status: refundStatus,
         paymentId: payment.id,
-        amountCents: payment.amountCents,
+        amountCents: refundCents[refundId] ?? payment.amountCents,
         currency: payment.currency,
       }),
     verifyWebhookSignature: square.verifyWebhookSignature,
@@ -154,6 +155,15 @@ async function refundStatusOf(orderId: string) {
     .eq("id", orderId)
     .single();
   return data!.refund_status as string;
+}
+
+async function refundedCentsOf(orderId: string) {
+  const { data } = await admin
+    .from("order_details")
+    .select("refunded_cents")
+    .eq("id", orderId)
+    .single();
+  return data!.refunded_cents as number;
 }
 
 function paymentMessage(type: string, payment: ProviderPayment, status: string): Request {
@@ -393,6 +403,27 @@ test("a completed refund of a confirmed order shows refunded once and leaves the
     { provider_payment_id: paid.id, refund_status: "refunded" },
   ]);
   assert.equal(await refundStatusOf(order.orderId), "refunded");
+  assert.equal(await refundedCentsOf(order.orderId), order.totalCents);
+  assert.equal(await orderStatus(order.orderId), "confirmed");
+});
+
+test("two partial refunds mark the payment refunded and add up to the refunded total", async () => {
+  const { boothId, mugId } = await newBooth();
+  const { userId } = await attendee();
+  const order = await pendingCheckout(userId, boothId, mugId);
+  const paid = paidWith(order);
+  const first = `REFUND_${randomUUID()}`;
+  const second = `REFUND_${randomUUID()}`;
+  const { deps } = webhookDeps(paid);
+  deps.provider = stubProvider(paid, "completed", { [first]: 500, [second]: 700 });
+  await deliver(deps, paymentMessage("payment.updated", paid, "COMPLETED"));
+
+  await deliver(deps, refundMessage("refund.updated", paid, first));
+  assert.equal(await refundStatusOf(order.orderId), "refunded");
+  assert.equal(await refundedCentsOf(order.orderId), 500);
+
+  await deliver(deps, refundMessage("refund.updated", paid, second));
+  assert.equal(await refundedCentsOf(order.orderId), 1200);
   assert.equal(await orderStatus(order.orderId), "confirmed");
 });
 

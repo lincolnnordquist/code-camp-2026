@@ -439,13 +439,20 @@ test("a database error is thrown to the entry point, which answers 500", async (
   );
 });
 
-test("a completed refund marks the payment Square names as refunded", async () => {
-  const { deps, calls, squareCalls, emails } = setup();
+test("a completed refund marks the payment Square names as refunded, with Square's amount and currency", async () => {
+  const { deps, calls, squareCalls, emails } = setup({
+    refund: refund({ amountCents: 500, currency: "USD" }),
+  });
   const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
   assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "refunded" } });
   assert.deepEqual(calls, [
     ["svc_get_checkout_by_provider_payment", { p_provider_payment_id: "PAY_1" }],
-    ["svc_mark_refunded", { p_provider_payment_id: "PAY_1", p_provider_refund_id: "REFUND_1" }],
+    ["svc_mark_refunded", {
+      p_provider_payment_id: "PAY_1",
+      p_provider_refund_id: "REFUND_1",
+      p_amount_cents: 500,
+      p_currency: "USD",
+    }],
   ]);
   assert.deepEqual(squareCalls, ["getRefund seller-token REFUND_1"]);
   assert.deepEqual(emails, []);
@@ -499,6 +506,12 @@ test("a refund for a payment not recorded yet is answered 500 for redelivery wit
   const reply = await deliver(deps, signedRequest(refundMessage("refund.created")));
   assert.deepEqual(reply, { status: 500, body: { ok: false, reason: "payment_not_found" } });
   assert.deepEqual(squareCalls, []);
+});
+
+test("a refund the database refuses for another currency is answered 200", async () => {
+  const { deps } = setup({ markRefunded: { ok: false, reason: "currency_mismatch" } });
+  const reply = await deliver(deps, signedRequest(refundMessage("refund.updated")));
+  assert.deepEqual(reply, { status: 200, body: { ok: false, reason: "currency_mismatch" } });
 });
 
 test("a repeated refund message is answered 200 as already refunded", async () => {
