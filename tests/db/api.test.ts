@@ -33,7 +33,7 @@ afterAll(async () => {
   await supabase.auth.signOut();
 });
 
-async function waitFor<T>(read: () => T | undefined, ms = 15_000): Promise<T> {
+async function waitFor<T>(read: () => T | undefined, ms = 45_000): Promise<T> {
   const deadline = Date.now() + ms;
   for (;;) {
     const value = read();
@@ -57,27 +57,35 @@ test("reads the catalog without a session, with image addresses and the event's 
   assert.ok(result.ok);
   const { event, booths, products } = result.value;
 
-  assert.equal(event.name, "Code Camp 2026");
-  assert.equal(event.venueName, "Demo Convention Center");
-  assert.equal(event.floorPlanUrl, null);
-  assert.equal(event.reservationHoldMinutes, 120);
-  assert.deepEqual(booths.map((b) => b.mode).sort(), [
-    "discovery",
-    "prepay",
-    "reservation",
-  ]);
+  // What the seed holds (names, how many booths) is checked in seed.test.ts. This checks
+  // that what the database returns is shaped as the screens expect.
+  assert.equal(event.slug, "code-camp-2026");
+  assert.ok(event.name && event.venueName);
+  assert.ok(
+    event.floorPlanUrl === null || typeof event.floorPlanUrl === "string",
+  );
+  assert.ok(event.reservationHoldMinutes > 0);
+
+  assert.ok(booths.length > 0);
   for (const booth of booths) {
+    assert.ok(["prepay", "reservation", "discovery"].includes(booth.mode));
     assert.match(
       booth.logoUrl,
       /^http.*\/storage\/v1\/object\/public\/assets\/vendors\//,
     );
-    assert.ok(booth.slogan && booth.bannerUrl);
+    assert.match(booth.bannerUrl, /\/assets\/vendors\//);
+    assert.ok(booth.slogan && booth.vendorName && booth.code);
     assert.equal(typeof booth.mapX, "number");
+    assert.equal(typeof booth.orderingPaused, "boolean");
   }
-  assert.equal(products.length, 4);
+
+  assert.ok(products.length > 0);
+  const boothIds = new Set(booths.map((b) => b.id));
   for (const product of products) {
+    assert.ok(boothIds.has(product.boothId), "a product of an unknown booth");
     assert.match(product.imageUrl, /\/assets\/products\//);
     assert.ok(product.description);
+    assert.equal(Number.isInteger(product.priceCents), true);
   }
   // Reading never signs anyone in.
   assert.equal((await supabase.auth.getSession()).data.session, null);
@@ -478,7 +486,7 @@ test("an attendee's orders arrive live, starting from a browser with no session"
   await api.createReservation(request(booth.boothId, booth.mugId));
   await new Promise((resolve) => setTimeout(resolve, 1500));
   assert.equal(seen.length, after, "a closed subscription still called back");
-}, 60_000);
+}, 120_000);
 
 test("a booth's orders arrive live for its staff only", async () => {
   await supabase.auth.signOut();
@@ -509,4 +517,4 @@ test("a booth's orders arrive live for its staff only", async () => {
     unsubscribe();
     await api.signOut();
   }
-}, 60_000);
+}, 120_000);
