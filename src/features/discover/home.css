@@ -422,6 +422,12 @@ html[data-search-view] :is(.tab-bar, .cart-bar) {
   grid-area: plate;
 }
 
+/* A logo still loading shows the neutral of the storefront's logo frame, not the code tile's violet. */
+img.active-order__plate,
+.booth-row__item img.booth-logo {
+  background: var(--neutral-200);
+}
+
 .active-order__text {
   grid-area: text;
   display: grid;

@@ -6,7 +6,7 @@ import { bannerPreloadProps } from './bannerPreload'
 import { formatMoney } from '../../shared/ui/labels'
 import type { EventCatalog, Product } from '../../shared/types'
 import { ActiveOrders } from './ActiveOrders'
-import { primeOpenOrders } from './openOrders'
+import { openOrdersSettled, primeOpenOrders } from './openOrders'
 import { EventHomeSkeleton } from './DiscoverSkeletons'
 import { HomeMapPreview } from './HomeMapPreview'
 import { BoothLogo } from '../../shared/ui/BoothLogo'
@@ -82,8 +82,9 @@ export function EventHome({ renderOrderControl }: EventHomeProps = {}) {
   const { eventSlug = '' } = useParams()
   const { state, reload } = useCatalog(eventSlug)
   // The open orders are read alongside the catalog, and the home waits for them a moment, so the
-  // orders strip renders with the sections below it rather than pushing them down later.
-  const [ordersPrimed, setOrdersPrimed] = useState(false)
+  // orders strip renders with the sections below it rather than pushing them down later. Only the
+  // first visit waits: a return already has them (the strip remembers its last orders and refreshes).
+  const [ordersPrimed, setOrdersPrimed] = useState(openOrdersSettled)
   useEffect(() => {
     let active = true
     const done = () => active && setOrdersPrimed(true)

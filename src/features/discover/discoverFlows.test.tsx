@@ -765,3 +765,46 @@ describe('search through the event home (FR-04)', () => {
     expect(spoken.filter((t) => t !== '')).toEqual(['4 results'])
   })
 })
+
+describe('returning to the event home', () => {
+  async function mountHome() {
+    const { EventHome } = await import('./EventHome')
+    return render(
+      <MemoryRouter initialEntries={[`/e/${SLUG}`]}>
+        <Routes>
+          <Route path="/e/:eventSlug" element={<EventHome />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('shows the skeleton only on the first visit; a return shows the catalog on its first render and refreshes it', async () => {
+    api.getEventCatalog.mockResolvedValue(ok(makeCatalog()))
+    api.listMyOrders.mockResolvedValue([])
+    const first = await mountHome()
+    expect(screen.getByText('Loading the event...')).toBeTruthy()
+    await settle()
+    expect(screen.getByRole('heading', { level: 1, name: 'Code Camp Con' })).toBeTruthy()
+    first.unmount()
+
+    // Storage blocked or cleared: the copy held this page life still stands in.
+    localStorage.clear()
+    api.getEventCatalog.mockClear()
+    const refresh = deferred<Result<EventCatalog, 'event_not_found'>>()
+    api.getEventCatalog.mockReturnValue(refresh.promise)
+    // Minutes later: the shared request (catalogRequest) has let the first answer go.
+    const later = Date.now() + 5 * 60_000
+    vi.spyOn(Date, 'now').mockReturnValue(later)
+    await mountHome()
+    // The first render, before any promise settles.
+    expect(screen.queryByText('Loading the event...')).toBeNull()
+    expect(screen.getByRole('heading', { level: 1, name: 'Code Camp Con' })).toBeTruthy()
+    expect(screen.getAllByText('Attack on Titan Hoodie').length).toBeGreaterThan(0)
+    // The quiet refresh goes out, and its answer replaces the shown copy without the skeleton.
+    expect(api.getEventCatalog).toHaveBeenCalledTimes(1)
+    await act(async () => refresh.resolve(ok(makeCatalog('Code Camp Con Live'))))
+    expect(screen.getByRole('heading', { level: 1, name: 'Code Camp Con Live' })).toBeTruthy()
+    expect(screen.queryByText('Loading the event...')).toBeNull()
+    vi.restoreAllMocks()
+  })
+})

@@ -62,6 +62,44 @@ describe('requestEventCatalog (one set of requests per event per navigation)', (
     }
   })
 
+  it('the sweep lets an old answer go for sharing but keeps the last good catalog for display, per event', async () => {
+    vi.useFakeTimers()
+    try {
+      const catalog = { event: { slug: 'code-camp-2026' }, booths: [], products: [{ id: 'p-poster', name: 'Poster' }] }
+      api.getEventCatalog.mockResolvedValue({ ok: true, value: catalog })
+      const { heldCatalogSlugs, lastCatalogProduct, lastEventCatalog, requestEventCatalog } = await import('./catalogRequest')
+      expect(lastEventCatalog('code-camp-2026')).toBeNull()
+      await requestEventCatalog('code-camp-2026')
+      vi.advanceTimersByTime(5000)
+      api.getEventCatalog.mockReturnValue(new Promise(() => undefined))
+      requestEventCatalog('other-event')
+      // Stale for sharing: the next caller asks the server again.
+      expect(heldCatalogSlugs()).toEqual(['other-event'])
+      requestEventCatalog('code-camp-2026')
+      expect(api.getEventCatalog).toHaveBeenCalledTimes(3)
+      // Still there to show while that request is out.
+      expect(lastEventCatalog('code-camp-2026')).toBe(catalog)
+      expect(lastCatalogProduct('p-poster')).toEqual({ id: 'p-poster', name: 'Poster' })
+      expect(lastEventCatalog('other-event')).toBeNull()
+      expect(lastCatalogProduct('p-missing')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('a refusal or failure never replaces the last good catalog', async () => {
+    const catalog = { event: { slug: 'code-camp-2026' }, booths: [], products: [] }
+    api.getEventCatalog
+      .mockResolvedValueOnce({ ok: true, value: catalog })
+      .mockResolvedValueOnce({ ok: false, reason: 'event_not_found' })
+      .mockRejectedValueOnce(new Error('offline'))
+    const { lastEventCatalog, requestEventCatalog } = await import('./catalogRequest')
+    await requestEventCatalog('code-camp-2026')
+    await requestEventCatalog('code-camp-2026', { fresh: true })
+    await expect(requestEventCatalog('code-camp-2026', { fresh: true })).rejects.toThrow('offline')
+    expect(lastEventCatalog('code-camp-2026')).toBe(catalog)
+  })
+
   it('a failed request is not kept either', async () => {
     api.getEventCatalog.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ ok: true })
     const { heldCatalogSlugs, requestEventCatalog } = await import('./catalogRequest')

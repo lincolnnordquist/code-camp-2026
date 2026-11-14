@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import { requestEventCatalog } from '../../shell/catalogRequest'
+import { lastCatalogProduct, lastEventCatalog, requestEventCatalog } from '../../shell/catalogRequest'
 import type { Booth, Order, Product } from '../../shared/types'
 import { orderEventSlug } from './orderExtras'
 
@@ -83,7 +83,11 @@ export function useBoothDetails(order: Order): BoothDetails | null {
     return () => window.removeEventListener('online', load)
   }, [slug])
 
-  return current[order.boothId] ?? null
+  // Not read here yet, but the catalog was on this page (the reservation was made from it): its
+  // copy stands in, so the pickup instructions do not arrive late and push the items down.
+  if (current[order.boothId]) return current[order.boothId]
+  const booth = slug ? lastEventCatalog(slug)?.booths.find((b) => b.id === order.boothId) : undefined
+  return booth ? { pickupInstructions: booth.pickupInstructions, logoUrl: booth.logoUrl, bannerUrl: booth.bannerUrl } : null
 }
 
 /**
@@ -98,5 +102,6 @@ export function useBoothGone(order: Order): boolean {
 
 /** A product of the order's event, once its catalog has been read here (useBoothDetails reads it); else null. */
 export function useCatalogProduct(productId: string): Product | null {
-  return useSyncExternalStore(subscribe, () => products)[productId] ?? null
+  // A catalog already on this page gives the photo at once, so the thumbnail does not wait for the refresh.
+  return useSyncExternalStore(subscribe, () => products)[productId] ?? lastCatalogProduct(productId)
 }

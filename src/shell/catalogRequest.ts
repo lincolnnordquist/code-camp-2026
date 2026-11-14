@@ -1,4 +1,5 @@
 import { getEventCatalog } from '../shared/api'
+import type { EventCatalog, Product } from '../shared/types'
 
 type CatalogResponse = ReturnType<typeof getEventCatalog>
 
@@ -11,6 +12,14 @@ const SHARE_ANSWER_MS = 3000
 
 /** The request per event slug, with when its successful answer arrived (null while it is out). */
 const recent = new Map<string, { request: CatalogResponse; answeredAt: number | null }>()
+
+/**
+ * The last good catalog per event this page life, for showing at once on a screen opened again (the
+ * home after a storefront, an order after the wallet) while that screen's own request refreshes it.
+ * It is never handed out as an answer: past SHARE_ANSWER_MS every caller still asks the server, so
+ * stock is only as old as the refresh in flight. One entry per event opened, so it stays small.
+ */
+const lastGood = new Map<string, EventCatalog>()
 
 /**
  * The event catalog, shared by every caller asking for the same event at about the same time: the
@@ -27,8 +36,10 @@ export function requestEventCatalog(slug: string, { fresh = false }: { fresh?: b
   const mine = { request, answeredAt: null as number | null }
   recent.set(slug, mine)
   request.then(
-    () => {
+    (result) => {
       mine.answeredAt = Date.now()
+      // A refusal (the event is gone) keeps the copy for the screen to replace with its own error.
+      if (result.ok) lastGood.set(slug, result.value)
     },
     () => {
       if (recent.get(slug) === mine) recent.delete(slug)
@@ -43,6 +54,20 @@ function dropExpiredAnswers() {
   for (const [slug, entry] of recent) {
     if (entry.answeredAt !== null && now - entry.answeredAt >= SHARE_ANSWER_MS) recent.delete(slug)
   }
+}
+
+/** The event's last good catalog this page life, or null before one has arrived. */
+export function lastEventCatalog(slug: string): EventCatalog | null {
+  return lastGood.get(slug) ?? null
+}
+
+/** A product from any event's last good catalog this page life, or null. */
+export function lastCatalogProduct(productId: string): Product | null {
+  for (const catalog of lastGood.values()) {
+    const product = catalog.products.find((p) => p.id === productId)
+    if (product) return product
+  }
+  return null
 }
 
 /** The events whose request or recent answer is held now; for tests. */

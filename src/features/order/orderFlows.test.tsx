@@ -1770,6 +1770,28 @@ describe('order page in the design system (design/order-page)', () => {
       expect(screen.getByText('Front table')).toBeTruthy()
     })
 
+    it('with the catalog already read on this page, the instructions and the item photo show on the first render', async () => {
+      // The reservation was made from the catalog: its answer is still on the page.
+      const patch = { id: 'p', boothId: 'b', name: 'Patch', category: 'C', description: '', imageUrl: '/p/patch.webp', priceCents: 800, availableQty: 5, maxPerOrder: 2 }
+      api.getEventCatalog.mockResolvedValueOnce({ ok: true, value: { event: EVENT, booths: BOOTHS, products: [patch] } })
+      const { requestEventCatalog } = await import('../../shell/catalogRequest')
+      await requestEventCatalog('ev')
+      // The order page's own read is still out.
+      api.getEventCatalog.mockReturnValue(new Promise(() => undefined))
+      await renderView(order({ status: 'ready' }))
+      expect(screen.getByText('Front table')).toBeTruthy()
+      const items = screen.getByRole('region', { name: 'Items' })
+      const tile = items.querySelector('.order-item__photo .product-image--small')!
+      expect(tile.querySelector('img')?.getAttribute('src')).toBe('/p/patch.webp')
+    })
+
+    it('with no catalog yet, the item keeps its square tile until the photo can show', async () => {
+      api.getEventCatalog.mockReturnValue(new Promise(() => undefined))
+      await renderView(order({ status: 'ready' }))
+      const tile = screen.getByRole('region', { name: 'Items' }).querySelector('.order-item__photo > span')!
+      expect(tile.className).toBe('product-image product-image--small product-image--frame')
+    })
+
     it('a booth the event catalog no longer lists has no Find booth and no storefront link', async () => {
       const gone = { ok: true, value: { event: EVENT, booths: [catalogBooth('other', 'Z9', 'Other')], products: [] } }
       const catalog = deferred<typeof gone>()

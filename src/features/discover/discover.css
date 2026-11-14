@@ -662,6 +662,12 @@ button.floor-map__booth::after {
   font-size: 0.7rem;
 }
 
+/* A logo still loading shows the neutral of the storefront's logo frame, not the code tile's violet. */
+.directory__row img.booth-logo,
+.booth-card__head img.booth-logo {
+  background: var(--neutral-200);
+}
+
 .booth-card__head {
   display: flex;
   align-items: flex-start;
