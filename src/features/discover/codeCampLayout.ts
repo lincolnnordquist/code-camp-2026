@@ -2,7 +2,7 @@
  * The Code Camp hall drawn as a floor layout: nine columns lettered A to I from left to right and
  * seven rows numbered 1 (the back row, by the kitchen) to 7 (the front row, by the stage), the
  * stage at the front, the kitchen and stairs in a recess at the back, and the entrance in the back
- * left corner. Doors are not drawn: FloorLayout has no field for them. Its own module, with no other
+ * left corner, with a door there and one beside the stage. Its own module, with no other
  * imports, so the map's stand-in (catalogExtras.ts) can bundle it without the sample booths.
  */
 import type { FloorLayout } from './catalogExtras'
@@ -21,7 +21,11 @@ export const CODE_CAMP_LAYOUT: FloorLayout = {
   areas: [
     { kind: 'stage', label: 'Stage', x: 300, y: 20, width: 400, height: 90 },
     { kind: 'kitchen', label: 'Kitchen', x: 360, y: 700, width: 280, height: 130 },
-    { kind: 'other', label: 'Stairs', x: 640, y: 700, width: 50, height: 130 },
-    { kind: 'other', label: 'Entrance', x: 20, y: 700, width: 140, height: 140 },
+    { kind: 'stairs', label: 'Stairs', x: 640, y: 700, width: 50, height: 130 },
+    { kind: 'entrance', label: 'Entrance', x: 20, y: 700, width: 140, height: 140 },
+  ],
+  doors: [
+    { hinge: [20, 750], leaf: [70, 750], shut: [20, 800] },
+    { hinge: [245, 20], leaf: [245, 70], shut: [295, 20] },
   ],
 }

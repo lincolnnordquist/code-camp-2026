@@ -8,13 +8,14 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
   type CSSProperties,
   type PointerEvent,
   type Ref,
 } from 'react'
 import type { Booth } from '../../shared/types'
-import { boothBadgeLabel, isPaused } from './boothLabel'
+import { BoothLogo } from '../../shared/ui/BoothLogo'
+import { Icon } from '../../shared/ui/Icon'
+import { boothBadgeLabel } from './boothLabel'
 import { rowTop, type FloorLayout } from './catalogExtras'
 import {
   centreOnPlate,
@@ -26,7 +27,6 @@ import {
   ROW_LABEL_GUTTER,
   scrollToPin,
   viewCentre,
-  visibleFraction,
   type MapPosition,
   type PanSample,
   type PlanPoint,
@@ -35,8 +35,11 @@ import './map.css'
 
 /** What a page can ask of the interactive map. */
 export interface FloorMapHandle {
-  /** Zooms to at least 2x with the booth in the middle of the map, animated unless reduced motion is on. */
-  centreOnBooth: (boothId: string) => void
+  /**
+   * Zooms to at least 2x and glides the booth to the middle of the map above `bottomInset` px (a card
+   * floating over the map's bottom edge), animated unless reduced motion is on.
+   */
+  centreOnBooth: (boothId: string, bottomInset?: number) => void
 }
 
 interface FloorMapProps {
@@ -86,6 +89,8 @@ const TAP_MOVE_PX = 10
 /** Double-tap-and-drag (one-finger zoom, as in Apple Maps): dragging this far down doubles the scale. */
 const TAP_DRAG_PX_PER_DOUBLING = 100
 const ZOOM_ANIMATION_MS = 200
+/** The glide that brings a picked booth to the middle is slower than a zoom step. */
+const CENTRE_ANIMATION_MS = 320
 /** A wheel's line step, in px, for mice that report lines. */
 const WHEEL_LINE_PX = 16
 /** Ctrl and wheel (or a trackpad pinch): each px of wheel scales by e^(px * this), so 100 px is about 2x. */
@@ -105,9 +110,6 @@ const GLIDE_MAX_STEP_MS = 32
 const GLIDE_STOP_PX = 0.05
 
 const reducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-/** Remembers that this viewer has seen the "pinch to zoom" tip. */
-const HINT_SEEN_KEY = 'map.zoomHintSeen'
-
 /** Clamps a scale to 1x..3x. A non-finite input (a 0/0 pinch) keeps `fallback`, so labels never read NaN. */
 const clampScale = (s: number, fallback: number) => (Number.isFinite(s) ? Math.min(MAX_SCALE, Math.max(MIN_SCALE, s)) : fallback)
 /** Two touches closer than this give no usable pinch distance. */
@@ -127,22 +129,6 @@ interface WebKitGestureEvent extends UIEvent {
   scale: number
   clientX: number
   clientY: number
-}
-
-function readHintSeen() {
-  try {
-    return localStorage.getItem(HINT_SEEN_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function writeHintSeen() {
-  try {
-    localStorage.setItem(HINT_SEEN_KEY, '1')
-  } catch {
-    // Without storage the tip simply shows again next visit.
-  }
 }
 
 const BOOTH_CODE = /^([A-Za-z]+)(\d+)$/
@@ -215,7 +201,7 @@ function drawnPercent(layout: FloorLayout, rect: { x: number; y: number; width: 
 
 /** The room in one sentence, for screen readers, built from the layout itself. */
 function describeLayout(layout: FloorLayout, venueName: string) {
-  const named = layout.areas.filter((a) => a.kind !== 'other')
+  const named = layout.areas.filter((a) => a.kind === 'stage' || a.kind === 'kitchen')
   const atFront = (a: FloorLayout['areas'][number]) => a.y + a.height / 2 < layout.height / 2
   const parts = named.map((a) => `${a.label.toLowerCase()} at the ${atFront(a) ? 'front' : 'back'}`)
   const back = named.find((a) => !atFront(a))
@@ -237,10 +223,20 @@ const DrawnPlan = memo(function DrawnPlan({ layout, label }: { layout: FloorLayo
   const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true as const }
   return (
     <svg className="floor-map__plan plan" viewBox={`${-ROW_LABEL_GUTTER} 0 ${drawnWidth(layout)} ${layout.height}`} {...a11y}>
+      <defs>
+        <pattern id="plan-hatch" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect className="plan__hatch-ground" width="16" height="16" />
+          <rect className="plan__hatch-line" width="8" height="16" />
+        </pattern>
+        <pattern id="plan-steps" width="16" height="13" patternUnits="userSpaceOnUse">
+          <rect className="plan__hatch-ground" width="16" height="13" />
+          <rect className="plan__steps-line" width="16" height="3" />
+        </pattern>
+      </defs>
       <path className="plan__floor" d={outline} />
       {layout.areas.map((area) => (
         <g key={area.label} className={`plan__area plan__area--${area.kind}`}>
-          <rect x={area.x} y={area.y} width={area.width} height={area.height} rx={12} />
+          <rect x={area.x} y={area.y} width={area.width} height={area.height} rx={4} />
           <text
             x={area.x + area.width / 2}
             y={area.y + area.height / 2}
@@ -284,14 +280,6 @@ const DrawnPlan = memo(function DrawnPlan({ layout, label }: { layout: FloorLayo
               return (
                 <g key={column} className="plan__table" data-code={`${column}${row}`}>
                   <rect x={x} y={y} width={layout.tableSize.width} height={layout.tableSize.height} rx={TABLE_RADIUS} />
-                  <text
-                    x={x + layout.tableSize.width / 2}
-                    y={y + layout.tableSize.height / 2}
-                    dominantBaseline="central"
-                    textAnchor="middle"
-                  >
-                    {`${column}${row}`}
-                  </text>
                 </g>
               )
             })}
@@ -300,6 +288,17 @@ const DrawnPlan = memo(function DrawnPlan({ layout, label }: { layout: FloorLayo
       })}
       {/* Drawn last so the wall line sits over the floor edge and the kitchen recess. */}
       <path className="plan__walls" d={outline} />
+      {/* A door: the wall is opened between the hinge and where the leaf shuts, then the open leaf and its swing. */}
+      {layout.doors?.map(({ hinge, leaf, shut }) => {
+        const radius = Math.hypot(leaf[0] - hinge[0], leaf[1] - hinge[1])
+        const sweep = (leaf[0] - hinge[0]) * (shut[1] - hinge[1]) - (leaf[1] - hinge[1]) * (shut[0] - hinge[0]) > 0 ? 1 : 0
+        return (
+          <g key={hinge.join()} className="plan__door">
+            <path className="plan__door-gap" d={`M${hinge} L${shut}`} />
+            <path className="plan__door-swing" d={`M${hinge} L${leaf} A${radius} ${radius} 0 0 ${sweep} ${shut}`} />
+          </g>
+        )
+      })}
     </svg>
   )
 })
@@ -309,14 +308,15 @@ interface BoothPlatesProps {
   floorLayout: FloorLayout | undefined
   highlightedBoothId: string | null | undefined
   onSelectBooth: ((booth: Booth) => void) | undefined
+  onClearSelection: (() => void) | undefined
 }
 
 /** Every vendor's plate over its table. Memoized so a zoom commit does not re-render the plates. */
-const BoothPlates = memo(function BoothPlates({ booths, floorLayout, highlightedBoothId, onSelectBooth }: BoothPlatesProps) {
+const BoothPlates = memo(function BoothPlates({ booths, floorLayout, highlightedBoothId, onSelectBooth, onClearSelection }: BoothPlatesProps) {
   const positions = useMemo(() => booths.map((booth) => boothPosition(booth, floorLayout)), [booths, floorLayout])
   return booths.map((booth, i) => {
     const isHighlighted = booth.id === highlightedBoothId
-    const className = `floor-map__booth floor-map__booth--${isPaused(booth) ? 'paused' : booth.mode}${isHighlighted ? ' is-highlighted' : ''}`
+    const className = `floor-map__booth${isHighlighted ? ' is-highlighted' : ''}`
     const p = positions[i]
     const position = { left: `${p.x}%`, top: `${p.y}%`, width: `${p.width}%`, height: `${p.height}%` }
     if (!onSelectBooth) {
@@ -335,8 +335,10 @@ const BoothPlates = memo(function BoothPlates({ booths, floorLayout, highlighted
         data-code={booth.code}
         aria-label={`Booth ${booth.code}, ${booth.vendorName}, ${boothBadgeLabel(booth)}`}
         aria-current={isHighlighted ? 'location' : undefined}
-        onClick={() => onSelectBooth(booth)}
+        // A second tap on the selected booth deselects it.
+        onClick={() => (isHighlighted && onClearSelection ? onClearSelection() : onSelectBooth(booth))}
       >
+        <BoothLogo booth={booth} size="sm" className="floor-map__logo" />
         <span className="floor-map__code">{booth.code}</span>
       </button>
     )
@@ -367,7 +369,6 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
   const layoutScale = useRef(MIN_SCALE)
   // The plan point in the middle of the map, and the canvas width it was measured at, kept so a resize can restore it.
   const viewMiddle = useRef<{ point: PlanPoint; width: number } | null>(null)
-  const overviewViewRef = useRef<HTMLDivElement>(null)
   // The scroll offset this component last set itself on a resize, so the scroll event it causes is not
   // taken as the person panning (a clamped restore would otherwise overwrite the middle to keep).
   const ownScroll = useRef<{ left: number; top: number } | null>(null)
@@ -375,7 +376,6 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
   // scroll range lacks while zooming from fit, so a plate near the far edges is not left short.
   const pendingPin = useRef<{ point: PlanPoint; viewX: number; viewY: number } | null>(null)
   const [announcement, setAnnouncement] = useState('')
-  const [hintVisible, setHintVisible] = useState(() => !readHintSeen())
   const frame = useRef(0)
   const pending = useRef<{ scale: number; anchor: Anchor; viewX: number; viewY: number } | null>(null)
   const animation = useRef(0)
@@ -427,7 +427,6 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     return c ? { width: c.offsetWidth * ratio, height: c.offsetHeight * ratio } : { width: 0, height: 0 }
   }, [])
 
-  // Moves the overview's rectangle to what is on screen. Imperative, so scrolling never re-renders.
   const applyPad = useCallback((scale: number) => {
     const s = scrollerRef.current
     const p = panRef.current
@@ -437,25 +436,6 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     pad.current = next
     return previous
   }, [])
-
-  const drawOverview = useCallback(() => {
-    const s = scrollerRef.current
-    const v = overviewViewRef.current
-    if (!s || !v) return
-    const f = visibleFraction(
-      { left: s.scrollLeft - pad.current.x, top: s.scrollTop - pad.current.y },
-      { width: s.clientWidth, height: s.clientHeight },
-      contentSize(),
-    )
-    if (f.width <= 0 || f.height <= 0) return
-    // Size only changes with zoom; position is a translate in units of the rectangle's own size,
-    // so panning moves it without a layout.
-    const width = `${f.width * 100}%`
-    const height = `${f.height * 100}%`
-    if (v.style.width !== width) v.style.width = width
-    if (v.style.height !== height) v.style.height = height
-    v.style.transform = `translate(${(f.x / f.width) * 100}%, ${(f.y / f.height) * 100}%)`
-  }, [contentSize])
 
   const rememberMiddle = useCallback(() => {
     const s = scrollerRef.current
@@ -493,9 +473,8 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       const pin = scrollToPin(anchor, { width: box.width, height: box.height }, viewX, viewY)
       scrollExactly(s, c, pin.left + pad.current.x, pin.top + pad.current.y)
       rememberMiddle()
-      drawOverview()
     },
-    [applyPad, drawOverview, rememberMiddle],
+    [applyPad, rememberMiddle],
   )
 
   // Settles a zoom: the canvas at its final width, the scroll where the last frame left it, so nothing moves.
@@ -514,9 +493,8 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       s.scrollLeft = scrollLeft - before.x + pad.current.x
       s.scrollTop = scrollTop - before.y + pad.current.y
       rememberMiddle()
-      drawOverview()
     },
-    [applyPad, drawOverview, rememberMiddle],
+    [applyPad, rememberMiddle],
   )
 
   // At most one resize per frame while the fingers move.
@@ -554,13 +532,7 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     const pin = scrollToPin(p.point, { width: box.width, height: box.height }, p.viewX, p.viewY)
     scrollExactly(s, c, pin.left + pad.current.x, pin.top + pad.current.y)
     rememberMiddle()
-    drawOverview()
-  }, [drawOverview, rememberMiddle])
-
-  const hideHint = useCallback(() => {
-    writeHintSeen()
-    setHintVisible(false)
-  }, [])
+  }, [rememberMiddle])
 
   // A gesture, button or double-tap has finished: lay out at the final scale, record it and say it once.
   const commit = useCallback(
@@ -576,9 +548,8 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
       // animateTo adds is-zoomed directly; React won't remove it if zoom was already 1, and the class sets touch-action.
       scrollerRef.current?.classList.toggle('is-zoomed', settled > MIN_SCALE)
       setAnnouncement(message ?? `Map zoomed to ${scaleName(settled)}`)
-      if (settled > MIN_SCALE) hideHint()
     },
-    [applyPin, hideHint, layOut],
+    [applyPin, layOut],
   )
 
   // Runs after the commit's render, when the zoomed class and its end margin are in place.
@@ -596,6 +567,7 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     message?: string,
     // The end is pinned from the plan point once laid out, so the anchor lands exactly at `to`.
     pin: { point: PlanPoint; viewX: number; viewY: number } = { point: anchor, viewX: to.x, viewY: to.y },
+    duration = ZOOM_ANIMATION_MS,
   ) => {
     cancelAnimationFrame(animation.current)
     cancelAnimationFrame(glide.current)
@@ -610,7 +582,7 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     if (target > MIN_SCALE + SCALE_EPSILON) scrollerRef.current?.classList.add('is-zoomed')
     const startedAt = performance.now()
     const step = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / ZOOM_ANIMATION_MS)
+      const progress = Math.min(1, (now - startedAt) / duration)
       const eased = 1 - (1 - progress) ** 3
       const x = anchor.viewX + (to.x - anchor.viewX) * eased
       const y = anchor.viewY + (to.y - anchor.viewY) * eased
@@ -649,7 +621,7 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
   )
 
   useImperativeHandle(ref, () => ({
-    centreOnBooth: (boothId: string) => {
+    centreOnBooth: (boothId: string, bottomInset = 0) => {
       const s = scrollerRef.current
       const booth = booths.find((b) => b.id === boothId)
       if (!s || !booth) return
@@ -663,8 +635,15 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
         viewX: point.planX * content.width + pad.current.x - s.scrollLeft,
         viewY: point.planY * content.height + pad.current.y - s.scrollTop,
       }
-      const middle = { x: view.width / 2, y: view.height / 2 }
-      animateTo(scale, anchor, middle, `Map zoomed to ${scaleName(scale)}, booth ${booth.code} in the middle`, { point, viewX: middle.x, viewY: middle.y })
+      const middle = { x: view.width / 2, y: (view.height - bottomInset) / 2 }
+      animateTo(
+        scale,
+        anchor,
+        middle,
+        `Map zoomed to ${scaleName(scale)}, booth ${booth.code} in the middle`,
+        { point, viewX: middle.x, viewY: middle.y },
+        CENTRE_ANIMATION_MS,
+      )
     },
   }))
 
@@ -902,21 +881,19 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
     [],
   )
 
-  // Scrolling (a pan, a glide, a focused plate brought into view) only reads: it moves the overview rectangle and notes the middle.
+  // Scrolling (a pan, a glide, a focused plate brought into view) only reads: it notes the middle.
   // A resize (rotation, split view) puts the noted middle back in the middle, since the canvas width is a
   // percentage of the scroller. The scroll the browser fires while clamping during that resize is ignored:
   // it comes from the new width, before the observer has run.
   useEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return
-    // Reads before the overview write, so a scroll never forces a second layout in its frame.
     const onScroll = () => {
       const own = ownScroll.current
       ownScroll.current = null
       const echo = own !== null && own.left === scroller.scrollLeft && own.top === scroller.scrollTop
       const noted = viewMiddle.current
       if (!echo && (!noted || Math.abs(noted.width - contentSize().width) < 0.5)) rememberMiddle()
-      drawOverview()
     }
     scroller.addEventListener('scroll', onScroll, { passive: true })
     const observer =
@@ -936,29 +913,13 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
             } else {
               rememberMiddle()
             }
-            drawOverview()
           })
     observer?.observe(scroller)
     return () => {
       scroller.removeEventListener('scroll', onScroll)
       observer?.disconnect()
     }
-  }, [interactive, applyPad, contentSize, drawOverview, rememberMiddle])
-
-  // Overview tap: centre the map on that point of the plan, at the current zoom.
-  const onOverviewClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    const s = scrollerRef.current
-    if (!s) return
-    const r = e.currentTarget.getBoundingClientRect()
-    const point = { planX: (e.clientX - r.left) / r.width, planY: (e.clientY - r.top) / r.height }
-    const view = { width: s.clientWidth, height: s.clientHeight }
-    const pinned = scrollToPin(point, contentSize(), view.width / 2, view.height / 2)
-    const target = {
-      left: Math.min(s.scrollWidth - view.width, Math.max(0, pinned.left + pad.current.x)),
-      top: Math.min(s.scrollHeight - view.height, Math.max(0, pinned.top + pad.current.y)),
-    }
-    s.scrollTo({ ...target, behavior: reducedMotion() ? 'auto' : 'smooth' })
-  }
+  }, [interactive, applyPad, contentSize, rememberMiddle])
 
   // Every pointer type: tap, double-tap, and double-tap-and-drag. Pinch and pan are the touch handlers above.
   const isSecondTap = (x: number, y: number) => {
@@ -1059,7 +1020,13 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
           />
         )
       )}
-      <BoothPlates booths={booths} floorLayout={floorLayout} highlightedBoothId={highlightedBoothId} onSelectBooth={onSelectBooth} />
+      <BoothPlates
+        booths={booths}
+        floorLayout={floorLayout}
+        highlightedBoothId={highlightedBoothId}
+        onSelectBooth={onSelectBooth}
+        onClearSelection={onClearSelection}
+      />
     </div>
   )
 
@@ -1101,7 +1068,7 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
         <div
           className={`floor-map__scroller${canZoomOut ? ' is-zoomed' : ''}`}
           ref={scrollerRef}
-          style={{ aspectRatio }}
+          style={{ '--plan-ratio': aspectRatio } as CSSProperties}
           // The shell's pull-to-refresh and edge swipe-back stay out of the map, which owns its own pans.
           data-no-pull=""
           data-no-swipe-back=""
@@ -1120,98 +1087,48 @@ export function FloorMap({ ref, floorPlanUrl, floorLayout, venueName, booths, hi
           </div>
         </div>
       </div>
-      <div className="floor-map__toolbar">
-        {hintVisible && (
-          <p className="floor-map__hint">
-            Pinch, double-tap, or use the + and − buttons to zoom.
-            <button
-              type="button"
-              className="floor-map__hint-dismiss"
-              onClick={() => {
-                hideHint()
-                // The button goes away with the tip, so focus moves to the map it described.
-                scrollerRef.current?.focus()
-              }}
-            >
-              Got it
-            </button>
-          </p>
-        )}
-        {/* Where you are in the hall, while zoomed. Hidden from assistive tech, which hears the zoom level from the
-            region's name; the keyboard pans the region itself. Tapping it recentres there. It sits in the toolbar
-            under the plan, so it never covers a table. */}
-        {canZoomOut && (
-          <div className="floor-map__overview" aria-hidden="true" style={{ aspectRatio }} onClick={onOverviewClick}>
-            {floorLayout && (
-              <svg className="floor-map__overview-plan" viewBox={`${-ROW_LABEL_GUTTER} 0 ${drawnWidth(floorLayout)} ${floorLayout.height}`}>
-                <path d={wallOutline(floorLayout)} />
-              </svg>
-            )}
-            <div
-              className="floor-map__overview-view"
-              ref={(node) => {
-                overviewViewRef.current = node
-                drawOverview()
-              }}
-            />
-          </div>
-        )}
-        {/* The accessible alternative to pinch and double-tap, under the plan so it never covers a table. */}
-        <div className="floor-map__zoom" role="group" aria-label="Zoom">
-          <button
-            type="button"
-            className="floor-map__zoom-btn"
-            aria-label="Zoom in"
-            aria-disabled={!canZoomIn}
-            onClick={() => {
-              if (!canZoomIn) return
-              zoomByButton(BUTTON_STEP)
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="floor-map__zoom-btn"
-            aria-label="Zoom out"
-            aria-disabled={!canZoomOut}
-            onClick={() => {
-              if (!canZoomOut) return
-              zoomByButton(1 / BUTTON_STEP)
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-              <path d="M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
+      {/* The accessible alternative to pinch and double-tap: one card in the map's top right corner. */}
+      <div className="floor-map__zoom" role="group" aria-label="Zoom">
+        <button
+          type="button"
+          className="floor-map__zoom-btn"
+          aria-label="Zoom in"
+          aria-disabled={!canZoomIn}
+          onClick={() => {
+            if (!canZoomIn) return
+            zoomByButton(BUTTON_STEP)
+          }}
+        >
+          <Icon name="add" size={22} />
+        </button>
+        <button
+          type="button"
+          className="floor-map__zoom-btn"
+          aria-label="Zoom out"
+          aria-disabled={!canZoomOut}
+          onClick={() => {
+            if (!canZoomOut) return
+            zoomByButton(1 / BUTTON_STEP)
+          }}
+        >
+          <Icon name="remove" size={22} />
+        </button>
+        <button
+          type="button"
+          className="floor-map__zoom-btn"
+          aria-label="Show the whole room"
+          aria-disabled={!canZoomOut}
+          onClick={() => {
+            if (!canZoomOut) return
+            animateTo(MIN_SCALE, buttonAnchor(), viewMiddlePoint())
+          }}
+        >
+          <Icon name="zoom_out_map" size={22} />
+        </button>
       </div>
       <p className="visually-hidden" role="status">
         {announcement}
       </p>
-      <ul className="floor-map__legend" role="list">
-        {highlightedBoothId && (
-          <li>
-            <span className="legend-swatch legend-swatch--highlight" aria-hidden="true" />
-            Selected<span className="visually-hidden"> booth</span>
-          </li>
-        )}
-        {/* Short words so the key stays on one line on a phone; the full meaning is read out. */}
-        <li>
-          <span className="legend-swatch" aria-hidden="true" />
-          Online<span className="visually-hidden"> ordering</span>
-        </li>
-        <li>
-          <span className="legend-swatch legend-swatch--dashed" aria-hidden="true" />
-          In person<span className="visually-hidden"> only, or online orders paused</span>
-        </li>
-        <li>
-          <span className="legend-swatch legend-swatch--empty" aria-hidden="true" />
-          Empty<span className="visually-hidden"> table</span>
-        </li>
-      </ul>
     </div>
   )
 }

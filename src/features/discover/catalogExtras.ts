@@ -38,7 +38,9 @@ export interface FloorLayout {
   tableSize: { width: number; height: number }
   /** Distance from one table to the next, across a row (x) and from row to row (y). */
   pitch: { x: number; y: number }
-  areas: Array<PlanRect & { label: string; kind: 'stage' | 'kitchen' | 'other' }>
+  areas: Array<PlanRect & { label: string; kind: 'stage' | 'kitchen' | 'stairs' | 'entrance' | 'other' }>
+  /** Doors in the walls: the hinge, where the open leaf ends, and where the closed leaf meets the wall again. */
+  doors?: Array<{ hinge: [number, number]; leaf: [number, number]; shut: [number, number] }>
 }
 
 /** Plan y of the top edge of a row's tables: row 1 is the bottom (back) row. */
