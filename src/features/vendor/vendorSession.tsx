@@ -11,6 +11,7 @@ import { getMyBooth, listBoothOrders } from "../../shared/api";
 import { subscribeToBoothOrders } from "../../shared/live";
 import type { MyBoothRefusal, Order, VendorBooth } from "../../shared/types";
 import { newConfirmedOrders } from "./queueModel";
+import { clearVendorCache, readCachedBooth, readCachedOrders, saveBooth, saveOrders } from "./vendorCache";
 
 export type BoothState =
   | { status: "loading" }
@@ -56,13 +57,19 @@ export function VendorProvider({ children }: { children: ReactNode }) {
     getMyBooth().then(
       (result) => {
         if (!active) return;
+        if (!result.ok) clearVendorCache();
         setBoothState(
           result.ok
             ? { status: "ready", booth: result.value }
             : { status: "signed_out", reason: result.reason },
         );
       },
-      () => active && setBoothState({ status: "error" }),
+      () => {
+        if (!active) return;
+        // Offline (or the server is down) with a session: show the last copy of the booth.
+        const saved = readCachedBooth();
+        setBoothState(saved ? { status: "ready", booth: saved } : { status: "error" });
+      },
     );
     return () => {
       active = false;
@@ -80,6 +87,11 @@ export function VendorProvider({ children }: { children: ReactNode }) {
 
   const boothId = boothState.status === "ready" ? boothState.booth.booth.id : null;
   const orders = useBoothOrders(boothId);
+
+  const savedBooth = boothState.status === "ready" ? boothState.booth : null;
+  useEffect(() => {
+    if (savedBooth) saveBooth(savedBooth);
+  }, [savedBooth]);
 
   return (
     <VendorContext.Provider
@@ -131,9 +143,12 @@ function useBoothOrders(boothId: string | null) {
     const load = () =>
       listBoothOrders(boothId).then(show, () => {
         if (!active) return;
-        setOrdersState((s) =>
-          s.status === "ready" ? { ...s, stale: true } : { status: "error" },
-        );
+        setOrdersState((s) => {
+          if (s.status === "ready") return { ...s, stale: true };
+          // Nothing shown yet: fall back to the last saved list, marked as possibly out of date.
+          const saved = readCachedOrders(boothId);
+          return saved ? { status: "ready", orders: saved, stale: true } : { status: "error" };
+        });
       });
     loadRef.current = () => {
       void load();
@@ -148,6 +163,14 @@ function useBoothOrders(boothId: string | null) {
       stop();
     };
   }, [boothId, setOrdersState]);
+
+  // Only a list the server confirmed is saved, never one already marked out of date.
+  useEffect(() => {
+    const state = tagged.state;
+    if (boothId && tagged.boothId === boothId && state.status === "ready" && !state.stale) {
+      saveOrders(boothId, state.orders);
+    }
+  }, [boothId, tagged]);
 
   const reloadOrders = useCallback(() => loadRef.current(), []);
   const applyOrder = useCallback((order: Order) => {

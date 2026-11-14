@@ -428,6 +428,8 @@ test("vendor staff sign in, run their booth's orders, and cannot see another boo
   assert.ok(!again.ok);
   assert.equal(again.reason, "already_collected");
   assert.ok(again.at);
+  assert.equal(again.order?.id, ours.orderId);
+  assert.equal(again.order?.status, "collected");
 
   const stock = await api.setProductStock(mine.mugId, 9);
   assert.deepEqual(stock, { ok: true, value: { availableQty: 9 } });

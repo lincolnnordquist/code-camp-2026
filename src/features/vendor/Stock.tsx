@@ -8,6 +8,7 @@ import { ProductImage } from "../../shared/ui/ProductImage";
 import { refusalLabels } from "../../shared/ui/labels";
 import { VendorHeader, VendorTitle } from "./VendorHeader";
 import { VendorState } from "./VendorState";
+import { clearVendorCache } from "./vendorCache";
 import { useVendor } from "./vendorSession";
 
 // FR-24 and FR-25. The design has a Stock tab but no screen for it, so this one is built
@@ -45,6 +46,7 @@ export function Stock() {
   const leave = async () => {
     try {
       await signOut();
+      clearVendorCache();
       reloadBooth();
       navigate("/vendor", { replace: true });
     } catch {

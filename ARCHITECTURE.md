@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: partly built.** Built: the app scaffold, the attendee screens, the shared types, the shared API and live module calling Supabase (reads, reservations, cancelling, the private order link, vendor functions, and Realtime), the database tables with the order, vendor, checkout, payment, refund, and email functions and the demo event seed, the payment provider module with payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, `send-order-email`, and `square-webhook`. Planned: the vendor screens, the scheduled call to `expire-checkouts`, and the Setup phase below. Update this document when a module's job, a shared function, or a rule changes.
+**Status: partly built.** Built: the app scaffold, the attendee screens, the shared types, the shared API and live module calling Supabase (reads, reservations, cancelling, the private order link, vendor functions, and Realtime), the database tables with the order, vendor, checkout, payment, refund, and email functions and the demo event seed, the payment provider module with payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, `send-order-email`, and `square-webhook`. Also built: the vendor screens (`src/features/vendor/`: sign-in, order queue, order detail with cancelling, pickup, and stock with pause). Planned: the scheduled call to `expire-checkouts`, and the Setup phase below. Update this document when a module's job, a shared function, or a rule changes.
 
 ## Overview
 
@@ -86,7 +86,7 @@ These are the functions behind `src/shared/api/`. Each is granted to signed-in u
 | `cancel_my_order(p_order_id)` | Attendee | Cancels their own `confirmed` or `ready` order, reservation or prepaid, and returns the stock. A prepaid order's payment becomes refund due. | `order_not_found`, `not_allowed_in_status` |
 | `get_order_by_token(p_token)` | Anyone, no session | Opens one order from the private link in its confirmation email. Returns the attendee's view of the order, with no email address, token or provider ids. An unknown token gets the same `order_not_found`. | `order_not_found` |
 | `mark_order_ready(p_order_id)` | Staff | `confirmed` to `ready`. | `order_not_found`, `not_allowed_in_status` |
-| `collect_order(p_booth_id, p_pickup_code)` | Staff | Hands over a `confirmed` or `ready` order of that booth. | `not_found`, `already_collected` (with `at`), `cancelled`, `expired` |
+| `collect_order(p_booth_id, p_pickup_code)` | Staff | Hands over a `confirmed` or `ready` order of that booth. | `not_found`, `already_collected` (with `at`), `cancelled`, `expired`. The last three also carry the `order`, so the screen can show its items and cancel reason; `not_found` carries none |
 | `cancel_order(p_order_id, p_reason)` | Staff | Cancels a `confirmed` or `ready` order with a reason. Stock is not returned. A prepaid order's payment becomes refund due. | `order_not_found`, `reason_required`, `not_allowed_in_status` |
 | `set_product_stock(p_product_id, p_available_qty)` | Staff | Sets the quantity open to new orders. | `product_not_found`, `invalid_quantity` |
 | `set_ordering_paused(p_booth_id, p_paused)` | Staff | Pauses or resumes new orders for a booth. | `booth_not_found` |
@@ -315,4 +315,5 @@ Each row is a choice for the 24-hour build, with the path a commercial version w
 | Stock | A manually set quantity per product | Sync with the vendor's point-of-sale stock |
 | Staff access | One staff role per vendor | Multiple staff roles and permissions |
 | Search | The whole catalog is loaded and filtered in the browser | Search in the database, returning one page of results at a time |
-| Offline | A banner, cached reading, ordering disabled | Queued actions with clear pending states |
+| Offline | A banner, cached reading, ordering disabled. The vendor screens keep the last loaded booth and orders in the browser (`vendor.cache`), removed on sign-out | Queued actions with clear pending states |
+| Vendor stock and sign-in screens | Built from the design system and the spec; the design canvas has a Stock tab but no frames for these two | Designed frames for both, and sign-out in the account menu |
