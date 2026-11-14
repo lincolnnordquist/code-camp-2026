@@ -9,7 +9,18 @@ const COLLAPSE_PX = 72
  * a rounded block at the top of the page on a wide screen. Events have no banner image yet, so it
  * is a solid block.
  */
-export function EventBanner({ name, venue, action }: { name: string; venue: string; action?: ReactNode }) {
+export function EventBanner({
+  name,
+  venue,
+  action,
+  decorative = false,
+}: {
+  name: string
+  venue: string
+  action?: ReactNode
+  /** The page names the event in its own heading, so screen readers skip the banner's copy. */
+  decorative?: boolean
+}) {
   const bannerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -33,7 +44,7 @@ export function EventBanner({ name, venue, action }: { name: string; venue: stri
   return (
     <>
       <div className="event-banner__space" aria-hidden="true" />
-      <div className="event-banner" ref={bannerRef}>
+      <div className="event-banner" ref={bannerRef} aria-hidden={decorative || undefined}>
         <div className="event-banner__scrim" />
         <div className="event-banner__content">
           <div className="event-banner__text">

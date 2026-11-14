@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { bannerPreloadProps } from './bannerPreload'
 import { BoothLogo } from '../../shared/ui/BoothLogo'
+import { EventBanner } from '../../shared/ui/EventBanner'
 import { boothBadgeClass, boothBadgeLabel } from './boothLabel'
 import { eventFloorLayout } from './catalogExtras'
 import { FloorMap, type FloorMapHandle } from './FloorMap'
@@ -140,6 +141,7 @@ export function MapPage() {
 
   return (
     <div className="map-page">
+      <EventBanner name={catalog.event.name} venue={catalog.event.venueName} />
       <h1>{selected ? `Booth ${selected.code}` : 'Event map'}</h1>
       <SavedCopyNote show={state.fromCache} onRetry={() => void reload()} />
       <FloorMap
