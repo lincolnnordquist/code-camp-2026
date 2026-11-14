@@ -20,8 +20,9 @@ const recent = new Map<string, { request: CatalogResponse; answeredAt: number | 
  * (`fresh`) always asks the server, and later callers then share that request.
  */
 export function requestEventCatalog(slug: string, { fresh = false }: { fresh?: boolean } = {}): CatalogResponse {
+  dropExpiredAnswers()
   const entry = recent.get(slug)
-  if (entry && !fresh && (entry.answeredAt === null || Date.now() - entry.answeredAt < SHARE_ANSWER_MS)) return entry.request
+  if (entry && !fresh) return entry.request
   const request = getEventCatalog(slug)
   const mine = { request, answeredAt: null as number | null }
   recent.set(slug, mine)
@@ -34,4 +35,17 @@ export function requestEventCatalog(slug: string, { fresh = false }: { fresh?: b
     },
   )
   return request
+}
+
+/** Answers past SHARE_ANSWER_MS are let go, so a page left open does not hold every event it ever showed. */
+function dropExpiredAnswers() {
+  const now = Date.now()
+  for (const [slug, entry] of recent) {
+    if (entry.answeredAt !== null && now - entry.answeredAt >= SHARE_ANSWER_MS) recent.delete(slug)
+  }
+}
+
+/** The events whose request or recent answer is held now; for tests. */
+export function heldCatalogSlugs(): string[] {
+  return [...recent.keys()]
 }

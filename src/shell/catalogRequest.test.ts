@@ -45,10 +45,28 @@ describe('requestEventCatalog (one set of requests per event per navigation)', (
     }
   })
 
+  it('an answer past the sharing window is let go at the next request, even for an event not asked for again', async () => {
+    vi.useFakeTimers()
+    try {
+      api.getEventCatalog.mockResolvedValue({ ok: true })
+      const { heldCatalogSlugs, requestEventCatalog } = await import('./catalogRequest')
+      await requestEventCatalog('code-camp-2026')
+      vi.advanceTimersByTime(1000)
+      await requestEventCatalog('other-event')
+      expect(heldCatalogSlugs()).toEqual(['code-camp-2026', 'other-event'])
+      vi.advanceTimersByTime(2500)
+      await requestEventCatalog('other-event')
+      expect(heldCatalogSlugs()).toEqual(['other-event'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('a failed request is not kept either', async () => {
     api.getEventCatalog.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ ok: true })
-    const { requestEventCatalog } = await import('./catalogRequest')
+    const { heldCatalogSlugs, requestEventCatalog } = await import('./catalogRequest')
     await expect(requestEventCatalog('code-camp-2026')).rejects.toThrow('offline')
+    expect(heldCatalogSlugs()).toEqual([])
     await expect(requestEventCatalog('code-camp-2026')).resolves.toEqual({ ok: true })
   })
 
