@@ -1,0 +1,11 @@
+# Cloudflare Workers static assets read this file from dist/. Vite copies it there from public/.
+
+/*
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Vite puts a content hash in every file name under /assets, so a changed file gets a new URL.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
