@@ -301,6 +301,7 @@ Each row is a choice for the 24-hour build, with the path a commercial version w
 | Unmatched payments | A completed payment that does not match its order's amount, currency, seller, or Square order leaves the order `pending_payment` with its stock held. The vendor resolves it in Square | Reading every tender of a split payment, and a review list for payments that do not match |
 | Attendee access | Orders stay with one browser, plus an emailed link per order | Optional accounts and order recovery across devices |
 | Hold expiry | One hold length per event | Per-vendor windows, reminders, and no-show rules |
+| Event time zone | Events store no time zone. The confirmation email shows the hold end in America/Denver time | A time zone stored per event |
 | Pickup | A typed code | Scanning, pickup capacity, and express stations |
 | Event setup | Seeded event, floor plan, and booths, until the Setup phase | Organizers create events and invite vendors (planned); floor-plan and booth import |
 | Vendor catalog | Seeded products until the Setup phase, which lets a vendor add and edit them per event | An optional onboarding step that imports items from the vendor's connected system, so they are not entered one by one |
