@@ -108,6 +108,63 @@ async function handlePayment(
   return json(200, { ok: true, outcome: recorded.outcome, email });
 }
 
+async function handleRefund(
+  deps: SquareWebhookDeps,
+  event: Extract<WebhookEvent, { kind: "refund" }>,
+): Promise<Response> {
+  // Delivery order is not guaranteed, so a refund can arrive before its
+  // payment is recorded; a redelivery finds it once the payment message lands.
+  // A payment that is never recorded is retried until Square stops redelivering.
+  const found = await deps.rpc("svc_get_checkout_by_provider_payment", {
+    p_provider_payment_id: event.paymentId,
+  }) as Found;
+  if (!found.ok) {
+    log("square_webhook_refund_payment_unknown", {
+      paymentId: event.paymentId,
+    });
+    return retryLater("payment_not_found");
+  }
+  const connection = connectionFor(deps, found);
+  if (!connection) return retryLater("secret_missing");
+
+  const refund = await deps.provider.getRefund(connection, event.refundId);
+  if (refund.paymentId !== event.paymentId) {
+    log("square_webhook_refund_payment_mismatch", {
+      orderId: found.orderId,
+      refundId: event.refundId,
+    });
+    return json(200, { ok: false, reason: "refund_payment_mismatch" });
+  }
+  if (refund.status !== "completed") {
+    if (event.reportedCompleted) {
+      log("square_webhook_refund_not_settled", {
+        orderId: found.orderId,
+        refundId: event.refundId,
+      });
+      return retryLater("refund_not_settled");
+    }
+    return json(200, { ok: true, outcome: `refund_${refund.status}` });
+  }
+
+  const marked = await deps.rpc("svc_mark_refunded", {
+    p_provider_payment_id: refund.paymentId,
+    p_provider_refund_id: event.refundId,
+  }) as { ok: true; changed: boolean } | { ok: false; reason: string };
+  if (!marked.ok) {
+    log("square_webhook_refund_not_recorded", {
+      orderId: found.orderId,
+      reason: marked.reason,
+    });
+    return marked.reason === "payment_not_found"
+      ? retryLater(marked.reason)
+      : json(200, { ok: false, reason: marked.reason });
+  }
+  return json(200, {
+    ok: true,
+    outcome: marked.changed ? "refunded" : "already_refunded",
+  });
+}
+
 export async function handleSquareWebhook(
   request: Request,
   deps: SquareWebhookDeps,
@@ -135,6 +192,8 @@ export async function handleSquareWebhook(
     switch (event.kind) {
       case "payment":
         return await handlePayment(deps, event);
+      case "refund":
+        return await handleRefund(deps, event);
       case "other":
         return json(200, { ok: true, outcome: "ignored" });
       case "malformed":

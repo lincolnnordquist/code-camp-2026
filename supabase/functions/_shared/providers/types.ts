@@ -60,6 +60,12 @@ export type WebhookSignatureInput = {
 // record has not caught up with the message.
 export type WebhookEvent =
   | { kind: "payment"; providerOrderId: string; reportedCompleted: boolean }
+  | {
+    kind: "refund";
+    refundId: string;
+    paymentId: string;
+    reportedCompleted: boolean;
+  }
   | { kind: "other"; type: string }
   | { kind: "malformed" };
 

@@ -69,6 +69,7 @@ type WebhookBody = {
   data?: {
     object?: {
       payment?: { order_id?: unknown; status?: unknown };
+      refund?: { id?: unknown; payment_id?: unknown; status?: unknown };
     };
   };
 } | null;
@@ -92,6 +93,18 @@ function parseWebhookEvent(rawBody: string): WebhookEvent {
       kind: "payment",
       providerOrderId: payment.order_id,
       reportedCompleted: payment.status === "COMPLETED",
+    };
+  }
+  if (type === "refund.created" || type === "refund.updated") {
+    const refund = body?.data?.object?.refund;
+    if (!nonEmpty(refund?.id) || !nonEmpty(refund.payment_id)) {
+      return { kind: "malformed" };
+    }
+    return {
+      kind: "refund",
+      refundId: refund.id,
+      paymentId: refund.payment_id,
+      reportedCompleted: refund.status === "COMPLETED",
     };
   }
   return typeof type === "string"
