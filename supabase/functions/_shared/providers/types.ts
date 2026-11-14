@@ -55,6 +55,14 @@ export type WebhookSignatureInput = {
   signatureKey: string;
 };
 
+// What a signed webhook message asks to look up. The lookup decides what
+// changed; reportedCompleted only asks for redelivery when the provider's own
+// record has not caught up with the message.
+export type WebhookEvent =
+  | { kind: "payment"; providerOrderId: string; reportedCompleted: boolean }
+  | { kind: "other"; type: string }
+  | { kind: "malformed" };
+
 // "unavailable" means the provider did not answer or failed, and the same call
 // can succeed later. "rejected" means the provider refused the request as sent.
 export type ProviderFailure =
@@ -107,4 +115,6 @@ export interface PaymentProvider {
   ): Promise<ProviderRefund>;
 
   verifyWebhookSignature(input: WebhookSignatureInput): Promise<boolean>;
+
+  parseWebhookEvent(rawBody: string): WebhookEvent;
 }

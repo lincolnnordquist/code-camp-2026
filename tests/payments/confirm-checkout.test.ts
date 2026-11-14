@@ -76,6 +76,9 @@ function setup(options: Setup = {}) {
     getOrderState: unused,
     getRefund: unused,
     verifyWebhookSignature: unused,
+    parseWebhookEvent: () => {
+      throw new Error("not used");
+    },
   };
   const deps: ConfirmCheckoutDeps = {
     getUserId: (token) =>
