@@ -31,6 +31,30 @@
   font: var(--type-title-large);
 }
 
+/* A logo's frame: a soft neutral, the same for every booth, in the logo's place until it fades in. */
+.booth-logo--frame {
+  background: var(--neutral-200);
+}
+
+.booth-logo__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.booth-logo__img.is-loaded {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booth-logo__img {
+    transition: none;
+  }
+}
+
 /* The code tile sits on card and page tones close to its own quiet violet, so it carries a faint ring
    to read as a round tile, not a bare code (offline, before a logo is cached). */
 .booth-logo--code {

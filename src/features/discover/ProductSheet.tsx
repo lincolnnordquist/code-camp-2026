@@ -272,8 +272,14 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
           <span className="visually-hidden">Booth {booth.code}, </span>
           {booth.vendorName}
         </span>
-        <span className="visually-hidden">, </span>
-        <span className={boothBadgeClass(booth)}>{boothBadgeLabel(booth)}</span>
+        <span className="sheet__badges">
+          {/* Already spoken first in the link's name, so shown here only to the eye, as in the booths list. */}
+          <span className="sheet__code" aria-hidden="true">
+            {booth.code}
+          </span>
+          <span className="visually-hidden">, </span>
+          <span className={boothBadgeClass(booth)}>{boothBadgeLabel(booth)}</span>
+        </span>
       </span>
     </>
   )
@@ -326,20 +332,29 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
               <StockBadge qty={product.availableQty} />
             </p>
             {product.description && <p className="sheet__desc">{product.description}</p>}
-            {/* Who sells it: the booths-list row, the whole row a link to the storefront (not on it already). */}
-            {onStorefront ? (
-              <div className="sheet__booth">{vendorRow}</div>
-            ) : (
-              <Link className="sheet__booth sheet__booth--link" to={`/e/${slug}/booth/${booth.id}`} {...bannerPreloadProps(booth)}>
-                {vendorRow}
+            {/* Who sells it and where, as one grouped card: the booths-list row (the whole row a link to
+                the storefront, when not on it already), then the way to the booth on the map. */}
+            <div className="sheet__where">
+              {onStorefront ? (
+                <div className="sheet__booth">{vendorRow}</div>
+              ) : (
+                <Link className="sheet__booth sheet__booth--link" to={`/e/${slug}/booth/${booth.id}`} {...bannerPreloadProps(booth)}>
+                  {vendorRow}
+                  <svg className="sheet__chevron" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+              <Link className="sheet__map" to={`/e/${slug}/map?booth=${booth.id}`}>
+                <svg className="sheet__map-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+                  <path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14" />
+                </svg>
+                Find on map
                 <svg className="sheet__chevron" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
                   <path d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
-            )}
-            <Link className="sheet__map" to={`/e/${slug}/map?booth=${booth.id}`}>
-              Find on map
-            </Link>
+            </div>
           </div>
         </div>
         {/* The order control docks to the sheet's foot, always in reach, on a frosted bar. */}

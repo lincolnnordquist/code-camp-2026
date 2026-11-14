@@ -6,7 +6,7 @@ afterEach(() => {
 })
 
 describe('preloadBanner', () => {
-  it('starts each banner once, however often a link is pressed, hovered or focused, and skips a booth without one', async () => {
+  it('starts the banner then the logo once each, however often a link is pressed, hovered or focused, and skips a booth without them', async () => {
     const created: string[] = []
     vi.stubGlobal(
       'Image',
@@ -18,12 +18,13 @@ describe('preloadBanner', () => {
       },
     )
     const { bannerPreloadProps, preloadBanner } = await import('./bannerPreload')
-    const props = bannerPreloadProps({ bannerUrl: 'https://storage.example/b.png' })
+    const props = bannerPreloadProps({ bannerUrl: 'https://storage.example/b.png', logoUrl: 'https://storage.example/l.svg' })
     props.onPointerDown()
     props.onMouseEnter()
     props.onFocus()
     preloadBanner(null)
     preloadBanner('')
-    expect(created).toEqual(['https://storage.example/b.png'])
+    bannerPreloadProps({ bannerUrl: '', logoUrl: '' }).onPointerDown()
+    expect(created).toEqual(['https://storage.example/b.png', 'https://storage.example/l.svg'])
   })
 })

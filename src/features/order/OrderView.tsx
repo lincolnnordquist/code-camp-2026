@@ -166,7 +166,7 @@ function OrderItemRow({ item, currency }: { item: Order['items'][number]; curren
   return (
     <li className="order-item">
       <span className="order-item__photo" aria-hidden="true">
-        {product ? <ProductImage product={product} size="small" /> : <span className="product-image product-image--small product-image--frame" />}
+        {product ? <ProductImage product={product} size="small" eager /> : <span className="product-image product-image--small product-image--frame" />}
       </span>
       <span className="order-item__qty" aria-hidden="true">
         {item.quantity}×

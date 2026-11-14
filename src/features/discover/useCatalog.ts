@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { requestEventCatalog } from '../../shell/catalogRequest'
+import { lastEventCatalog, requestEventCatalog } from '../../shell/catalogRequest'
 import { PULL_REFRESH_DONE_EVENT, PULL_REFRESH_EVENT } from '../../shell/pullToRefresh'
 import type { EventCatalog } from '../../shared/types'
 
@@ -33,6 +33,9 @@ function isCatalog(value: unknown): value is EventCatalog {
 }
 
 function readCache(slug: string): EventCatalog | null {
+  // This page life's last answer first: a return to the screen shows it even where storage is blocked.
+  const held = lastEventCatalog(slug)
+  if (held) return held
   try {
     const raw = localStorage.getItem(CACHE_PREFIX + slug)
     if (!raw) return null

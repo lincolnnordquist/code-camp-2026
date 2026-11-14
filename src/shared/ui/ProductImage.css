@@ -48,6 +48,13 @@
   border-radius: var(--radius-sm);
 }
 
+/* A thumbnail sits on a card of the same tone as the photo tile, so its frame takes a step darker:
+   the square shows from the first frame, before the catalog or the photo has arrived, and the photo
+   fades in over it (the photos fill the tile, so the tone never shows once one has loaded). */
+.product-image--small.product-image--frame:not([data-fit='contain']) {
+  background: var(--neutral-200);
+}
+
 .product-image--large {
   width: 100%;
   aspect-ratio: 4 / 3;
