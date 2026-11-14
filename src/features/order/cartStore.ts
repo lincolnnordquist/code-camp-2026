@@ -36,7 +36,8 @@ export interface Cart {
   items: CartItem[]
   /**
    * Sent with the reservation so a retried submit returns the first order
-   * (FR-08). Renewed whenever the cart contents change.
+   * (FR-08). Renewed whenever the cart contents change, and after a refused
+   * checkout.
    */
   requestId: string
 }
@@ -234,6 +235,13 @@ export function lastOrderId(): string | null {
   } catch {
     return null
   }
+}
+
+// A refused checkout may have created an order on the server and released it,
+// and a retry with the same request id returns that released order.
+export function renewRequestId() {
+  if (!cached) return
+  save({ ...cached, requestId: newRequestId() })
 }
 
 export function clearCart() {

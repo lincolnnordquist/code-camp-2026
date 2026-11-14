@@ -744,6 +744,20 @@ describe('one wallet reader for the list and the badge', () => {
   })
 })
 
+describe('return from Square with its own parameters', () => {
+  // Square adds checkoutId, orderId and others to the return address in production, not in the
+  // sandbox, and does not document how it joins them to an address that already has a query.
+  it.each([
+    '/orders/o1?checkout=return&checkoutId=C1&orderId=SQ1',
+    '/orders/o1?checkout=return?checkoutId=C1&orderId=SQ1',
+  ])('%s still asks the server to verify', async (path) => {
+    api.getOrder.mockResolvedValue({ ok: true, value: order({ type: 'prepaid', status: 'pending_payment' }) })
+    api.confirmCheckout.mockResolvedValue({ ok: true, value: order({ type: 'prepaid', status: 'confirmed' }) })
+    await renderOrderPage(path)
+    await waitFor(() => expect(api.confirmCheckout).toHaveBeenCalledWith('o1'))
+  })
+})
+
 describe('writes outrank reads in flight', () => {
   it('a slow first read that lands after the payment check does not revert the page', async () => {
     saveCache([order({ type: 'prepaid', status: 'pending_payment' })])
@@ -1005,6 +1019,39 @@ describe('a hung submit has a time limit (D4)', () => {
     expect(screen.getByText(/Not sure it went through/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /^Pay / })).toBeTruthy()
   })
+
+  it('a checkout retried after a timeout sends the same request id', async () => {
+    vi.useFakeTimers()
+    const { addToCart } = await import('./cartStore')
+    const { SUBMIT_TIMEOUT_MS } = await import('./CheckoutPage')
+    addToCart({ eventSlug: 'ev', currency: 'USD', booth: { ...boothB, mode: 'prepay' }, product: product('p') })
+    api.startCheckout.mockReturnValueOnce(never()).mockReturnValueOnce(never())
+    await renderCart()
+    submitCart(/^Pay /)
+    await act(async () => vi.advanceTimersByTime(SUBMIT_TIMEOUT_MS))
+    fireEvent.click(screen.getByRole('button', { name: /^Pay / }))
+    const [first, second] = api.startCheckout.mock.calls.map((c) => c[0].requestId)
+    expect(second).toBe(first)
+  })
+
+  it.each(['checkout_unavailable', 'invalid_email'] as const)(
+    'a checkout retried after a %s refusal sends a new request id',
+    async (reason) => {
+      const { addToCart } = await import('./cartStore')
+      addToCart({ eventSlug: 'ev', currency: 'USD', booth: { ...boothB, mode: 'prepay' }, product: product('p') })
+      api.startCheckout
+        .mockResolvedValueOnce({ ok: false, reason })
+        .mockReturnValueOnce(never())
+      await renderCart()
+      submitCart(/^Pay /)
+      await screen.findByText(reason === 'invalid_email' ? /Enter a full email address/ : /Online payment is not available/)
+      fireEvent.click(screen.getByRole('button', { name: /^Pay / }))
+      await waitFor(() => expect(api.startCheckout).toHaveBeenCalledTimes(2))
+      const [first, second] = api.startCheckout.mock.calls.map((c) => c[0].requestId)
+      expect(first).toBeTruthy()
+      expect(second).not.toBe(first)
+    },
+  )
 })
 
 describe('full QA round (order side)', () => {
