@@ -19,7 +19,7 @@ import {
 const email = "attendee@example.com";
 
 test("returns the demo event with booths and products", async () => {
-  const result = await getEventCatalog("demo");
+  const result = await getEventCatalog("code-camp-2026");
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.equal(result.value.booths.length, 3);
@@ -28,7 +28,7 @@ test("returns the demo event with booths and products", async () => {
 });
 
 test("catalog items carry photos, descriptions and vendor branding", async () => {
-  const result = await getEventCatalog("demo");
+  const result = await getEventCatalog("code-camp-2026");
   assert.ok(result.ok);
   assert.equal(result.value.event.floorPlanUrl, null);
   assert.ok(result.value.event.venueName);
@@ -121,7 +121,7 @@ test("returns stock when a reservation is cancelled", async () => {
   const cancelled = await cancelMyOrder(reserved.value.id);
   assert.ok(cancelled.ok);
   assert.equal(cancelled.value.status, "cancelled");
-  const catalog = await getEventCatalog("demo");
+  const catalog = await getEventCatalog("code-camp-2026");
   assert.ok(catalog.ok);
   assert.equal(
     catalog.value.products.find((p) => p.id === "p-2")?.availableQty,

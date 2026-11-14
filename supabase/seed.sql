@@ -1,10 +1,10 @@
 -- Demo event, booths and products. It mirrors the sample data in src/shared/api so the
 -- stubs and the real database describe the same event. Images are placeholders in
 -- supabase/seed-assets, uploaded with `supabase seed buckets`. Vendor staff accounts are
--- added in a later change.
+-- added below.
 
 insert into public.events (id, slug, name, venue_name, currency, reservation_hold_minutes, checkout_hold_minutes, floor_plan_url)
-values ('e0000000-0000-0000-0000-000000000001', 'demo', 'Demo Convention 2026', 'Demo Convention Center', 'USD', 120, 15, null);
+values ('e0000000-0000-0000-0000-000000000001', 'code-camp-2026', 'Code Camp 2026', 'Demo Convention Center', 'USD', 120, 15, null);
 
 -- Image paths point into the 'assets' storage bucket: vendors/<vendor-slug>/logo and banner,
 -- products/<vendor-slug>/<product-slug>. The files are placeholders for now.
@@ -28,3 +28,39 @@ insert into public.products (id, booth_id, name, category, description, image_pa
 -- Edge Function secret with this name.
 insert into public.provider_connections (vendor_id, provider, location_id, token_secret_name)
 values ('f0000000-0000-0000-0000-00000000000b', 'square', 'LT26AY1A3MCK2', 'SQUARE_ACCESS_TOKEN_VENDOR_A');
+
+-- Vendor staff logins, one per vendor. DEMO ONLY: every account has the password
+-- 'demo-password', so change these on any project that is public. The token columns are
+-- empty strings, not null, or sign-in fails.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token
+)
+select
+  '00000000-0000-0000-0000-000000000000', s.id, 'authenticated', 'authenticated', s.email,
+  extensions.crypt('demo-password', extensions.gen_salt('bf')), now(),
+  '{"provider": "email", "providers": ["email"]}', '{}', now(), now(),
+  '', '', '', '', '', '', '', ''
+from (values
+  ('d0000000-0000-0000-0000-00000000000a'::uuid, 'staff-pixel-prints@example.com'),
+  ('d0000000-0000-0000-0000-00000000000b'::uuid, 'staff-moon-ceramics@example.com'),
+  ('d0000000-0000-0000-0000-00000000000c'::uuid, 'staff-old-maps-co@example.com')
+) as s (id, email);
+
+insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+select u.id::text, u.id,
+  jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+  'email', now(), now(), now()
+from auth.users u
+where u.id in (
+  'd0000000-0000-0000-0000-00000000000a',
+  'd0000000-0000-0000-0000-00000000000b',
+  'd0000000-0000-0000-0000-00000000000c'
+);
+
+insert into public.vendor_staff (user_id, vendor_id) values
+  ('d0000000-0000-0000-0000-00000000000a', 'f0000000-0000-0000-0000-00000000000a'),
+  ('d0000000-0000-0000-0000-00000000000b', 'f0000000-0000-0000-0000-00000000000b'),
+  ('d0000000-0000-0000-0000-00000000000c', 'f0000000-0000-0000-0000-00000000000c');

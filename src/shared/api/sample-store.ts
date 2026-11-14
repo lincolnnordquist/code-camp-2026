@@ -6,8 +6,8 @@ import { publicAssetUrl } from "./storage";
 export const catalog: EventCatalog = {
   event: {
     id: "evt-1",
-    slug: "demo",
-    name: "Demo Convention 2026",
+    slug: "code-camp-2026",
+    name: "Code Camp 2026",
     venueName: "Demo Convention Center",
     currency: "USD",
     floorPlanUrl: null,
