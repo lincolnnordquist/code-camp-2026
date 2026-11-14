@@ -122,13 +122,13 @@ function refundLabels(order: LabelledOrder, amount: string) {
     case "due":
       return {
         badge: { label: "Refund due", tone: "warning" } as const,
-        banner: { title: "Refund due:", body: `${amount} back to your card`, tone: "warning", icon: "error" } as const,
+        banner: { title: "Refund due", body: `${amount} back to your card`, tone: "warning", icon: "error" } as const,
       };
     case "refunded": {
       const refunded = formatMoney(order.refundedCents, order.currency);
       return {
         badge: { label: "Refunded", tone: "neutral" } as const,
-        banner: { title: "Refunded:", body: `${refunded} back to your card`, tone: "neutral", icon: "info" } as const,
+        banner: { title: "Refunded", body: `${refunded} back to your card`, tone: "neutral", icon: "info" } as const,
       };
     }
     case "none":
