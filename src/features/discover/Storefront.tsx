@@ -159,7 +159,7 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
           )}
         </div>
         <span className="storefront__logo">
-          <BoothLogo booth={booth} size="lg" priority />
+          <BoothLogo booth={booth} size="lg" />
         </span>
         <h1>{booth.vendorName}</h1>
         {booth.slogan && <p className="storefront__tagline">{booth.slogan}</p>}

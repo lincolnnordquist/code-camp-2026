@@ -75,12 +75,25 @@
   block-size: calc(var(--banner-visible) + var(--app-header-block));
 }
 
-/* The round logo overlaps the banner's lower edge, ringed in the page tone so it reads on any banner. */
+/* The round logo overlaps the banner's lower edge, ringed in the page tone so it reads on any banner.
+   The frame is the logo's final circle from the first frame, in the banner placeholder's neutral, so
+   the ring never changes size or colour; the logo arrives inside it. */
 .storefront__logo {
   display: inline-grid;
+  width: 64px;
+  height: 64px;
   margin: -40px 0 var(--space-8) 0;
+  overflow: hidden;
   border-radius: var(--radius-full);
+  background: var(--neutral-200);
   box-shadow: 0 0 0 3px var(--page);
+}
+
+/* A logo still loading is see-through, so the frame's neutral shows, not the code tile's violet.
+   The code tile itself (no logo, or one that failed) keeps its colour. */
+.storefront__logo img.booth-logo,
+.sheet__booth img.booth-logo {
+  background: var(--neutral-200);
 }
 
 @media (min-width: 45rem) {

@@ -716,9 +716,39 @@
   gap: var(--space-12);
 }
 
+/* The square tile is ours, painted from the first frame in a neutral a step darker than the card,
+   so the row has its photo's place before the catalog or the photo arrives; the photo (with its own
+   fade) lands inside it. */
+.order-item__photo,
+.cart__photo {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-200);
+}
+
+.order-item__photo {
+  width: 48px;
+  height: 48px;
+}
+
 .order-item__photo .product-image {
   width: 48px;
   height: 48px;
+}
+
+/* The photo's own tile is the card tone, which would hide ours while the photo loads. */
+.order-item__photo .product-image--frame,
+.cart__photo .product-image--frame {
+  background: transparent;
+}
+
+/* Booth logos on the order screens: a logo still loading shows the same neutral, not the code tile's violet. */
+img.order-pass__logo,
+img.wallet-stub__plate,
+img.pickup-mode__logo,
+.order-vendor img.booth-logo {
+  background: var(--neutral-200);
 }
 
 .order-item__qty {
@@ -2146,6 +2176,11 @@
   grid-template-columns: 64px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-12);
+}
+
+.cart__photo {
+  width: 64px;
+  height: 64px;
 }
 
 .cart__photo .product-image {

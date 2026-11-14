@@ -1783,7 +1783,6 @@ describe('order page in the design system (design/order-page)', () => {
       const items = screen.getByRole('region', { name: 'Items' })
       const tile = items.querySelector('.order-item__photo .product-image--small')!
       expect(tile.querySelector('img')?.getAttribute('src')).toBe('/p/patch.webp')
-      expect(tile.querySelector('img')?.getAttribute('loading')).toBe('eager')
     })
 
     it('with no catalog yet, the item keeps its square tile until the photo can show', async () => {

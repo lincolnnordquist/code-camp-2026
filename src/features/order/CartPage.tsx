@@ -140,7 +140,7 @@ export function CartPage() {
               >
                 <span className="cart__photo" aria-hidden="true">
                   {products.has(item.productId) ? (
-                    <ProductImage product={products.get(item.productId)!} size="small" eager />
+                    <ProductImage product={products.get(item.productId)!} size="small" />
                   ) : (
                     <span className="product-image product-image--small product-image--frame" />
                   )}
