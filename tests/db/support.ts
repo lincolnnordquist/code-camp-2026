@@ -85,6 +85,11 @@ export async function newUser(): Promise<string> {
   return data.user!.id;
 }
 
+// Remembers a user created outside these helpers, so it is removed after the test file.
+export function trackUser(id: string): void {
+  if (!userIds.includes(id)) userIds.push(id);
+}
+
 // A browser client: the publishable key plus an anonymous session, as an attendee gets.
 export async function newAttendeeClient(): Promise<{
   client: SupabaseClient;
@@ -234,10 +239,10 @@ afterAll(async () => {
   assert.deepEqual(failures, [], "test data could not be removed");
 });
 
-// A client signed in as staff of the vendor, the way a vendor signs in at /vendor.
-export async function newStaffClient(
+// A staff login for the vendor, the way a vendor signs in at /vendor.
+export async function newStaffAccount(
   vendorId: string,
-): Promise<SupabaseClient> {
+): Promise<{ email: string; password: string; userId: string }> {
   const email = `${randomUUID()}@example.com`;
   const password = randomUUID();
   const { data, error } = await admin.auth.admin.createUser({
@@ -251,6 +256,14 @@ export async function newStaffClient(
     .from("vendor_staff")
     .insert({ user_id: data.user!.id, vendor_id: vendorId });
   assert.equal(staff.error, null, staff.error?.message ?? "");
+  return { email, password, userId: data.user!.id };
+}
+
+// A client signed in as staff of the vendor.
+export async function newStaffClient(
+  vendorId: string,
+): Promise<SupabaseClient> {
+  const { email, password } = await newStaffAccount(vendorId);
   const client = createClient(stack.url, stack.publishableKey, authOptions);
   const signedIn = await client.auth.signInWithPassword({ email, password });
   assert.equal(signedIn.error, null);
