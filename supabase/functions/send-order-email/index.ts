@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.119.0";
-import { json } from "../create-checkout/handler.ts";
+import { json } from "../_shared/http.ts";
 import { orderEmailFromEnvironment } from "../_shared/order-email.ts";
 import { handleSendOrderEmail } from "./handler.ts";
 

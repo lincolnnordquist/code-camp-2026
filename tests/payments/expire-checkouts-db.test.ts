@@ -56,6 +56,7 @@ function depsFor(
     },
     provider: {
       webhookSignatureHeaderName: "x-test-signature",
+      pendingRecheckMs: 2000,
       createCheckout: unused,
       getPayment: () => Promise.resolve(null),
       closeCheckout: unused,
@@ -66,6 +67,7 @@ function depsFor(
     },
     readSecret: (name) =>
       name === "SQUARE_ACCESS_TOKEN_TEST" ? "seller-token" : undefined,
+    email: { sendConfirmation: () => Promise.resolve("sent") },
   };
 }
 
@@ -121,12 +123,12 @@ test("an overdue checkout whose link an earlier run deleted is expired once Squa
   assert.equal(await stockOf(mugId), 5);
 });
 
-test("an overdue paid checkout keeps its order and its stock", async () => {
+test("an overdue paid checkout is confirmed, keeps its stock, and records its payment once", async () => {
   const { boothId, mugId } = await newBooth();
   const order = await overdueCheckout(boothId, mugId);
   const lookedUp: string[] = [];
   const paid: ProviderPayment = {
-    id: "PAY_1",
+    id: `PAY_${randomUUID()}`,
     providerOrderId: order.providerOrderId,
     status: "completed",
     amountCents: order.totalCents,
@@ -142,7 +144,14 @@ test("an overdue paid checkout keeps its order and its stock", async () => {
   }))).json();
 
   assert.deepEqual(lookedUp, [order.providerOrderId]);
-  assert.equal(body.paidAwaitingConfirmation, 1, JSON.stringify(body));
-  assert.equal(await statusOf(order.orderId), "pending_payment");
+  assert.equal(body.confirmed, 1, JSON.stringify(body));
+  assert.equal(await statusOf(order.orderId), "confirmed");
   assert.equal(await stockOf(mugId), 3);
+  const { data: payments } = await admin
+    .from("payments")
+    .select("provider_payment_id, refund_status")
+    .eq("order_id", order.orderId);
+  assert.deepEqual(payments, [
+    { provider_payment_id: paid.id, refund_status: "none" },
+  ]);
 });

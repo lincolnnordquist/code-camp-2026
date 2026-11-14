@@ -8,6 +8,12 @@ import {
   type ExpectedPayment,
   verifyPayment,
 } from "../_shared/verify-payment.ts";
+import { bearerToken } from "../_shared/http.ts";
+import {
+  recordVerifiedPayment,
+  type VerifiedPayment,
+} from "../_shared/confirm-payment.ts";
+import type { OrderEmailSender } from "../_shared/order-email.ts";
 
 export type OverdueCheckout = {
   orderId: string;
@@ -23,16 +29,17 @@ export type ExpireCheckoutsDeps = {
   rpc(name: string, args: Record<string, unknown>): Promise<unknown>;
   provider: PaymentProvider;
   readSecret(name: string): string | undefined;
+  email: OrderEmailSender;
 };
 
 type Outcome =
   | "expired"
   | "left"
-  | "paidAwaitingConfirmation"
+  | "confirmed"
   | "paidNotVerified"
   | "failed";
 
-type PaymentCheck = "unpaid" | Exclude<Outcome, "expired" | "failed">;
+type PaymentCheck = "unpaid" | "left" | "paidNotVerified" | VerifiedPayment;
 
 export function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -68,13 +75,33 @@ function checkPayment(
   }
   if (payment.status === "pending") return "left";
   const verification = verifyPayment(expected, payment);
-  if (verification.verified) return "paidAwaitingConfirmation";
+  if (verification.verified) return verification;
   log("overdue_payment_not_verified", {
     orderId,
     paymentId: payment.id,
     reason: verification.reason,
   });
   return "paidNotVerified";
+}
+
+// The order can change status after it is listed, so the database may answer
+// refund_due or refuse.
+async function confirmOrder(
+  deps: ExpireCheckoutsDeps,
+  orderId: string,
+  verification: VerifiedPayment,
+): Promise<Outcome> {
+  const recorded = await recordVerifiedPayment(deps.rpc, verification);
+  if (!recorded.ok) {
+    log("overdue_payment_not_recorded", { orderId, reason: recorded.reason });
+    return "paidNotVerified";
+  }
+  if (recorded.outcome === "refund_due") {
+    log("overdue_payment_refund_due", { orderId });
+    return "left";
+  }
+  await deps.email.sendConfirmation(orderId, null);
+  return "confirmed";
 }
 
 async function expireOrder(
@@ -127,6 +154,7 @@ async function settle(
     expected,
     await deps.provider.getPayment(connection, providerOrderId),
   );
+  if (typeof before === "object") return confirmOrder(deps, orderId, before);
   if (before !== "unpaid") return before;
 
   const cancelledId = await deps.provider.closeCheckout(
@@ -152,6 +180,7 @@ async function settle(
     expected,
     await deps.provider.getPayment(connection, providerOrderId),
   );
+  if (typeof after === "object") return confirmOrder(deps, orderId, after);
   if (after !== "unpaid") return after;
   // A cancelled Square order can no longer be paid, so its stock can be
   // released although the delete named no order.
@@ -170,8 +199,7 @@ export async function handleExpireCheckouts(
   if (request.method !== "POST") {
     return json(405, { ok: false, reason: "method_not_allowed" });
   }
-  const token = request.headers.get("Authorization")?.match(/^Bearer (.+)$/)
-    ?.[1];
+  const token = bearerToken(request);
   if (!token || !sameKey(token, deps.serviceKey)) {
     return json(401, { ok: false, reason: "not_authorized" });
   }
@@ -182,7 +210,7 @@ export async function handleExpireCheckouts(
   const counts: Record<Outcome, number> = {
     expired: 0,
     left: 0,
-    paidAwaitingConfirmation: 0,
+    confirmed: 0,
     paidNotVerified: 0,
     failed: 0,
   };

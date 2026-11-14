@@ -75,6 +75,7 @@ function setup(options: Setup = {}) {
   const unused = () => Promise.reject(new Error("not used by create-checkout"));
   const provider: PaymentProvider = {
     webhookSignatureHeaderName: "x-test-signature",
+    pendingRecheckMs: 2000,
     createCheckout(input) {
       checkoutCalls.push(input);
       return options.createCheckout?.(input) ?? Promise.resolve(checkout);

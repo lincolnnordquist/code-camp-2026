@@ -1,4 +1,4 @@
-import { corsHeaders, json } from "../create-checkout/handler.ts";
+import { corsHeaders, json } from "../_shared/http.ts";
 import type { OrderEmailSender } from "../_shared/order-email.ts";
 
 export type SendOrderEmailDeps = {

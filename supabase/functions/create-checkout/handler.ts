@@ -3,6 +3,7 @@ import {
   ProviderError,
   type SellerConnection,
 } from "../_shared/providers/types.ts";
+import { bearerToken, corsHeaders, isUuid, json } from "../_shared/http.ts";
 
 export type ServiceRefusal = {
   ok: false;
@@ -36,25 +37,9 @@ export type CreateCheckoutDeps = {
   appUrl: string;
 };
 
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-export function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
 export function orderPageUrl(appUrl: string, orderId: string): string {
   return `${appUrl.replace(/\/+$/, "")}/orders/${orderId}?checkout=return`;
 }
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type CheckoutRequest = {
   boothId: string;
@@ -66,13 +51,13 @@ type CheckoutRequest = {
 function parseRequest(body: unknown): CheckoutRequest | null {
   if (typeof body !== "object" || body === null) return null;
   const { boothId, items, email, requestId } = body as Record<string, unknown>;
-  if (typeof boothId !== "string" || !UUID.test(boothId)) return null;
+  if (!isUuid(boothId)) return null;
   if (typeof email !== "string") return null;
   if (typeof requestId !== "string" || requestId === "") return null;
   if (!Array.isArray(items)) return null;
   const itemsValid = items.every((item) =>
     typeof item === "object" && item !== null &&
-    typeof item.productId === "string" && UUID.test(item.productId) &&
+    isUuid(item.productId) &&
     Number.isInteger(item.quantity)
   );
   if (!itemsValid) return null;
@@ -141,8 +126,7 @@ export async function handleCreateCheckout(
     return json(405, { ok: false, reason: "method_not_allowed" });
   }
 
-  const token = request.headers.get("Authorization")?.match(/^Bearer (.+)$/)
-    ?.[1];
+  const token = bearerToken(request);
   const userId = token ? await deps.getUserId(token) : null;
   if (!userId) return json(401, { ok: false, reason: "not_signed_in" });
 

@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.119.0";
 import { providerFromEnvironment } from "../_shared/providers/index.ts";
-import { handleCreateCheckout, json } from "./handler.ts";
+import { json } from "../_shared/http.ts";
+import { handleCreateCheckout } from "./handler.ts";
 
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name);
