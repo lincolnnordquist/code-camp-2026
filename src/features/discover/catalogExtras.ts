@@ -3,10 +3,12 @@
  * not carry yet: the event's drawn floor layout. Remove the fallback when
  * `Event.floorLayout` exists. The accessor reads `event.floorLayout` first, so it picks the
  * field up as soon as Data & vendor adds it. Until then it reads a layout the
- * host app may provide by event id, and without either the map uses the floor
- * plan image.
+ * host app may provide by event id, then the stand-in hall for a known event
+ * (STAND_IN_FLOOR_LAYOUTS), and without any of them the map uses the floor plan
+ * image.
  */
 import type { Event } from '../../shared/types'
+import { CODE_CAMP_LAYOUT } from './codeCampLayout'
 
 /** A rectangle in floor-plan units (the layout's own coordinate space). */
 export interface PlanRect {
@@ -59,6 +61,15 @@ export function provideCatalogExtras(source: CatalogExtras) {
 type WithEventExtras = Event & { floorLayout?: unknown }
 
 /**
+ * STAND-IN until `events.floor_layout` exists: the drawn hall for a known event, by its slug, used
+ * only when the event brings no layout of its own. Delete this map (and its use below) once the
+ * schema and the API carry the field; a real layout from the API always wins over it.
+ */
+export const STAND_IN_FLOOR_LAYOUTS: Readonly<Record<string, FloorLayout>> = {
+  'code-camp-2026': CODE_CAMP_LAYOUT,
+}
+
+/**
  * Remove the extras lookup when Event.floorLayout exists; keep the check, since
  * `floor_layout` is free-form JSON in the database. The map only draws a
  * layout whose every field it needs is present and finite, and otherwise
@@ -66,7 +77,8 @@ type WithEventExtras = Event & { floorLayout?: unknown }
  */
 export function eventFloorLayout(event: Event): FloorLayout | undefined {
   const layout = (event as WithEventExtras).floorLayout ?? extras.events?.[event.id]?.floorLayout
-  return isFloorLayout(layout) ? layout : undefined
+  if (isFloorLayout(layout)) return layout
+  return Object.hasOwn(STAND_IN_FLOOR_LAYOUTS, event.slug) ? STAND_IN_FLOOR_LAYOUTS[event.slug] : undefined
 }
 
 const isNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n)
