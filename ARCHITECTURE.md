@@ -283,7 +283,7 @@ Each row is a choice for the 24-hour build, with the path a commercial version w
 | Area | This build | Later |
 | --- | --- | --- |
 | Merchant connection | Seeded vendors and seeded Square sandbox sellers, until the Setup phase | Self-service Square authorization and connection management (planned: see "Accounts, invitations, and setup") |
-| Refunds | The vendor refunds in Square; the app shows refund due, then refunded | Refunds issued through the provider, with reconciliation |
+| Refunds | The vendor refunds in Square; the app shows refund due, then refunded. Any completed refund marks the payment refunded, including a partial one | Refunds issued through the provider, with reconciliation that tracks partial refunds |
 | Payment verification | Refunds are not read. A payment refunded in Square before its order is confirmed still confirms the order | Verification that reads the refunded amount, including partial refunds |
 | Unmatched payments | A completed payment that does not match its order's amount, currency, seller, or Square order leaves the order `pending_payment` with its stock held. The vendor resolves it in Square | Reading every tender of a split payment, and a review list for payments that do not match |
 | Attendee access | Orders stay with one browser, plus an emailed link per order | Optional accounts and order recovery across devices |
