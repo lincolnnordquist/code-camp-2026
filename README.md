@@ -10,7 +10,7 @@ This is a 24-hour competition build by three developers working with coding agen
 
 ## Status
 
-The app is scaffolded and deployed with a placeholder page. The shared API in `src/shared/api/` returns sample data. The database migrations create the tables and the checkout service functions, and `supabase/seed.sql` adds the demo event. The payment provider module and payment verification are in `supabase/functions/_shared/`. The screens, the order functions that users call, and the Edge Functions are not built.
+The app is scaffolded and deployed, with the attendee screens built. The shared API in `src/shared/api/` calls Supabase. The database migrations create the tables, the order, vendor, checkout, payment, refund, and email functions, and the table privileges, and `supabase/seed.sql` adds the demo event. The payment provider module, payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, and `send-order-email` are in `supabase/functions/`. The vendor screens, the `square-webhook` function, and the scheduled call to `expire-checkouts` are not built.
 
 ## Docs
 

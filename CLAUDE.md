@@ -4,7 +4,7 @@ Instructions for every coding agent working in this repository. `AGENTS.md` poin
 
 A 24-hour competition build by three developers. Favor working, readable code over process. Judges read the source.
 
-**State:** the app is scaffolded and deployed with a placeholder page. `src/shared/api/` and `src/shared/live/` return sample data. `supabase/migrations/` holds the tables and the checkout service functions, and `supabase/seed.sql` holds the demo event. The payment provider module and payment verification are in `supabase/functions/_shared/`. Not created: the screens, the components in `src/shared/ui/`, the order functions that users call, and the Edge Functions. If a folder or script is missing, it has not been created; do not assume it is broken.
+**State:** the app is scaffolded and deployed, with the attendee screens built. `src/shared/api/` and `src/shared/live/` call Supabase; a network failure is thrown, and a refusal is returned as a typed result. `supabase/migrations/` holds the tables, the order, vendor, checkout, payment, refund, and email functions, and the table privileges; `supabase/seed.sql` holds the demo event. The payment provider module, payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, and `send-order-email` are in `supabase/functions/`. Not created: the vendor screens, the `square-webhook` function, and the scheduled call to `expire-checkouts`. If a folder or script is missing, it has not been created; do not assume it is broken.
 
 ## Documents
 

@@ -118,5 +118,8 @@ export type OrderLookupRefusal = "order_not_found";
 export type OrderChangeRefusal = "order_not_found" | "not_allowed_in_status";
 export type CollectRefusal =
   "not_found" | "already_collected" | "cancelled" | "expired";
+export type CancelOrderRefusal = OrderChangeRefusal | "reason_required";
+export type SetStockRefusal = "product_not_found" | "invalid_quantity";
+export type VendorSignInRefusal = "invalid_credentials" | "no_booth";
 export type ConfirmCheckoutRefusal = "order_not_found" | "payment_not_verified";
 export type StartCheckoutRefusal = OrderRequestRefusal | "checkout_unavailable";
