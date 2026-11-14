@@ -103,6 +103,7 @@ beforeEach(() => {
   api.listBoothOrders.mockResolvedValue([order()]);
 });
 afterEach(() => {
+  localStorage.clear();
   cleanup();
   vi.clearAllMocks();
 });
@@ -130,6 +131,8 @@ describe("order queue", () => {
     open("/vendor/orders");
     expect(await screen.findByText("No orders yet")).toBeTruthy();
     cleanup();
+    // No saved copy, as on a first visit.
+    localStorage.clear();
 
     api.listBoothOrders.mockRejectedValueOnce(new Error("down")).mockResolvedValueOnce([order()]);
     open("/vendor/orders");
@@ -144,6 +147,24 @@ describe("order queue", () => {
     expect(screen.queryByText(/New order/)).toBeNull();
     await act(async () => live.push[0]([order(), order({ id: "o2", pickupCode: "1936", totalCents: 1400, items: [{ productId: "p1", name: "Patch", quantity: 1, unitPriceCents: 1400 }] })]));
     expect(await screen.findByText("New order 1936: 1 item · $14.00")).toBeTruthy();
+  });
+
+  it("shows the last loaded orders when the server cannot be reached after a reload (FR-26)", async () => {
+    open("/vendor/orders");
+    await screen.findByRole("tab", { name: "Confirmed (1)" });
+    cleanup();
+
+    api.getMyBooth.mockRejectedValue(new Error("offline"));
+    api.listBoothOrders.mockRejectedValue(new Error("offline"));
+    open("/vendor/orders");
+    expect(await screen.findByRole("tab", { name: "Confirmed (1)" })).toBeTruthy();
+    expect(screen.getByText(/could not be loaded/)).toBeTruthy();
+  });
+
+  it("has nothing to fall back on the first time, so it shows the error state", async () => {
+    api.getMyBooth.mockRejectedValue(new Error("offline"));
+    open("/vendor/orders");
+    expect(await screen.findByText("Could not load your booth.")).toBeTruthy();
   });
 
   it("disables changes and says so when offline", async () => {
@@ -201,15 +222,28 @@ describe("pickup", () => {
   });
 
   it("shows when an order was already collected, and what a cancelled one means", async () => {
-    api.collectOrder.mockResolvedValueOnce({ ok: false, reason: "already_collected", at: "2026-11-13T14:14:00Z" });
+    api.collectOrder.mockResolvedValueOnce({
+      ok: false,
+      reason: "already_collected",
+      at: "2026-11-13T14:14:00Z",
+      order: order({ status: "collected" }),
+    });
     open("/vendor/pickup");
     fireEvent.change(await screen.findByLabelText("Pickup code"), { target: { value: "0427" } });
     expect(await screen.findByRole("heading", { name: "Already collected" })).toBeTruthy();
+    // The refusal names the order, so its items and total are shown.
+    expect(screen.getByText("2 × Patch")).toBeTruthy();
+    expect(screen.getByText("$36.00", { selector: ".vendor-total span" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Enter another code" }));
 
-    api.collectOrder.mockResolvedValueOnce({ ok: false, reason: "cancelled" });
+    api.collectOrder.mockResolvedValueOnce({
+      ok: false,
+      reason: "cancelled",
+      order: order({ status: "cancelled", cancelReason: "Sold out" }),
+    });
     fireEvent.change(await screen.findByLabelText("Pickup code"), { target: { value: "1111" } });
     expect(await screen.findByText("This order was cancelled. Don't hand over the items.")).toBeTruthy();
+    expect(screen.getByText("Sold out")).toBeTruthy();
   });
 });
 

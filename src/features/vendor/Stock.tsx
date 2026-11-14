@@ -6,6 +6,7 @@ import type { Product, VendorBooth } from "../../shared/types";
 import { Badge, Banner, Button, formatMoney, TextField } from "../../shared/ui";
 import { refusalLabels } from "../../shared/ui/labels";
 import { VendorHeader } from "./VendorHeader";
+import { clearVendorCache } from "./vendorCache";
 import { useVendor } from "./vendorSession";
 
 // FR-24 and FR-25. The design has a Stock tab but no screen for it, so this one is built
@@ -43,6 +44,7 @@ export function Stock() {
   const leave = async () => {
     try {
       await signOut();
+      clearVendorCache();
       reloadBooth();
       navigate("/vendor", { replace: true });
     } catch {
