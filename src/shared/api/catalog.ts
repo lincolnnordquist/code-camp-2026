@@ -42,7 +42,7 @@ export async function getEventCatalog(
         await supabase
           .from("products")
           .select(
-            "id, booth_id, name, category, description, image_path, price_cents, available_qty, max_per_order",
+            "id, booth_id, name, category, description, image_path, image_paths, price_cents, available_qty, max_per_order",
           )
           .in("booth_id", boothIds)
           .order("name")

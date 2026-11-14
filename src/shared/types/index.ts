@@ -48,6 +48,8 @@ export type Product = {
   description: string;
   // Public image address.
   imageUrl: string;
+  // Every photo's public address, imageUrl first, when the product has more than one.
+  images?: string[];
   priceCents: number;
   availableQty: number;
   maxPerOrder: number;

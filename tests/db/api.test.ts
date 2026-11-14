@@ -86,7 +86,14 @@ test("reads the catalog without a session, with image addresses and the event's 
     assert.match(product.imageUrl, /\/assets\/products\//);
     assert.ok(product.description);
     assert.equal(Number.isInteger(product.priceCents), true);
+    // A product with extra photos lists them all, the main photo first.
+    if (product.images) {
+      assert.equal(product.images[0], product.imageUrl);
+      assert.ok(product.images.length > 1);
+      for (const url of product.images) assert.match(url, /\/assets\/products\//);
+    }
   }
+  assert.ok(products.some((p) => p.images), "no product has extra photos");
   // Reading never signs anyone in.
   assert.equal((await supabase.auth.getSession()).data.session, null);
 });

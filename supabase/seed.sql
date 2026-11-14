@@ -18,10 +18,10 @@ insert into public.vendors (id, name, slogan, logo_path, banner_path) values
   ('f0000000-0000-0000-0000-00000000000e', 'Soft Kaiju Plush', 'Handmade plush monsters', 'vendors/soft-kaiju-plush/logo.svg', 'vendors/soft-kaiju-plush/banner.svg'),
   ('f0000000-0000-0000-0000-00000000000f', 'Scout Regiment Figures', 'Figures and collectibles', 'vendors/scout-regiment-figures/logo.svg', 'vendors/scout-regiment-figures/banner.svg'),
   ('f0000000-0000-0000-0000-00000000000c', 'Inkwell Artist Alley', 'Commissions and sketches', 'vendors/inkwell-artist-alley/logo.svg', 'vendors/inkwell-artist-alley/banner.svg'),
-  ('f0000000-0000-0000-0000-000000000010', 'Snag', 'The team behind this app', 'vendors/snag/logo.svg', 'vendors/snag/banner.svg');
+  ('f0000000-0000-0000-0000-000000000010', 'DibSpot', 'The team behind this app', 'vendors/dibspot/logo.svg', 'vendors/dibspot/banner.svg');
 
 -- Codes are the hall's tables: columns A to I from left to right, rows 1 (back, by the kitchen)
--- to 7 (front, by the stage). map_x and map_y are each table's centre on the drawn hall. Snag
+-- to 7 (front, by the stage). map_x and map_y are each table's centre on the drawn hall. DibSpot
 -- (H6) is the team's own table: browse only, with no products.
 insert into public.booths (id, event_id, vendor_id, code, mode, ordering_paused, map_x, map_y, pickup_instructions) values
   ('b0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000d', 'A3', 'reservation', false, 0.1, 0.5845, 'Show your code at the front table. Pay by card or cash.'),
@@ -48,6 +48,18 @@ insert into public.products (id, booth_id, name, category, description, image_pa
   ('a0000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-00000000000b', 'Cursed Jumbo d20', 'Tabletop', 'Guaranteed to roll a 1 when it matters. Returns not accepted; it will find its way back.', 'products/critical-hit-dice/cursed-jumbo-d20.webp', 666, 3, 1),
   ('a0000000-0000-0000-0000-000000000014', 'b0000000-0000-0000-0000-00000000000d', 'Captain America Plot Armor (One Size Fits Main Characters)', 'Accessories', 'Protects against all named villains. Background characters, see manager.', 'products/wall-rose-goods/plot-armor-shield.webp', 4200, 4, 1),
   ('a0000000-0000-0000-0000-000000000015', 'b0000000-0000-0000-0000-00000000000b', 'Pet Rock in a Box, GM-Approved', 'Tabletop', 'Ideal for parties that keep asking what''s in the box.', 'products/critical-hit-dice/pet-rock-in-a-box.webp', 900, 0, 1);
+
+-- Extra gallery photos, shown after the main one: the Mothra plush and the Godzilla plush from
+-- the back, and the shield beside its box and the box's back. Every other product has one photo.
+update public.products set image_paths = array['products/soft-kaiju-plush/tiny-mothra-plush-2.webp']
+where id = 'a0000000-0000-0000-0000-000000000008';
+update public.products set image_paths = array['products/soft-kaiju-plush/emotional-support-godzilla-2.webp']
+where id = 'a0000000-0000-0000-0000-000000000012';
+update public.products set image_paths = array[
+  'products/wall-rose-goods/plot-armor-shield-2.webp',
+  'products/wall-rose-goods/plot-armor-shield-3.webp'
+]
+where id = 'a0000000-0000-0000-0000-000000000014';
 
 -- The prepay booth takes payment through a Square sandbox seller. The token lives in the
 -- Edge Function secret with this name.
@@ -76,6 +88,7 @@ insert into seed_staff (id, email, vendor_id) values
   ('d0000000-0000-0000-0000-00000000000e', 'staff-soft-kaiju-plush@example.com', 'f0000000-0000-0000-0000-00000000000e'),
   ('d0000000-0000-0000-0000-00000000000f', 'staff-scout-regiment-figures@example.com', 'f0000000-0000-0000-0000-00000000000f'),
   ('d0000000-0000-0000-0000-00000000000c', 'staff-inkwell-artist-alley@example.com', 'f0000000-0000-0000-0000-00000000000c'),
+  -- DibSpot's login keeps the address it had when the booth was named Snag: a hosted account uses it.
   ('d0000000-0000-0000-0000-000000000010', 'staff-snag@example.com', 'f0000000-0000-0000-0000-000000000010');
 
 do $$
