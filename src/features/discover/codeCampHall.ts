@@ -8,27 +8,13 @@
 import type { Booth, Event, EventCatalog } from '../../shared/types'
 import { publicAssetUrl } from '../../shared/api/storage'
 import type { FloorLayout } from './catalogExtras'
+import { CODE_CAMP_LAYOUT } from './codeCampLayout'
 
 // The team's placeholder branding (supabase/seed-assets/placeholders); a host app may show its own per vendor.
 const LOGO_PLACEHOLDER = publicAssetUrl('placeholders/logo.svg')
 const BANNER_PLACEHOLDER = publicAssetUrl('placeholders/banner.svg')
 
-export const CODE_CAMP_LAYOUT: FloorLayout = {
-  width: 1000,
-  height: 840,
-  walls: [[20, 20], [980, 20], [980, 700], [565, 700], [565, 830], [435, 830], [435, 700], [20, 700]],
-  columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'],
-  rows: 7,
-  // Nine 80-wide tables on a 100 pitch span 60 to 940, centred between the walls; the column
-  // letters sit in the band between the stage and the front row, row 7.
-  firstTable: { x: 60, y: 170 },
-  tableSize: { width: 80, height: 50 },
-  pitch: { x: 100, y: 74 },
-  areas: [
-    { kind: 'stage', label: 'Stage', x: 370, y: 20, width: 260, height: 90 },
-    { kind: 'kitchen', label: 'Kitchen', x: 435, y: 700, width: 130, height: 130 },
-  ],
-}
+export { CODE_CAMP_LAYOUT }
 
 export const CODE_CAMP_BOOTHS: Booth[] = [
   {
