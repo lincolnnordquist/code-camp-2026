@@ -22,7 +22,6 @@
   font: var(--type-body-large);
 }
 
-/* The map sits on the card tone; the hall's floor is the page tone inside it. */
 .map-page .floor-map:not(.floor-map--preview) {
   border: 0;
   border-radius: var(--radius-lg);
@@ -108,8 +107,6 @@
   contain: layout paint;
 }
 
-/* The drawn plan: page-tone floor inside dark walls, a dark stage, a hatched kitchen, stairs with
-   step lines, and quiet neutral tables. */
 .floor-map .plan__floor {
   fill: var(--page);
 }
@@ -216,7 +213,7 @@
   stroke-width: 3;
 }
 
-/* Vendor plates: violet with a white code. A plate covers its table exactly. */
+/* A plate covers its table exactly, with the table's corner radius (FloorMap sets --plate-radius). */
 .floor-map .floor-map__booth {
   flex-direction: row;
   gap: var(--space-4);
@@ -270,7 +267,6 @@
   }
 }
 
-/* The zoom buttons: one raised card in the map's top right corner, 48 px targets split by hairlines. */
 .floor-map {
   --zoom-btn: var(--touch-target);
   --zoom-gap: 0px;
@@ -335,7 +331,6 @@
   padding: var(--space-8) var(--space-8) 0 var(--space-16);
 }
 
-/* The selected booth's card (MapBoothCard.tsx). */
 .map-card {
   position: relative;
   display: flex;
@@ -485,7 +480,6 @@
   padding-bottom: var(--space-16);
 }
 
-/* Nothing selected: a small note on a phone, a titled panel where the card sits beside the map. */
 .map-card--empty {
   padding: var(--space-12) var(--space-16);
   border-radius: var(--radius-md);
@@ -560,7 +554,6 @@
   }
 }
 
-/* Wider: the page scrolls again, the map is a card with the booth's card under it. */
 @media (min-width: 40rem) {
   .map-stage {
     margin-top: var(--space-24);
@@ -635,7 +628,6 @@
   }
 }
 
-/* Wide screens: the room on the left, the booth's card in a 384 px panel held beside it. */
 @media (min-width: 64rem) {
   /* Wide enough that the plan draws its booth codes and logos beside the panel. */
   main:has(> .map-page) {

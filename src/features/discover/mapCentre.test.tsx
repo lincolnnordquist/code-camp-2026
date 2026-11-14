@@ -88,7 +88,6 @@ describe('find on map: centre on booth', () => {
     expect(status).toContain(`Map zoomed to 200%, booth ${BOOTH.code} in the middle`)
     // Focus stays on the plate the person pressed; the announcement says what changed.
     expect(document.activeElement).toBe(plate)
-    // Back to fit with the 0 key.
     fireEvent.keyDown(region(), { key: '0' })
     await act(async () => {})
     expect(region().getAttribute('aria-label')).toBe('Floor plan, zoomed to fit')

@@ -17,10 +17,6 @@ const SHOP_TYPE_ICONS: Record<Booth['mode'], IconName> = {
   discovery: 'visibility',
 }
 
-/**
- * The selected booth on the map: its banner with the booth plate, logo, name, slogan and how it
- * takes orders, up to three products, and the way into its storefront when it has one.
- */
 export function MapBoothCard({
   ref,
   booth,

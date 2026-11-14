@@ -335,7 +335,6 @@ const BoothPlates = memo(function BoothPlates({ booths, floorLayout, highlighted
         data-code={booth.code}
         aria-label={`Booth ${booth.code}, ${booth.vendorName}, ${boothBadgeLabel(booth)}`}
         aria-current={isHighlighted ? 'location' : undefined}
-        // A second tap on the selected booth deselects it.
         onClick={() => (isHighlighted && onClearSelection ? onClearSelection() : onSelectBooth(booth))}
       >
         <BoothLogo booth={booth} size="sm" className="floor-map__logo" />
