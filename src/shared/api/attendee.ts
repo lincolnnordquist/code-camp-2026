@@ -8,166 +8,133 @@ import type {
   Result,
   StartCheckoutRefusal,
 } from "../types";
-import {
-  catalog,
-  notifyChange,
-  orders,
-  ordersByRequestId,
-} from "./sample-store";
+import { supabase } from "./client";
+import { check, refusal, type Reply } from "./errors";
+import { orderFromPayload, type OrderPayload } from "./mappers";
+import { readOrders } from "./orders";
+import { currentUserId, ensureSession } from "./session";
 
-function placeOrder(
-  request: OrderRequest,
-  type: Order["type"],
-): Result<Order, OrderRequestRefusal> {
-  const earlier = ordersByRequestId.get(request.requestId);
-  if (earlier) return { ok: true, value: structuredClone(earlier) };
+const ORDER_REFUSALS = [
+  "insufficient_stock",
+  "over_max_per_order",
+  "ordering_paused",
+  "booth_not_accepting_orders",
+  "empty_cart",
+  "invalid_items",
+  "invalid_email",
+  "product_not_found",
+] as const satisfies readonly OrderRequestRefusal[];
 
-  const booth = catalog.booths.find((b) => b.id === request.boothId);
-  if (
-    !booth ||
-    booth.mode === "discovery" ||
-    booth.mode !== (type === "prepaid" ? "prepay" : "reservation")
-  ) {
-    return { ok: false, reason: "booth_not_accepting_orders" };
-  }
-  if (booth.orderingPaused) return { ok: false, reason: "ordering_paused" };
-  if (request.items.length === 0) return { ok: false, reason: "empty_cart" };
+const CHECKOUT_REFUSALS = [
+  ...ORDER_REFUSALS,
+  "checkout_unavailable",
+] as const satisfies readonly StartCheckoutRefusal[];
 
-  const lines = request.items.map((item) => ({
-    item,
-    product: catalog.products.find(
-      (p) => p.id === item.productId && p.boothId === booth.id,
-    ),
-  }));
-  const over = lines.filter(
-    (l) => !l.product || l.item.quantity > l.product.maxPerOrder,
-  );
-  if (over.length > 0)
-    return {
-      ok: false,
-      reason: "over_max_per_order",
-      productIds: over.map((l) => l.item.productId),
-    };
-  const short = lines.filter(
-    (l) => l.product && l.item.quantity > l.product.availableQty,
-  );
-  if (short.length > 0)
-    return {
-      ok: false,
-      reason: "insufficient_stock",
-      productIds: short.map((l) => l.item.productId),
-    };
+type OrderReply = Reply & Partial<OrderPayload>;
 
-  const orderItems = lines.map(({ item, product }) => {
-    product!.availableQty -= item.quantity;
-    return {
-      productId: item.productId,
-      name: product!.name,
-      quantity: item.quantity,
-      unitPriceCents: product!.priceCents,
-    };
-  });
-  const holdMinutes =
-    type === "prepaid" ? 15 : catalog.event.reservationHoldMinutes;
-  const order: Order = {
-    id: crypto.randomUUID(),
-    boothId: booth.id,
-    eventId: catalog.event.id,
-    boothCode: booth.code,
-    boothName: booth.vendorName,
-    type,
-    status: type === "prepaid" ? "pending_payment" : "confirmed",
-    items: orderItems,
-    totalCents: orderItems.reduce(
-      (sum, i) => sum + i.unitPriceCents * i.quantity,
-      0,
-    ),
-    currency: catalog.event.currency,
-    pickupCode: String(Math.floor(1000 + Math.random() * 9000)),
-    holdEndsAt: new Date(Date.now() + holdMinutes * 60_000).toISOString(),
-    createdAt: new Date().toISOString(),
-    collectedAt: null,
-    cancelReason: null,
-    refundStatus: "none",
-  };
-  orders.push(order);
-  ordersByRequestId.set(request.requestId, order);
-  notifyChange();
-  return { ok: true, value: structuredClone(order) };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function rpc(name: string, args: Record<string, unknown>) {
+  return check(await supabase.rpc(name, args)) as OrderReply;
 }
 
+// Reserves the items and holds the stock. The first order signs the browser in anonymously.
 export async function createReservation(
   request: OrderRequest,
 ): Promise<Result<Order, OrderRequestRefusal>> {
-  return placeOrder(request, "reservation");
+  await ensureSession();
+  const reply = await rpc("create_reservation", {
+    p_booth_id: request.boothId,
+    p_items: request.items,
+    p_email: request.email,
+    p_request_id: request.requestId,
+  });
+  if (!reply.ok) return refusal(reply, ORDER_REFUSALS);
+  return { ok: true, value: orderFromPayload(reply as OrderPayload) };
 }
 
-// Real version: calls the create-checkout Edge Function. The stub returns a fake Square page address.
+// Calls the create-checkout Edge Function, which holds the stock and creates the Square
+// checkout. The attendee is then sent to checkoutUrl.
 export async function startCheckout(
   request: OrderRequest,
 ): Promise<
   Result<{ order: Order; checkoutUrl: string }, StartCheckoutRefusal>
 > {
-  const placed = placeOrder(request, "prepaid");
-  if (!placed.ok) return placed;
+  await ensureSession();
+  const { data, error } = await supabase.functions.invoke<
+    OrderReply & { checkoutUrl?: string }
+  >("create-checkout", { body: request });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("The server sent no data");
+  if (!data.ok) return refusal(data, CHECKOUT_REFUSALS);
   return {
     ok: true,
     value: {
-      order: placed.value,
-      checkoutUrl: `https://example.com/square-checkout/${placed.value.id}`,
+      order: orderFromPayload(data as OrderPayload),
+      checkoutUrl: data.checkoutUrl as string,
     },
   };
 }
 
-// Real version: calls the confirm-checkout Edge Function, which verifies the payment with Square.
+// Calls the confirm-checkout Edge Function, which asks Square whether the payment really
+// went through. The order is read back afterwards, so the screen shows its real status.
 export async function confirmCheckout(
   orderId: string,
 ): Promise<Result<Order, ConfirmCheckoutRefusal>> {
-  const order = orders.find((o) => o.id === orderId);
-  if (!order) return { ok: false, reason: "order_not_found" };
-  if (order.status !== "pending_payment")
-    return { ok: true, value: structuredClone(order) };
-  order.status = "confirmed";
-  notifyChange();
-  return { ok: true, value: structuredClone(order) };
+  await ensureSession();
+  const { data, error } = await supabase.functions.invoke<Reply>(
+    "confirm-checkout",
+    { body: { orderId } },
+  );
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("The server sent no data");
+  if (!data.ok) {
+    return refusal(data, ["order_not_found", "payment_not_verified"] as const);
+  }
+  return getOrder(orderId);
 }
 
-// Cancels the attendee's own order, unpaid or prepaid. A cancelled prepaid order is owed a
-// refund, which the vendor makes in Square.
+// Cancels the attendee's own order, unpaid or prepaid, and returns its stock. A cancelled
+// prepaid order is owed a refund, which the vendor makes in Square.
 export async function cancelMyOrder(
   orderId: string,
 ): Promise<Result<Order, OrderChangeRefusal>> {
-  const order = orders.find((o) => o.id === orderId);
-  if (!order) return { ok: false, reason: "order_not_found" };
-  if (order.status !== "confirmed" && order.status !== "ready")
-    return { ok: false, reason: "not_allowed_in_status" };
-  order.status = "cancelled";
-  order.cancelReason = "Cancelled by the attendee";
-  if (order.type === "prepaid") order.refundStatus = "due";
-  for (const item of order.items) {
-    const product = catalog.products.find((p) => p.id === item.productId);
-    if (product) product.availableQty += item.quantity;
+  await ensureSession();
+  const reply = await rpc("cancel_my_order", { p_order_id: orderId });
+  if (!reply.ok) {
+    return refusal(reply, [
+      "order_not_found",
+      "not_allowed_in_status",
+    ] as const);
   }
-  notifyChange();
-  return { ok: true, value: structuredClone(order) };
+  return { ok: true, value: orderFromPayload(reply as OrderPayload) };
 }
 
+// The attendee's orders in this browser, newest first. Without a session there are none,
+// and asking does not create one.
 export async function listMyOrders(): Promise<Order[]> {
-  return structuredClone(orders);
+  if (!(await currentUserId())) return [];
+  return readOrders("mine");
 }
 
 export async function getOrder(
   orderId: string,
 ): Promise<Result<Order, OrderLookupRefusal>> {
-  const order = orders.find((o) => o.id === orderId);
+  if (!(await currentUserId())) return { ok: false, reason: "order_not_found" };
+  const [order] = await readOrders({ orderId });
   return order
-    ? { ok: true, value: structuredClone(order) }
+    ? { ok: true, value: order }
     : { ok: false, reason: "order_not_found" };
 }
 
-// The private link from the confirmation email. The stub treats the token as the order id.
+// The private link from the confirmation email. It opens one order on any device, with no
+// session, and carries no email address.
 export async function getOrderByToken(
   token: string,
 ): Promise<Result<Order, OrderLookupRefusal>> {
-  return getOrder(token);
+  // A link with a malformed token is simply not an order, and never reaches the database.
+  if (!UUID.test(token)) return { ok: false, reason: "order_not_found" };
+  const reply = await rpc("get_order_by_token", { p_token: token });
+  if (!reply.ok) return refusal(reply, ["order_not_found"] as const);
+  return { ok: true, value: orderFromPayload(reply as OrderPayload) };
 }

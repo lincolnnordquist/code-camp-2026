@@ -1,6 +1,6 @@
 # Architecture
 
-**Status: partly built.** Built: the app scaffold, the shared API and live module returning sample data, the shared types, the database tables with the checkout service functions and the demo event seed, and the payment provider module with payment verification. Built: the order functions that users call, and reservation expiry. Planned: the remaining service functions, the Edge Functions, and the screens. Update this document when a module's job, a shared function, or a rule changes.
+**Status: partly built.** Built: the app scaffold, the attendee screens, the shared types, the shared API and live module calling Supabase (reads, reservations, cancelling, the private order link, vendor functions, and Realtime), the database tables with the order, vendor, checkout, payment, refund, and email functions and the demo event seed, the payment provider module with payment verification, and the Edge Functions `create-checkout`, `confirm-checkout`, `expire-checkouts`, and `send-order-email`. Planned: the vendor screens, the `square-webhook` Edge Function, the scheduled call to `expire-checkouts`, and the Setup phase below. Update this document when a module's job, a shared function, or a rule changes.
 
 ## Overview
 
@@ -60,7 +60,7 @@ Feature folders do not import from each other. Code used by more than one featur
 
 ## Shared API
 
-These functions are the meeting point of the three roles. Screens build against them from the first hour, first with seeded sample data and then with the real implementation. Names, parameters, and types change only with the Data & vendor role's agreement.
+These functions are the meeting point of the three roles. Screens build against them from the first hour, first with sample data and now with the real implementation. Names, parameters, and types change only with the Data & vendor role's agreement.
 
 | Area | Functions |
 | --- | --- |
@@ -71,6 +71,8 @@ These functions are the meeting point of the three roles. Screens build against 
 | Organizer (Extra) | `getEventOverview` |
 
 Every function that changes data returns either the result or a typed reason for refusal, such as `insufficient_stock` or `ordering_paused`. Screens show the reason; they never guess.
+
+A failure to reach the server is different: the function throws, and the screen shows its error state. Only an answer from our own functions is returned as a result. `listMyOrders` returns an empty list when the browser has no session, and never signs anyone in; the first `createReservation` or `startCheckout` signs the browser in anonymously.
 
 ### Database functions the browser calls
 
