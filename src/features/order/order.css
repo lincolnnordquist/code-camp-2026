@@ -259,31 +259,42 @@
   margin: var(--space-16) auto 0;
 }
 
-/* Refund banner: 56 high, radius 12, warning while owed and neutral once refunded. */
-.order-banner {
+/* The refund card under the pass: warning while the money is owed, neutral once it is back. */
+.order-refund {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-12);
-  min-height: 56px;
-  padding: var(--space-8) var(--space-16);
-  box-sizing: border-box;
-  border-radius: var(--radius-md);
-  background: var(--neutral-200);
-  color: var(--neutral-800);
-  font: var(--type-body-medium);
+  padding: var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--text);
 }
 
-.order-banner svg {
+.order-refund__icon {
   flex: none;
+  margin-top: 2px;
+  color: var(--text-secondary);
 }
 
-.order-banner strong {
-  font-weight: 600;
-}
-
-.order-banner--due {
-  background: var(--warning-100);
+.order-refund--due .order-refund__icon,
+.order-refund--due h2 {
   color: var(--warning-900);
+}
+
+.order-refund__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.order-refund h2,
+.order-refund__amount {
+  margin: 0;
+}
+
+.order-refund__amount {
+  font-variant-numeric: tabular-nums;
 }
 
 .order-vendor {
@@ -804,10 +815,6 @@
 .order-pass__stamp-detail {
   color: var(--text-secondary);
   font: var(--type-body-medium);
-}
-
-.order-pass__outcome {
-  padding: var(--space-8) var(--space-16) 0;
 }
 
 .order-pass__end {
