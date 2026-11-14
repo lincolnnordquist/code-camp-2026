@@ -408,6 +408,7 @@ test("browsers cannot call the payment functions", async () => {
   const calls: [string, Record<string, unknown>][] = [
     ["svc_get_checkout", { p_order_id: randomUUID(), p_user_id: randomUUID() }],
     ["svc_get_checkout_by_provider_order", { p_provider_order_id: "SQ" }],
+    ["svc_get_checkout_by_provider_payment", { p_provider_payment_id: "P" }],
     [
       "svc_confirm_paid_order",
       {
@@ -429,4 +430,77 @@ test("browsers cannot call the payment functions", async () => {
     const { error } = await client.rpc(name, args);
     assert.ok(error, `a browser called ${name}`);
   }
+});
+
+test("a recorded payment leads back to its order and seller, whatever the order's status", async () => {
+  const paid = await pendingOrder();
+  const paymentId = `PAY_${randomUUID()}`;
+  await confirm(paid.providerOrderId, { p_provider_payment_id: paymentId });
+
+  const found = await call("svc_get_checkout_by_provider_payment", {
+    p_provider_payment_id: paymentId,
+  });
+  assert.equal(found.ok, true);
+  assert.equal(found.orderId, paid.order.orderId);
+  assert.equal(found.status, "confirmed");
+  assert.deepEqual(found.connection, {
+    tokenSecretName: "SQUARE_ACCESS_TOKEN_TEST",
+    locationId: "LOCATION_TEST",
+  });
+  // The same answer as looking the order up by its Square order id.
+  assert.deepEqual(
+    found,
+    await call("svc_get_checkout_by_provider_order", {
+      p_provider_order_id: paid.providerOrderId,
+    }),
+  );
+
+  // A second payment on the same order is refund due, and leads to the same order.
+  const extra = `PAY_${randomUUID()}`;
+  await confirm(paid.providerOrderId, { p_provider_payment_id: extra });
+  const second = await call("svc_get_checkout_by_provider_payment", {
+    p_provider_payment_id: extra,
+  });
+  assert.equal(second.orderId, paid.order.orderId);
+
+  // A payment recorded as refund due on an expired or cancelled order is found too.
+  for (const status of ["expired", "cancelled"]) {
+    const late = await pendingOrder();
+    await admin.from("orders").update({ status }).eq("id", late.order.orderId!);
+    const latePayment = `PAY_${randomUUID()}`;
+    const recorded = await confirm(late.providerOrderId, {
+      p_provider_payment_id: latePayment,
+    });
+    assert.equal(recorded.outcome, "refund_due", status);
+
+    const lookup = await call("svc_get_checkout_by_provider_payment", {
+      p_provider_payment_id: latePayment,
+    });
+    assert.equal(lookup.ok, true, status);
+    assert.equal(lookup.orderId, late.order.orderId);
+    assert.equal(lookup.status, status);
+  }
+});
+
+test("a payment we have not recorded is order_not_found", async () => {
+  // An order still waiting for its payment has no payment row yet.
+  const waiting = await pendingOrder();
+  const cases = [`PAY_${randomUUID()}`, "", "' or true --"];
+  for (const paymentId of cases) {
+    assert.deepEqual(
+      await call("svc_get_checkout_by_provider_payment", {
+        p_provider_payment_id: paymentId,
+      }),
+      { ok: false, reason: "order_not_found" },
+      JSON.stringify(paymentId),
+    );
+  }
+  assert.equal(
+    (
+      await call("svc_get_checkout_by_provider_order", {
+        p_provider_order_id: waiting.providerOrderId,
+      })
+    ).ok,
+    true,
+  );
 });

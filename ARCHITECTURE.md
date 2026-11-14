@@ -125,6 +125,7 @@ These are built too. The Edge Function has already fetched the payment from Squa
 | --- | --- | --- | --- |
 | `svc_get_checkout` | `p_order_id`, `p_user_id` | `orderId`, `status`, `checkoutLinkId`, `providerOrderId`, `totalCents`, `currency`, `connection` | `order_not_found` (also when the order is not that user's, or is not prepaid) |
 | `svc_get_checkout_by_provider_order` | `p_provider_order_id` | the same fields | `order_not_found` |
+| `svc_get_checkout_by_provider_payment` | `p_provider_payment_id` | the same fields | `order_not_found` (also for a payment we have not recorded) |
 | `svc_confirm_paid_order` | `p_provider_order_id`, `p_provider_payment_id`, `p_amount_cents`, `p_currency`, `p_location_id` | the order (as for `svc_create_pending_order`, with `buyerEmail`), `outcome`, `changed` | `order_not_found`, `location_mismatch`, `currency_mismatch`, `amount_mismatch`, `payment_belongs_to_other_order` |
 | `svc_mark_refunded` | `p_provider_payment_id`, `p_provider_refund_id` | `changed` | `payment_not_found`, `invalid_refund_id` |
 | `svc_mark_email_sent` | `p_order_id`, `p_user_id` (optional) | `outcome`: `first_time` (with the order, `buyerEmail`, `pickupCode`, `boothCode`, `boothName`, and `privateToken`) or `repeat` | `order_not_found`, `not_confirmed` (with `status`) |
@@ -132,6 +133,7 @@ These are built too. The Edge Function has already fetched the payment from Squa
 
 Rules the functions keep:
 
+- `svc_get_checkout_by_provider_payment` is for the refund path. A refund message names its own Square order, not the one that was paid, so only the payment id leads back to the order and the seller's connection. It finds only payments we have recorded, and returns the order whatever its status (a refund-due payment belongs to an expired or cancelled order, and a normal paid order can be refunded). For an unrecorded payment the answer is `order_not_found`, and the webhook answers 500 so Square delivers the message again, since a refund can arrive before its payment.
 - `svc_confirm_paid_order` finds the order by `p_provider_order_id` and locks it, so the return page and the webhook arriving together confirm it once (FR-13). It refuses, and changes nothing, when the amount, the currency, or the seller location does not match our order and the booth's `provider_connections`.
 - `outcome` is `confirmed` (the order was `pending_payment` and is now `confirmed`, even when its hold has ended but the expiry job has not run yet), `already_confirmed` (the same payment id again: no second payment row), or `refund_due`. `refund_due` means the money is owed back: the order was `expired` or `cancelled`, or it was already paid by a different payment. The payment is recorded as refund due and the order is left unchanged, with stock untouched (FR-15). The same payment id repeated never records a second row.
 - `svc_mark_refunded` finds the payment by its Square payment id and marks it `refunded` for any completed refund, partial or not, and whether or not the payment was refund due. The refund id is recorded, so a repeated refund message returns `changed: false`.
