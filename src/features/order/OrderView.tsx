@@ -392,7 +392,7 @@ export function OrderView({
     }
     // Written directly so the region stays mounted and only changes when a pushed change arrives.
     const statusText = [headline, detail].filter(Boolean).join('. ')
-    const text = previous.status !== order.status ? statusText : refund ? `${refund.title} ${refund.body}` : ''
+    const text = previous.status !== order.status ? statusText : refund ? `${refund.title}: ${refund.body}` : ''
     if (region && text) region.textContent = text
   }, [order.status, order.refundStatus, headline, detail, refund])
 
@@ -559,32 +559,32 @@ export function OrderView({
           </>
         )}
 
-        {refund && order.status !== 'collected' && (
-          <>
-            <PassNotch />
-            <div className="order-pass__outcome">
-              <div className={`order-banner order-banner--${order.refundStatus}`}>
-                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
-                  {/* A tick once the money is back; an alert while it is still owed. */}
-                  <path
-                    d={order.refundStatus === 'refunded' ? 'M8 12.5l2.5 2.5L16 9.5' : 'M12 7.5v5M12 16.5h.01'}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <p>
-                  <strong>{refund.title}</strong> {refund.body}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
         <span className="order-pass__end" />
       </article>
+
+      {refund && (
+        // One place for the refund, collected orders included: the payment row below says only how it was paid.
+        <section className={`order-refund order-refund--${order.refundStatus}`} aria-labelledby="order-refund-title">
+          <svg className="order-refund__icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+            {/* A tick once the money is back; an alert while it is still owed. */}
+            <path
+              d={order.refundStatus === 'refunded' ? 'M8 12.5l2.5 2.5L16 9.5' : 'M12 7.5v5M12 16.5h.01'}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div className="order-refund__text">
+            <h2 id="order-refund-title" className="title-medium">
+              {refund.title}
+            </h2>
+            <p className="title-large order-refund__amount">{refund.body}</p>
+          </div>
+        </section>
+      )}
 
       {hasDetails && (
         <dl className="order-details">
@@ -651,7 +651,7 @@ export function OrderView({
             <div>
               <dt className="order-details__label-row">
                 <span>Payment</span>
-                {paymentBadge && <span className="order-badge">{paymentBadge}</span>}
+                {paymentBadge && !refund && <span className="order-badge">{paymentBadge}</span>}
               </dt>
               <dd className="price">{payment}</dd>
             </div>

@@ -1831,13 +1831,15 @@ describe('order page in the design system (design/order-page)', () => {
     expect(screen.getByRole('link', { name: 'Go to event home' }).getAttribute('href')).toBe('/')
   })
 
-  it('a refund owed after a vendor cancel shows the banner, the reason and the paid line', async () => {
+  it('a refund owed after a vendor cancel shows the refund card, the reason and the paid line, with no badge', async () => {
     await renderView(order({ type: 'prepaid', status: 'cancelled', cancelReason: 'Item damaged', refundStatus: 'due' }))
     expect(screen.getByRole('heading', { level: 2, name: 'Order cancelled' })).toBeTruthy()
     expect(await screen.findByText('Vendor cancelled this order.')).toBeTruthy()
-    expect(screen.getByText('Refund due:')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Refund due' })).toBeTruthy()
+    expect(screen.getByText('$8.00 back to your card')).toBeTruthy()
     expect(screen.getByText('Item damaged')).toBeTruthy()
     expect(screen.getByText('Paid $8.00 with Square')).toBeTruthy()
+    expect(document.querySelector('.order-badge')).toBeNull()
     expect(screen.queryByText('ABC234')).toBeNull()
   })
 
@@ -1866,9 +1868,16 @@ describe('order page in the design system (design/order-page)', () => {
     expect(await screen.findByRole('heading', { level: 2, name: 'Order cancelled' })).toBeTruthy()
     expect(api.cancelMyOrder).toHaveBeenCalledWith(paid.id)
     expect(screen.getByText('You cancelled this order.')).toBeTruthy()
-    expect(screen.getByText('Refund due:')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 2, name: 'Refund due' })).toBeTruthy()
     // The attendee's own cancel is said once, by the status line, not again as a reason row.
     expect(screen.queryByText(ATTENDEE_CANCEL_REASON)).toBeNull()
+  })
+
+  it('a collected order that was partly refunded says so in the refund card, with the amount refunded', async () => {
+    await renderView(order({ type: 'prepaid', status: 'collected', collectedAt: '2026-11-14T10:00:00Z', refundStatus: 'refunded', refundedCents: 500 }))
+    expect(await screen.findByRole('heading', { level: 2, name: 'Refunded' })).toBeTruthy()
+    expect(screen.getByText('$5.00 back to your card')).toBeTruthy()
+    expect(document.querySelector('.order-badge')).toBeNull()
   })
 
   it('a pending payment offers no cancel; there is nothing to refund yet', async () => {
