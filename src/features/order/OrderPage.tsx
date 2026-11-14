@@ -42,7 +42,7 @@ function OrderScreen({
   const checkedFor = useRef<string | null>(null)
   const mounted = useRef(true)
   const order = state.status === 'ready' ? state.order : null
-  const returnedFromCheckout = params.get('checkout') === 'return'
+  const returnedFromCheckout = params.has('checkout')
   usePullRefresh(refresh)
   // A retry that brings the order back replaces the error screen, and its button with it; focus goes
   // to the page's heading in the same commit, and the message under it says what happened otherwise.
@@ -185,7 +185,7 @@ export function OrderPage() {
 export function OrderByTokenPage() {
   const { token = '' } = useParams()
   const [params, setParams] = useSearchParams()
-  const [awaitingWebhook, setAwaitingWebhook] = useState(() => params.get('checkout') === 'return')
+  const [awaitingWebhook, setAwaitingWebhook] = useState(() => params.has('checkout'))
   const [state, replace, refresh] = useLiveOrder(
     getOrderByToken,
     token,
@@ -193,7 +193,7 @@ export function OrderByTokenPage() {
     awaitingWebhook ? CHECKOUT_RETURN_POLL_MS : LINK_POLL_MS,
   )
   const settled = state.status === 'error' || (state.status === 'ready' && state.order.status !== 'pending_payment')
-  const returnFlag = params.get('checkout') === 'return'
+  const returnFlag = params.has('checkout')
 
   // Cleared at once, so a reload does not restart the wait.
   useEffect(() => {
