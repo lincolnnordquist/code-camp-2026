@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { setOrderingPaused, setProductStock, signOut } from "../../shared/api";
 import { useOnlineStatus } from "../../shared/live";
 import type { Product, VendorBooth } from "../../shared/types";
-import { Badge, Banner, Button, formatMoney, Icon } from "../../shared/ui";
+import { Banner, Button, formatMoney, Icon } from "../../shared/ui";
 import { ProductImage } from "../../shared/ui/ProductImage";
 import { refusalLabels } from "../../shared/ui/labels";
 import { VendorHeader, VendorTitle } from "./VendorHeader";
@@ -11,8 +11,7 @@ import { VendorState } from "./VendorState";
 import { clearVendorCache } from "./vendorCache";
 import { useVendor } from "./vendorSession";
 
-// FR-24 and FR-25. The design has a Stock tab but no screen for it, so this one is built
-// from the design system's parts and the spec's words.
+// FR-24 and FR-25.
 export function Stock() {
   const { boothState, applyBooth, reloadBooth } = useVendor();
   const online = useOnlineStatus();
@@ -59,15 +58,16 @@ export function Stock() {
       <VendorHeader title="Stock" />
       <main className="vendor-screen vendor-stock">
         <VendorTitle title="Stock" />
-        <section className="vendor-card" aria-labelledby="pause-title">
-          <div className="vendor-card-head">
-            <h2 id="pause-title">Online orders</h2>
-            {booth.orderingPaused ? <Badge tone="warning">Paused</Badge> : <Badge tone="success">Open</Badge>}
-          </div>
-          <p className="vendor-card__text">
-            {booth.orderingPaused
-              ? "Customers cannot place new orders. Orders already placed continue."
-              : "Pause to stop new orders. Orders already placed continue."}
+        <section className="vendor-card vendor-online" aria-labelledby="pause-title">
+          <h2 id="pause-title" className="visually-hidden">
+            Online orders
+          </h2>
+          <p className={`title-medium vendor-online__status${booth.orderingPaused ? " is-paused" : ""}`}>
+            <Icon name={booth.orderingPaused ? "pause_circle" : "check_circle"} filled />
+            {booth.orderingPaused ? "Online orders are paused" : "Online orders are open"}
+          </p>
+          <p className="body-medium vendor-card__text">
+            {booth.orderingPaused ? "Placed orders still go through." : "Pausing won't affect placed orders."}
           </p>
           {pausing ? (
             <Button variant={booth.orderingPaused ? "filled" : "outlined"} vendorSide loadingLabel="Updating" />
@@ -87,8 +87,10 @@ export function Stock() {
 
         <section className="vendor-section" aria-labelledby="products-title">
           <div className="vendor-section__head">
-            <h2 id="products-title">Products</h2>
-            <p>The quantity open to new orders. Stock held by existing orders is not changed.</p>
+            <h2 id="products-title" className="title-large">
+              Products
+            </h2>
+            <p>Items in placed orders are already set aside.</p>
           </div>
           {products.length === 0 ? (
             <VendorState icon="inventory_2" title="No products yet" body={`Products for ${event.name} show up here.`} />
@@ -164,9 +166,11 @@ function ProductStock({
         <span className="vendor-product__photo">
           <ProductImage product={product} size="small" />
         </span>
-        <span className="vendor-product__name">{product.name}</span>
-        <span className="vendor-product__price">{formatMoney(product.priceCents, currency)}</span>
-        {product.availableQty === 0 && <Badge tone="error">Sold out</Badge>}
+        <span className="vendor-product__text">
+          <span className="title-medium vendor-product__name">{product.name}</span>
+          <span className="vendor-product__price">{formatMoney(product.priceCents, currency)}</span>
+          {product.availableQty === 0 && <span className="label-medium vendor-product__soldout">Sold out</span>}
+        </span>
       </div>
       <div className="vendor-product__edit">
         {/* A stepper around the quantity, as in the cart, so a few more is two taps; typing still works. */}
@@ -201,9 +205,9 @@ function ProductStock({
           </button>
         </div>
         {busy ? (
-          <Button size="small" loadingLabel={`Saving ${product.name}`} />
+          <Button className="vendor-save" loadingLabel={`Saving ${product.name}`} />
         ) : (
-          <Button size="small" disabled={!online || !changed} aria-label={`Save stock for ${product.name}`} onClick={save}>
+          <Button className="vendor-save" disabled={!online || !changed} aria-label={`Save stock for ${product.name}`} onClick={save}>
             Save
           </Button>
         )}

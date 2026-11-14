@@ -27,7 +27,7 @@ export const CODE_CAMP_BOOTHS: Booth[] = [
     mode: 'reservation',
     orderingPaused: false,
     mapX: 0.1,
-    mapY: 0.58452,
+    mapY: 0.57765,
     pickupInstructions: 'Show your code at the front table. Pay by card or cash.',
   },
   {
@@ -40,7 +40,7 @@ export const CODE_CAMP_BOOTHS: Booth[] = [
     mode: 'reservation',
     orderingPaused: false,
     mapX: 0.2,
-    mapY: 0.32024,
+    mapY: 0.31647,
     pickupInstructions: 'Pickup shelf on the left side of the booth.',
   },
   {
@@ -53,7 +53,7 @@ export const CODE_CAMP_BOOTHS: Booth[] = [
     mode: 'prepay',
     orderingPaused: false,
     mapX: 0.3,
-    mapY: 0.67262,
+    mapY: 0.66471,
     pickupInstructions: 'Prepaid orders at the blue counter.',
   },
   {
@@ -66,7 +66,7 @@ export const CODE_CAMP_BOOTHS: Booth[] = [
     mode: 'reservation',
     orderingPaused: true,
     mapX: 0.4,
-    mapY: 0.40833,
+    mapY: 0.40353,
     pickupInstructions: 'Ask any staff member wearing green.',
   },
   {
@@ -79,7 +79,7 @@ export const CODE_CAMP_BOOTHS: Booth[] = [
     mode: 'reservation',
     orderingPaused: false,
     mapX: 0.5,
-    mapY: 0.49643,
+    mapY: 0.49059,
     pickupInstructions: 'Pickup window at the back of the booth.',
   },
   {
@@ -92,7 +92,7 @@ export const CODE_CAMP_BOOTHS: Booth[] = [
     mode: 'discovery',
     orderingPaused: false,
     mapX: 0.9,
-    mapY: 0.23214,
+    mapY: 0.22941,
     pickupInstructions: 'Walk up only.',
   },
   {
@@ -105,7 +105,7 @@ export const CODE_CAMP_BOOTHS: Booth[] = [
     mode: 'discovery',
     orderingPaused: false,
     mapX: 0.8,
-    mapY: 0.32024,
+    mapY: 0.31647,
     pickupInstructions: 'Come say hi.',
   },
 ]

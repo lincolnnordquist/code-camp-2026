@@ -24,13 +24,13 @@ insert into public.vendors (id, name, slogan, logo_path, banner_path) values
 -- to 7 (front, by the stage). map_x and map_y are each table's centre on the drawn hall. DibSpot
 -- (H6) is the team's own table: browse only, with no products.
 insert into public.booths (id, event_id, vendor_id, code, mode, ordering_paused, map_x, map_y, pickup_instructions) values
-  ('b0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000d', 'A3', 'reservation', false, 0.1, 0.5845, 'Show your code at the front table. Pay by card or cash.'),
-  ('b0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000a', 'B6', 'reservation', false, 0.2, 0.3202, 'Pickup shelf on the left side of the booth.'),
-  ('b0000000-0000-0000-0000-00000000000b', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000b', 'C2', 'prepay', false, 0.3, 0.6726, 'Prepaid orders at the blue counter.'),
-  ('b0000000-0000-0000-0000-00000000000e', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000e', 'D5', 'reservation', true, 0.4, 0.4083, 'Ask any staff member wearing green.'),
-  ('b0000000-0000-0000-0000-00000000000f', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000f', 'E4', 'reservation', false, 0.5, 0.4964, 'Pickup window at the back of the booth.'),
-  ('b0000000-0000-0000-0000-00000000000c', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000c', 'I7', 'discovery', false, 0.9, 0.2321, 'Walk up only.'),
-  ('b0000000-0000-0000-0000-000000000010', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000010', 'H6', 'discovery', false, 0.8, 0.3202, 'Come say hi.');
+  ('b0000000-0000-0000-0000-00000000000d', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000d', 'A3', 'reservation', false, 0.1, 0.5776, 'Show your code at the front table. Pay by card or cash.'),
+  ('b0000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000a', 'B6', 'reservation', false, 0.2, 0.3165, 'Pickup shelf on the left side of the booth.'),
+  ('b0000000-0000-0000-0000-00000000000b', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000b', 'C2', 'prepay', false, 0.3, 0.6647, 'Prepaid orders at the blue counter.'),
+  ('b0000000-0000-0000-0000-00000000000e', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000e', 'D5', 'reservation', true, 0.4, 0.4035, 'Ask any staff member wearing green.'),
+  ('b0000000-0000-0000-0000-00000000000f', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000f', 'E4', 'reservation', false, 0.5, 0.4906, 'Pickup window at the back of the booth.'),
+  ('b0000000-0000-0000-0000-00000000000c', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-00000000000c', 'I7', 'discovery', false, 0.9, 0.2294, 'Walk up only.'),
+  ('b0000000-0000-0000-0000-000000000010', 'e0000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000010', 'H6', 'discovery', false, 0.8, 0.3165, 'Come say hi.');
 
 insert into public.products (id, booth_id, name, category, description, image_path, price_cents, available_qty, max_per_order) values
   ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-00000000000d', 'Attack on Titan Survey Corps Hoodie', 'Apparel', 'Embroidered wings of freedom, unisex fit.', 'products/wall-rose-goods/survey-corps-hoodie.webp', 5500, 4, 2),

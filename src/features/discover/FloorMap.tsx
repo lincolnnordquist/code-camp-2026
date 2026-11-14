@@ -168,6 +168,9 @@ const plateRadius = (layout: FloorLayout) => ({ '--plate-radius': `${(TABLE_RADI
 /** Plan units between the column letters and the front row of tables. */
 const COLUMN_LABEL_GAP = 28
 
+/** Plan units below which an area is too narrow for its label across, so the label runs up it. */
+const NARROW_AREA = 60
+
 /** A table's rectangle in plan units, from its code ("D5" is column D, row 5 from the back). Null when the code does not fit the layout. */
 function tableRect(layout: FloorLayout, code: string) {
   const match = BOOTH_CODE.exec(code.trim())
@@ -238,7 +241,13 @@ const DrawnPlan = memo(function DrawnPlan({ layout, label }: { layout: FloorLayo
       {layout.areas.map((area) => (
         <g key={area.label} className={`plan__area plan__area--${area.kind}`}>
           <rect x={area.x} y={area.y} width={area.width} height={area.height} rx={12} />
-          <text x={area.x + area.width / 2} y={area.y + area.height / 2} dominantBaseline="central" textAnchor="middle">
+          <text
+            x={area.x + area.width / 2}
+            y={area.y + area.height / 2}
+            dominantBaseline="central"
+            textAnchor="middle"
+            transform={area.width < NARROW_AREA ? `rotate(-90 ${area.x + area.width / 2} ${area.y + area.height / 2})` : undefined}
+          >
             {area.label}
           </text>
         </g>

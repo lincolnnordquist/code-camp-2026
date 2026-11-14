@@ -2,17 +2,22 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { cancelOrder, markOrderReady } from "../../shared/api";
 import { useOnlineStatus } from "../../shared/live";
-import { Badge, Banner, Button, formatMoney, orderLabels } from "../../shared/ui";
-import { refusalLabels } from "../../shared/ui/labels";
+import type { OrderStatus } from "../../shared/types";
+import { Banner, Button, formatMoney, orderLabels } from "../../shared/ui";
+import { orderStatusLabels, refusalLabels } from "../../shared/ui/labels";
 import { Skeleton, SkeletonGroup } from "../../shell/Skeleton";
 import { CancelDialog } from "./CancelDialog";
 import { OrderItems } from "./OrderItems";
 import { VendorHeader } from "./VendorHeader";
+import { PassCode, VendorPass } from "./VendorPass";
 import { VendorState } from "./VendorState";
 import { clockTime } from "./queueModel";
 import { useVendor } from "./vendorSession";
 
 const HOLD_TICK_MS = 1_000;
+
+/** Progress steps reached; cancelled and expired orders show no track. */
+const STEP: Partial<Record<OrderStatus, number>> = { confirmed: 2, ready: 3, collected: 4 };
 
 function useNow(): number {
   const [now, setNow] = useState(() => Date.now());
@@ -133,17 +138,15 @@ export function OrderDetail() {
     <>
       <VendorHeader title="Order" back={back} />
       <main className="vendor-screen vendor-detail">
-        <section className="vendor-pass" aria-labelledby="order-code">
-          <div className="vendor-badges">
-            <Badge tone={labels.statusBadge.tone}>{labels.statusBadge.label}</Badge>
-            {labels.paymentBadge && <Badge tone={labels.paymentBadge.tone}>{labels.paymentBadge.label}</Badge>}
-          </div>
-          <p className="vendor-pass__label">Pickup code</p>
-          <h1 className="vendor-pass__code" id="order-code">
-            {order.pickupCode}
-          </h1>
-          <p className="vendor-pass__meta">Placed at {clockTime(order.createdAt)}</p>
-        </section>
+        <VendorPass
+          tone={order.status === "cancelled" || order.status === "expired" ? "grey" : "violet"}
+          title={order.status === "ready" ? labels.headline : orderStatusLabels[order.status]}
+          aside={<span className="body-small">Placed {clockTime(order.createdAt)}</span>}
+          step={STEP[order.status] ?? null}
+          titleAs="h1"
+        >
+          <PassCode code={order.pickupCode} />
+        </VendorPass>
 
         {problem && (
           <Banner tone="error" icon="error">
@@ -180,7 +183,9 @@ export function OrderDetail() {
                 <dt>Held until</dt>
                 <dd className="vendor-hold">
                   <time dateTime={holdEnd}>{clockTime(holdEnd)}</time>
-                  <span className="vendor-timer">{Date.parse(holdEnd) > now ? timeLeft(Date.parse(holdEnd) - now) : "Hold ended"}</span>
+                  <span className="body-medium vendor-hold__left">
+                    {Date.parse(holdEnd) > now ? timeLeft(Date.parse(holdEnd) - now) : "Hold ended"}
+                  </span>
                 </dd>
               </div>
             )}

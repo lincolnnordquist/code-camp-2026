@@ -4,7 +4,8 @@ import { useOnlineStatus } from "../../shared/live";
 import type { Order } from "../../shared/types";
 import { Button, CodeEntry, Icon, orderLabels, type IconName } from "../../shared/ui";
 import { refusalLabels } from "../../shared/ui/labels";
-import { OrderItems } from "./OrderItems";
+import { PassItems } from "./OrderItems";
+import { BoothAside, PassCode, VendorPass } from "./VendorPass";
 import { QrScanner } from "./QrScanner";
 import type { ScanHold } from "./scanHold";
 import { VendorHeader, VendorTitle } from "./VendorHeader";
@@ -90,23 +91,17 @@ export function Pickup() {
     <>
       <VendorHeader title="Pickup" />
       <main className="vendor-screen vendor-pickup">
-        <VendorTitle title="Pickup">Ask for the 4-digit code on the customer's order page.</VendorTitle>
-        <section className="vendor-code-card" aria-labelledby="pickup-entry-title">
-          <Button
-            id="pickup-scan"
-            className="vendor-code-card__scan"
-            icon={<Icon name="qr_code_scanner" />}
-            disabled={busy}
-            onClick={() => setScanning(true)}
-          >
-            Scan QR code
-          </Button>
-          <p className="vendor-code-card__or" aria-hidden="true">
-            or
+        <VendorTitle title="Pickup">Scan the customer's pass, or enter their code.</VendorTitle>
+        <Button id="pickup-scan" className="vendor-scan" icon={<Icon name="qr_code_scanner" />} disabled={busy} onClick={() => setScanning(true)}>
+          Scan QR code
+        </Button>
+        <p className="body-small vendor-or" aria-hidden="true">
+          or
+        </p>
+        <section className="vendor-code-card">
+          <p className="label-medium vendor-code-card__title" aria-hidden="true">
+            Pickup code
           </p>
-          <h2 id="pickup-entry-title" className="vendor-code-card__title">
-            Enter pickup code
-          </h2>
           <div ref={entryRef} className="vendor-code-entry">
             <CodeEntry
               label="Pickup code"
@@ -147,106 +142,75 @@ export function Pickup() {
   );
 }
 
-const OUTCOME_ICON: Record<Outcome["kind"], { icon: IconName; tone: "success" | "neutral" | "error" }> = {
-  collected: { icon: "check_circle", tone: "success" },
-  already_collected: { icon: "info", tone: "neutral" },
-  cancelled: { icon: "error", tone: "error" },
-  expired: { icon: "error", tone: "error" },
+const OUTCOME: Record<Outcome["kind"], { icon: IconName; tone: "success" | "neutral" | "error"; pass: string }> = {
+  collected: { icon: "check_circle", tone: "success", pass: "Collected" },
+  already_collected: { icon: "info", tone: "neutral", pass: "Collected" },
+  cancelled: { icon: "error", tone: "error", pass: "Cancelled" },
+  expired: { icon: "error", tone: "error", pass: "Expired" },
 };
 
 function PickupOutcome({ outcome, onAnother }: { outcome: Outcome; onAnother: () => void }) {
   const { boothState } = useVendor();
-  const products = boothState.status === "ready" ? boothState.booth.products : [];
-  const back = { label: "Back to pickup", onClick: onAnother };
+  const boothCode = boothState.status === "ready" ? boothState.booth.booth.code : "";
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
-  const mark = OUTCOME_ICON[outcome.kind];
+  const mark = OUTCOME[outcome.kind];
+  const order = outcome.order;
 
+  let title: string;
+  let body: string;
   if (outcome.kind === "collected") {
-    const { order } = outcome;
-    const labels = orderLabels(order);
-    return (
-      <>
-        <VendorHeader title="Pickup" back={back} />
-        <main className="vendor-screen vendor-detail">
-          <section className={`vendor-pass vendor-outcome vendor-outcome--${mark.tone}`}>
-            <span className="vendor-outcome__icon" aria-hidden="true">
-              <Icon name={mark.icon} size={32} />
-            </span>
-            <h1 className="vendor-outcome__title" ref={headingRef} tabIndex={-1}>
-              Collected
-            </h1>
-            <p className="vendor-outcome__body" role="status">
-              Hand over the items.{order.collectedAt ? ` Marked collected at ${clockTime(order.collectedAt)}.` : ""}
-            </p>
-            <Button className="vendor-outcome__next" onClick={onAnother}>
-              Enter another code
-            </Button>
-          </section>
-          <dl className="vendor-facts">
-            <div>
-              <dt>Pickup code</dt>
-              <dd className="vendor-facts__code">{order.pickupCode}</dd>
-            </div>
-            {labels.vendorPayment && (
-              <div>
-                <dt>Payment</dt>
-                <dd>{labels.vendorPayment}</dd>
-              </div>
-            )}
-          </dl>
-          <OrderItems order={order} products={products} />
-        </main>
-      </>
-    );
+    // FR-22: for a reservation this states that payment was taken at the booth.
+    const payment = orderLabels(outcome.order).vendorPayment;
+    title = "Collected";
+    body = payment ? `Hand over the items. ${payment}.` : "Hand over the items.";
+  } else if (outcome.kind === "already_collected") {
+    title = "Already collected";
+    body = outcome.at ? `This order was collected at ${clockTime(outcome.at)}.` : "This order was already collected.";
+  } else if (outcome.kind === "cancelled") {
+    title = "Order cancelled";
+    body = "This order was cancelled. Items stay at the booth.";
+  } else {
+    title = "Order expired";
+    body = "This order expired. Items stay at the booth.";
   }
-
-  const copy = {
-    already_collected: {
-      title: "Already collected",
-      body: outcome.kind === "already_collected" && outcome.at ? `This order was collected at ${clockTime(outcome.at)}.` : "This order was already collected.",
-    },
-    cancelled: {
-      title: "Order cancelled",
-      body: "This order was cancelled. Don't hand over the items.",
-    },
-    expired: {
-      title: "Order expired",
-      body: "This order expired. Don't hand over the items.",
-    },
-  }[outcome.kind];
+  const code = outcome.kind === "collected" ? outcome.order.pickupCode : outcome.code;
+  const reason = outcome.kind === "cancelled" ? order?.cancelReason : null;
 
   return (
     <>
-      <VendorHeader title="Pickup" back={back} />
-      <main className="vendor-screen vendor-detail">
-        <section className={`vendor-pass vendor-outcome vendor-outcome--${mark.tone}`}>
-          <span className="vendor-outcome__icon" aria-hidden="true">
-            <Icon name={mark.icon} size={32} />
-          </span>
-          <h1 className="vendor-outcome__title" ref={headingRef} tabIndex={-1}>
-            {copy.title}
-          </h1>
-          <p className="vendor-outcome__body" role="status">
-            {copy.body}
-          </p>
-          <Button className="vendor-outcome__next" onClick={onAnother}>
-            Enter another code
-          </Button>
-        </section>
-        <dl className="vendor-facts">
-          <div>
-            <dt>Pickup code</dt>
-            <dd className="vendor-facts__code">{outcome.code}</dd>
+      <VendorHeader title="Pickup" />
+      <main className="vendor-screen vendor-result">
+        <div className={`vendor-result__head vendor-result__head--${mark.tone}`}>
+          <Icon name={mark.icon} size={32} filled className="vendor-result__icon" />
+          <div className="vendor-result__text">
+            <h1 className="headline-medium" ref={headingRef} tabIndex={-1}>
+              {title}
+            </h1>
+            <p className="body-medium" role="status">
+              {body}
+            </p>
           </div>
-          {outcome.kind === "cancelled" && outcome.order?.cancelReason && (
-            <div>
-              <dt>Reason</dt>
-              <dd>{outcome.order.cancelReason}</dd>
+        </div>
+        <VendorPass
+          tone={outcome.kind === "collected" ? "violet" : "grey"}
+          title={mark.pass}
+          aside={<BoothAside code={boothCode} />}
+          step={outcome.kind === "collected" ? 4 : null}
+          titleAs="p"
+        >
+          <PassCode code={code} />
+          {reason && (
+            <div className="vendor-pass__reason">
+              <span className="label-medium">Reason</span>
+              <span className="body-medium">{reason}</span>
             </div>
           )}
-        </dl>
-        {outcome.order && <OrderItems order={outcome.order} products={products} />}
+          {order && <PassItems order={order} />}
+        </VendorPass>
+        <Button className="vendor-result__next" onClick={onAnother}>
+          Enter another code
+        </Button>
       </main>
     </>
   );

@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useId, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { Banner, Button, formatMoney, TextField } from "../../shared/ui";
+import { Banner, Button, formatMoney } from "../../shared/ui";
 import type { Order } from "../../shared/types";
 
 type CancelDialogProps = {
@@ -12,15 +12,14 @@ type CancelDialogProps = {
   onKeep: () => void;
 };
 
-const FOCUSABLE = 'button, [href], input, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'button, [href], input, textarea, [tabindex]:not([tabindex="-1"])';
 
-// FR-23: staff cancel with a reason the attendee sees. The dialog states what does not happen
-// for them: stock is not returned, and a paid order will be owed a refund. It is the attendee
-// cancel sheet (order.css .cancel-sheet) with a reason field: a bottom sheet over a scrim.
+// FR-23: staff cancel with a reason the attendee sees, in a bottom sheet over a scrim.
 export function CancelDialog({ order, busy, online, error, onConfirm, onKeep }: CancelDialogProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [reason, setReason] = useState("");
   const [missing, setMissing] = useState(false);
+  const reasonId = useId();
 
   // The page behind is inert and still while the sheet is open, and focus starts on the reason field.
   useLayoutEffect(() => {
@@ -31,7 +30,7 @@ export function CancelDialog({ order, busy, online, error, onConfirm, onKeep }: 
     others.forEach((el) => el.setAttribute("inert", ""));
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    root?.querySelector("input")?.focus();
+    root?.querySelector("textarea")?.focus();
     return () => {
       others.forEach((el) => el.removeAttribute("inert"));
       document.body.style.overflow = overflow;
@@ -61,7 +60,7 @@ export function CancelDialog({ order, busy, online, error, onConfirm, onKeep }: 
     if (reason.trim() === "") {
       // The field says what is missing, so the person is taken there to type it.
       setMissing(true);
-      rootRef.current?.querySelector("input")?.focus();
+      rootRef.current?.querySelector("textarea")?.focus();
       return;
     }
     onConfirm(reason.trim());
@@ -73,22 +72,40 @@ export function CancelDialog({ order, busy, online, error, onConfirm, onKeep }: 
       <form className="vendor-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="cancel-title" onSubmit={submit}>
         <div className="vendor-sheet__handle" aria-hidden="true" />
         <div className="vendor-sheet__text">
-          <h2 id="cancel-title">Cancel order {order.pickupCode}?</h2>
-          <p>Stock is not returned automatically. Add the items back on the Stock page.</p>
+          <h2 id="cancel-title" className="title-large">
+            Cancel order {order.pickupCode}?
+          </h2>
+          <p className="body-medium">The customer sees your reason on their order page.</p>
+          <p className="body-small vendor-sheet__note">Stock is not returned automatically. Add the items back on the Stock page.</p>
           {order.type === "prepaid" && (
-            <p>This order is paid, so a refund of {formatMoney(order.totalCents, order.currency)} will be due.</p>
+            <p className="body-small vendor-sheet__note">
+              This order is paid, so a refund of {formatMoney(order.totalCents, order.currency)} will be due.
+            </p>
           )}
         </div>
-        <TextField
-          label="Reason"
-          value={reason}
-          onChange={(e) => {
-            setReason(e.target.value);
-            setMissing(false);
-          }}
-          supportingText="The customer sees this reason."
-          error={missing ? "Enter a reason. The customer sees it." : undefined}
-        />
+        <div className={`vendor-reason${missing ? " is-error" : ""}`}>
+          <label className="label-medium" htmlFor={reasonId}>
+            Reason
+          </label>
+          <textarea
+            id={reasonId}
+            className="body-large vendor-reason__input"
+            rows={3}
+            placeholder="Sold out at the booth"
+            value={reason}
+            aria-invalid={missing ? true : undefined}
+            aria-describedby={missing ? `${reasonId}-error` : undefined}
+            onChange={(e) => {
+              setReason(e.target.value);
+              setMissing(false);
+            }}
+          />
+          {missing && (
+            <p id={`${reasonId}-error`} className="body-small vendor-reason__error">
+              Enter a reason. The customer sees it.
+            </p>
+          )}
+        </div>
         {error && (
           <Banner tone="error" icon="error">
             {error}
@@ -103,7 +120,7 @@ export function CancelDialog({ order, busy, online, error, onConfirm, onKeep }: 
               Cancel order
             </Button>
           )}
-          <Button type="button" variant="outlined" vendorSide onClick={onKeep}>
+          <Button type="button" variant="text" onClick={onKeep}>
             Keep order
           </Button>
         </div>
