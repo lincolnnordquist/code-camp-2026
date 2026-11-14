@@ -162,6 +162,36 @@ describe('product sheet', () => {
     expect(url()).toBe('/before')
   })
 
+  it.each(['Escape', 'Close', 'Back'])('closing by %s returns focus without scrolling and keeps the page where it was', async (how) => {
+    await renderAt(`/e/${SLUG}/booth/b-res`)
+    // The page was scrolled to 640 when the sheet opened; something moves it while it is open.
+    let y = 640
+    Object.defineProperty(window, 'scrollY', { configurable: true, get: () => y })
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(((arg: ScrollToOptions) => {
+      y = arg.top ?? y
+    }) as typeof window.scrollTo)
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus')
+    try {
+      fireEvent.click(card('Titan Hoodie'))
+      const dialog = screen.getByRole('dialog')
+      y = 0
+      focus.mockClear()
+      if (how === 'Escape') fireEvent.keyDown(within(dialog).getByRole('heading', { level: 2 }), { key: 'Escape' })
+      else if (how === 'Close') fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }))
+      else fireEvent.click(screen.getByRole('button', { name: 'Browser back' }))
+      await act(() => new Promise((r) => requestAnimationFrame(() => r(undefined))))
+
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(document.activeElement).toBe(card('Titan Hoodie'))
+      expect(focus.mock.calls.every(([options]) => (options as FocusOptions | undefined)?.preventScroll === true)).toBe(true)
+      expect(y).toBe(640)
+    } finally {
+      scrollTo.mockRestore()
+      focus.mockRestore()
+      Reflect.deleteProperty(window, 'scrollY')
+    }
+  })
+
   it('Back closes the sheet and returns focus to the card', async () => {
     await renderAt(`/e/${SLUG}/booth/b-res`)
     fireEvent.click(card('Titan Tee'))
@@ -641,7 +671,48 @@ describe('home first paint (speed pass)', () => {
   })
 })
 
+describe('search finds booths (QA D6)', () => {
+  const withTeamBooth = () => {
+    const catalog = makeCatalog()
+    catalog.booths.push(booth('b-team', 'H6', 'DibSpot', 'discovery'))
+    localStorage.setItem(`catalog.v4.${SLUG}`, JSON.stringify(catalog))
+  }
+
+  it.each(['dibspot', 'h6'])('"%s" lists the booth with no products, linking to its storefront', async (q) => {
+    withTeamBooth()
+    await renderAt(`/e/${SLUG}?q=${q}`)
+    const booths = screen.getByRole('region', { name: 'Booths' })
+    const link = within(booths).getByRole('link', { name: /^Booth\s*H6,\s*DibSpot/ })
+    expect(link.getAttribute('href')).toBe(`/e/${SLUG}/booth/b-team`)
+    expect(screen.getByText('1 result', { selector: '.result-count' })).toBeTruthy()
+  })
+
+  it('a vendor name lists the booth and its products together', async () => {
+    await renderAt(`/e/${SLUG}?q=wall rose`)
+    expect(within(screen.getByRole('region', { name: 'Booths' })).getAllByRole('link')).toHaveLength(1)
+    expect(screen.getByText('4 results', { selector: '.result-count' })).toBeTruthy()
+  })
+
+  it('a category is about products, so it lists no booths', async () => {
+    withTeamBooth()
+    await renderAt(`/e/${SLUG}?q=h6&category=Apparel`)
+    expect(screen.queryByRole('region', { name: 'Booths' })).toBeNull()
+  })
+})
+
 describe('storefront banner', () => {
+  it('the banner is requested first and eagerly, and fades in only once it has loaded', async () => {
+    const catalog = makeCatalog()
+    catalog.booths[0].bannerUrl = '/banner.png'
+    localStorage.setItem(`catalog.v4.${SLUG}`, JSON.stringify(catalog))
+    await renderAt(`/e/${SLUG}/booth/b-res`)
+    const img = document.querySelector('.storefront__banner img')!
+    expect([img.getAttribute('loading'), img.getAttribute('fetchpriority')]).toEqual(['eager', 'high'])
+    expect(img.classList.contains('is-loaded')).toBe(false)
+    fireEvent.load(img)
+    expect(document.querySelector('.storefront__banner img')!.classList.contains('is-loaded')).toBe(true)
+  })
+
   it('a banner that fails to load leaves the plain band, not a broken image', async () => {
     const catalog = makeCatalog()
     catalog.booths[0].bannerUrl = '/missing-banner.svg'

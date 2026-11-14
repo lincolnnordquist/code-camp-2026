@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getEventCatalog } from '../../shared/api'
+import { requestEventCatalog } from '../../shell/catalogRequest'
 import { PULL_REFRESH_DONE_EVENT, PULL_REFRESH_EVENT } from '../../shell/pullToRefresh'
 import type { EventCatalog } from '../../shared/types'
 
@@ -64,7 +64,7 @@ export function useCatalog(slug: string) {
 
   // Not async on purpose: every state write happens in a timer or promise
   // callback, never synchronously in the effect that starts the load.
-  const load = useCallback(() => {
+  const load = useCallback((fresh = true) => {
     const request = ++latestRequest.current
     clearBounds.current()
     const isLatest = () => request === latestRequest.current
@@ -78,7 +78,7 @@ export function useCatalog(slug: string) {
       clearTimeout(overdue)
       clearTimeout(givenUp)
     }
-    return getEventCatalog(slug)
+    return requestEventCatalog(slug, { fresh })
       .catch(() => null)
       .then((result) => {
         if (!isLatest()) return
@@ -107,15 +107,18 @@ export function useCatalog(slug: string) {
       e.preventDefault()
       void load().finally(() => window.dispatchEvent(new Event(PULL_REFRESH_DONE_EVENT)))
     }
-    void load()
-    window.addEventListener('online', load)
+    // Opening the screen shares a request already out (the header asks for the same catalog);
+    // a reload the person asks for, or coming back online, asks the server again.
+    void load(false)
+    const reconnect = () => void load()
+    window.addEventListener('online', reconnect)
     window.addEventListener(PULL_REFRESH_EVENT, onPull)
     return () => {
-      window.removeEventListener('online', load)
+      window.removeEventListener('online', reconnect)
       window.removeEventListener(PULL_REFRESH_EVENT, onPull)
       clearBounds.current()
     }
   }, [load])
 
-  return { state, reload: load }
+  return { state, reload: () => load() }
 }

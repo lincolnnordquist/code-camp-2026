@@ -2,6 +2,7 @@ import { focusQuietly } from '../../shell/inputModality'
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { bannerPreloadProps } from './bannerPreload'
 import { formatMoney } from '../../shared/ui/labels'
 import type { EventCatalog, Product } from '../../shared/types'
 import { ActiveOrders } from './ActiveOrders'
@@ -13,7 +14,8 @@ import { ProductImage } from '../../shared/ui/ProductImage'
 import { ProductSheetHost, type RenderOrderControl } from './ProductSheet'
 import { useProductSheetLink } from './productSheetLink'
 import { addRecentSearch, clearRecentSearches, readRecentSearches, removeRecentSearch } from './recentSearches'
-import { categoriesOf, descriptionSnippet, groupHitsByBooth, highlightParts, searchCatalog, topCategories, type SearchHit } from './search'
+import { categoriesOf, descriptionSnippet, groupHitsByBooth, highlightParts, searchBooths, searchCatalog, topCategories, type SearchHit } from './search'
+import { BoothListRow } from './BoothListRow'
 import { SavedCopyNote } from './SavedCopyNote'
 import { StockBadge } from './StockBadge'
 import { stockState } from './stockState'
@@ -144,11 +146,15 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
   const filters = readFilters(params)
   const matches = searching ? searchCatalog(catalog, query, category) : []
   const hits = applyFilters(matches, (h) => h.product, filters)
+  // Booths the query names (a vendor with nothing listed, a booth code). A category or a product
+  // filter is about products, so booths show only for a plain search.
+  const boothHits = searching && category === null && narrowingLabels(filters).length === 0 ? searchBooths(catalog, query) : []
+  const found = hits.length + boothHits.length
   // Only the filters emptied the list: the message names them, and Clear filters brings the matches back.
-  const filteredOut = hits.length === 0 && matches.length > 0
+  const filteredOut = found === 0 && matches.length > 0
   const resultCount =
-    hits.length > 0
-      ? `${hits.length} ${hits.length === 1 ? 'result' : 'results'}`
+    found > 0
+      ? `${found} ${found === 1 ? 'result' : 'results'}`
       : filteredOut
         ? `No results with ${narrowingLabels(filters).join(' and ')}.`
         : NO_RESULTS
@@ -665,7 +671,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
               </div>
             </div>
           </div>
-          <div className={`results-section__head${hits.length === 0 ? ' results-section__head--empty' : ''}`}>
+          <div className={`results-section__head${found === 0 ? ' results-section__head--empty' : ''}`}>
             <p className="result-count" ref={resultCountRef} tabIndex={-1}>
               {resultCount}
             </p>
@@ -689,7 +695,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
               </button>
             )}
           </div>
-          {hits.length === 0 && !filteredOut && (
+          {found === 0 && !filteredOut && (
             <div className="results-empty">
               <p id="results-empty-label" className="results-empty__label">
                 Try a category
@@ -710,8 +716,20 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
               </div>
             </div>
           )}
+          {boothHits.length > 0 && (
+            <section className="result-booths" aria-labelledby="result-booths">
+              <h2 id="result-booths" className="result-group__name">
+                Booths
+              </h2>
+              <ul className="directory" role="list">
+                {boothHits.map((b) => (
+                  <BoothListRow key={b.id} booth={b} eventSlug={slug} name={<Highlighted text={b.vendorName} query={query} />} />
+                ))}
+              </ul>
+            </section>
+          )}
           {groups ? (
-            groups.map(({ booth, hits: boothHits }) => (
+            groups.map(({ booth, hits: groupHits }) => (
               <section key={booth.id} className="result-group" aria-labelledby={`result-group-${booth.id}`}>
                 <div className="result-group__head">
                   <Link className="booth-plate" to={`/e/${slug}/map?booth=${booth.id}`}>
@@ -724,7 +742,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
                   </h2>
                 </div>
                 <ul className="results" role="list">
-                  {boothHits.map((hit) => resultRow(hit, true))}
+                  {groupHits.map((hit) => resultRow(hit, true))}
                 </ul>
               </section>
             ))
@@ -821,7 +839,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
             >
               {catalog.booths.map((b) => (
                 <li key={b.id}>
-                  <Link className="booth-row__item" to={`/e/${slug}/booth/${b.id}`}>
+                  <Link className="booth-row__item" to={`/e/${slug}/booth/${b.id}`} {...bannerPreloadProps(b)}>
                     <BoothLogo booth={b} />
                     <span className="booth-row__text">
                       <span className="booth-row__name">

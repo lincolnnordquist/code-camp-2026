@@ -12,6 +12,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { bannerPreloadProps } from './bannerPreload'
 import { formatMoney } from '../../shared/ui/labels'
 import type { Booth, Event, EventCatalog, Product } from '../../shared/types'
 import { boothBadgeClass, boothBadgeLabel, isPaused } from './boothLabel'
@@ -155,6 +156,8 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
     })
     const root = document.documentElement
     const overflow = root.style.overflow
+    // Closing leaves the page exactly where it was when the sheet opened.
+    const scrollY = window.scrollY
     root.style.overflow = 'hidden'
     return () => {
       behind.forEach((el) => {
@@ -169,8 +172,16 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
           (el) => el.dataset.productCard === shownId.current,
         ) ?? null
       const target = card ?? (opener?.isConnected ? opener : null)
-      // Focus always returns; after a tap the ring stays hidden (iOS draws it for script focus).
-      if (target) focusQuietly(target, { preventScroll: card === null })
+      // Focus always returns, without scrolling to it: the sheet never changes the product, so the card
+      // is where it was. After a tap the ring stays hidden (iOS draws it for script focus).
+      if (target) focusQuietly(target)
+      // Anything else that moved the page meanwhile (the overflow lock, a Back that restores a
+      // position) is undone, now and once more after the next paint.
+      const keep = () => {
+        if (window.scrollY !== scrollY) window.scrollTo({ top: scrollY, behavior: 'instant' })
+      }
+      keep()
+      requestAnimationFrame(keep)
     }
   }, [])
 
@@ -319,7 +330,7 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
             {onStorefront ? (
               <div className="sheet__booth">{vendorRow}</div>
             ) : (
-              <Link className="sheet__booth sheet__booth--link" to={`/e/${slug}/booth/${booth.id}`}>
+              <Link className="sheet__booth sheet__booth--link" to={`/e/${slug}/booth/${booth.id}`} {...bannerPreloadProps(booth)}>
                 {vendorRow}
                 <svg className="sheet__chevron" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
                   <path d="M9 5l7 7-7 7" />

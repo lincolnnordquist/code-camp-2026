@@ -25,7 +25,8 @@ import { useCart } from './features/order/cartStore'
 import { OpenOrderCount } from './features/order/OpenOrderCount'
 import { provideOrderEventSlug } from './features/order/orderExtras'
 import { MyOrdersSkeleton, OrderSkeleton } from './features/order/OrderSkeletons'
-import { getEventCatalog } from './shared/api'
+import { requestEventCatalog } from './shell/catalogRequest'
+import { NotFound } from './shell/NotFound'
 import { useOnlineStatus } from './shared/live'
 import { refusalLabels } from './shared/ui/labels'
 import { previousEntryPath, useGoBack, useViewTransitions } from './shell/navTransitions'
@@ -208,7 +209,7 @@ function useEventName(): string | null {
   useEffect(() => {
     if (!slug) return
     let active = true
-    getEventCatalog(slug)
+    requestEventCatalog(slug)
       .then((r) => {
         if (!active) return
         if (!r.ok) return setUnnamed(slug)
@@ -696,11 +697,7 @@ export default function App() {
           />
           <Route
             path="*"
-            element={
-              <div className="screen-state">
-                <h1 className="screen-state__message">Page not found.</h1>
-              </div>
-            }
+            element={<NotFound defaultEventSlug={DEMO_EVENT_SLUG} />}
           />
         </Routes>
       </Shell>
