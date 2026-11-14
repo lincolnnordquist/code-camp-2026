@@ -35,6 +35,8 @@ export type ProviderPayment = {
   sellerLocationId: string;
 };
 
+export type OrderState = "draft" | "open" | "completed" | "cancelled";
+
 export type RefundStatus = "completed" | "pending" | "rejected" | "failed";
 
 export type ProviderRefund = {
@@ -90,6 +92,11 @@ export interface PaymentProvider {
     connection: SellerConnection,
     checkoutLinkId: string,
   ): Promise<string | null>;
+
+  getOrderState(
+    connection: SellerConnection,
+    providerOrderId: string,
+  ): Promise<OrderState>;
 
   getRefund(
     connection: SellerConnection,

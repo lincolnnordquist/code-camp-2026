@@ -81,6 +81,7 @@ function setup(options: Setup = {}) {
     },
     getPayment: unused,
     closeCheckout: options.closeCheckout ?? unused,
+    getOrderState: unused,
     getRefund: unused,
     verifyWebhookSignature: unused,
   };
