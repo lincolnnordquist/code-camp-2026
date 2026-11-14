@@ -34,7 +34,7 @@ if (!accessToken) {
 }
 
 test.skipIf(!accessToken)(
-  "sandbox: a repeated create returns the same link, the unpaid order has no payment, and closing the link cancels that order",
+  "sandbox: a repeated create returns the same link, the unpaid order has no payment, closing the link cancels that order, and closing it again names no order",
   { timeout: 30_000 },
   async () => {
     const provider = createSquareProvider("sandbox");
@@ -62,11 +62,23 @@ test.skipIf(!accessToken)(
         await provider.getPayment(connection, checkout.providerOrderId),
         null,
       );
+      assert.equal(
+        await provider.getOrderState(connection, checkout.providerOrderId),
+        "draft",
+      );
     } finally {
       assert.equal(
         await provider.closeCheckout(connection, checkout.checkoutLinkId),
         checkout.providerOrderId,
       );
     }
+    assert.equal(
+      await provider.closeCheckout(connection, checkout.checkoutLinkId),
+      null,
+    );
+    assert.equal(
+      await provider.getOrderState(connection, checkout.providerOrderId),
+      "cancelled",
+    );
   },
 );

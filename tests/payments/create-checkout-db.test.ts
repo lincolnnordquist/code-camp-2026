@@ -37,6 +37,7 @@ function depsWith(
       createCheckout,
       getPayment: unused,
       closeCheckout: closeCheckout ?? unused,
+      getOrderState: unused,
       getRefund: unused,
       verifyWebhookSignature: unused,
     },

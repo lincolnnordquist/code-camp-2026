@@ -370,6 +370,38 @@ test("closeCheckout returns null when Square names no cancelled order", async ()
   assert.equal(cancelled, null);
 });
 
+test("getOrderState maps Square's order states", async () => {
+  const states = {
+    DRAFT: "draft",
+    OPEN: "open",
+    COMPLETED: "completed",
+    CANCELED: "cancelled",
+  } as const;
+  for (const [squareState, expected] of Object.entries(states)) {
+    const { fetchStub, calls } = stubFetch({
+      status: 200,
+      body: { order: { id: "ORDER_1", state: squareState } },
+    });
+    const state = await createSquareProvider("sandbox", fetchStub)
+      .getOrderState(connection, "ORDER_1");
+    assert.equal(state, expected);
+    assert.deepEqual(calls.map((call) => `${call.method} ${call.url}`), [
+      "GET https://connect.squareupsandbox.com/v2/orders/ORDER_1",
+    ]);
+  }
+});
+
+test("getOrderState reports an order state it does not recognise as unavailable", async () => {
+  const { fetchStub } = stubFetch({
+    status: 200,
+    body: { order: { id: "ORDER_1", state: "SOMETHING_NEW" } },
+  });
+  await assert.rejects(
+    createSquareProvider("sandbox", fetchStub).getOrderState(connection, "ORDER_1"),
+    (error) => error instanceof ProviderError && error.reason === "unavailable",
+  );
+});
+
 test("getRefund returns the status, payment id and amount of a completed refund", async () => {
   const { fetchStub, calls } = stubFetch({
     status: 200,
