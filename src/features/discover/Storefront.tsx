@@ -9,6 +9,8 @@ import { ProductImage } from '../../shared/ui/ProductImage'
 import { ProductSheetHost, type RenderOrderControl } from './ProductSheet'
 import { useProductSheetLink } from './productSheetLink'
 import { SavedCopyNote } from './SavedCopyNote'
+import { storefrontShareUrl } from './share'
+import { ShareButton, ShareIcon } from './ShareButton'
 import { StockBadge } from './StockBadge'
 import { stockState } from './stockState'
 import { CatalogError } from './CatalogError'
@@ -166,6 +168,17 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
         <div className="storefront__badges" ref={signRef}>
           <span className="storefront__code">Booth {booth.code}</span>
           <span className={boothBadgeClass(booth)}>{boothBadgeLabel(booth)}</span>
+          <ShareButton
+            className="storefront__share"
+            data={() => ({
+              title: booth.vendorName,
+              text: `${booth.vendorName}, Booth ${booth.code} at ${catalog.event.name}`,
+              url: storefrontShareUrl(window.location.origin, eventSlug, booth.id),
+            })}
+          >
+            <ShareIcon />
+            Share<span className="visually-hidden"> {booth.vendorName}</span>
+          </ShareButton>
           <Link className="storefront__map" to={mapHref}>
             Map<span className="visually-hidden"> to Booth {booth.code}</span>
           </Link>

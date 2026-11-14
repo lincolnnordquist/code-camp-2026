@@ -2,14 +2,11 @@ import { focusQuietly } from '../../shell/inputModality'
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MouseEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { bannerPreloadProps } from './bannerPreload'
 import { formatMoney } from '../../shared/ui/labels'
 import type { EventCatalog, Product } from '../../shared/types'
 import { ActiveOrders } from './ActiveOrders'
 import { openOrdersSettled, primeOpenOrders } from './openOrders'
 import { EventHomeSkeleton } from './DiscoverSkeletons'
-import { HomeMapPreview } from './HomeMapPreview'
-import { BoothLogo } from '../../shared/ui/BoothLogo'
 import { ProductImage } from '../../shared/ui/ProductImage'
 import { ProductSheetHost, type RenderOrderControl } from './ProductSheet'
 import { useProductSheetLink } from './productSheetLink'
@@ -820,61 +817,6 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
                 )
               })}
             </ul>
-          </section>
-
-          <section className="home-section" aria-labelledby="home-booths">
-            <div className="home-section__head">
-              <h2 id="home-booths">Booths</h2>
-              <Link className="link" to={`/e/${slug}/booths`}>
-                See all<span className="visually-hidden"> booths</span>
-              </Link>
-            </div>
-            {/* A card reached by Tab scrolls fully into the sideways row; snapping alone left it mostly off screen. */}
-            <ul
-              className="booth-row"
-              role="list"
-              onFocus={(e) => {
-                const item = (e.target as HTMLElement).closest('li')
-                item?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' })
-              }}
-            >
-              {catalog.booths.map((b) => (
-                <li key={b.id}>
-                  <Link className="booth-row__item" to={`/e/${slug}/booth/${b.id}`} {...bannerPreloadProps(b)}>
-                    <BoothLogo booth={b} />
-                    <span className="booth-row__text">
-                      <span className="booth-row__name">
-                        <span className="visually-hidden">Booth {b.code}, </span>
-                        {b.vendorName}
-                      </span>
-                      {b.slogan && (
-                        <span className="booth-row__tagline">
-                          <span className="visually-hidden">, </span>
-                          {b.slogan}
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="home-section" aria-labelledby="home-map">
-            <h2 id="home-map">Map</h2>
-            <Link className="map-preview" to={`/e/${slug}/map`}>
-              <div className="map-preview__plan" aria-hidden="true">
-                <HomeMapPreview catalog={catalog} venueName={venue || catalog.event.name} />
-              </div>
-              <span className="map-preview__label">
-                <span>
-                  Map of the hall<span className="visually-hidden">, {venue || catalog.event.name}</span>
-                </span>
-                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
           </section>
         </>
       )}

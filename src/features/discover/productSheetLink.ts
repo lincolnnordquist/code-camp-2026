@@ -8,6 +8,11 @@ export interface SheetState {
   productSheet: true
 }
 
+/** Marks the history entry the full-screen photo viewer pushed over an open sheet. */
+export interface PhotoViewerState {
+  photoViewer: true
+}
+
 const SHEET_STATE: SheetState = { productSheet: true }
 
 export function withProduct(search: string, productId: string | null): string {

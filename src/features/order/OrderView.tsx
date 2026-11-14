@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { cancelMyOrder, getOrder } from '../../shared/api'
 import { useOnlineStatus } from '../../shared/live'
@@ -15,6 +15,7 @@ import { attendeeOrderLabels, FINAL_STATUSES, PICKUP_STATUSES, cancelledByAttend
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
 import { NameChevron, PassNotch, PassStrip, StorefrontLink } from './PassParts'
 import { PickupMode } from './PickupMode'
+import { claimReadyCelebration, vibrateReady } from './readyCelebration'
 import { RetryButton } from './RetryButton'
 import { useNow } from './useNow'
 
@@ -25,6 +26,9 @@ const WITHHELD_LINE = 'The hold time has passed. Checking the latest status.'
 
 /** How long the code card takes to fold away once the order no longer has a code to show. */
 const CODE_COLLAPSE_MS = 300
+
+/** How long the Ready celebration stays mounted: its check draw and burst finish inside this. */
+const CELEBRATE_MS = 900
 
 /** The progress bar's steps, in the status badges' words; an order shows it only while it is on this path. */
 const STEPS = (['confirmed', 'ready', 'collected'] as const).map((status) => ({ status, label: orderStatusLabels[status] }))
@@ -62,13 +66,29 @@ function StepCheck() {
   )
 }
 
+/** The Ready celebration: a success disc with a check drawn in it, and eight sparks thrown out. */
+function ReadyBurst() {
+  return (
+    <span className="order-steps__burst">
+      {Array.from({ length: 8 }, (_, i) => (
+        <span key={i} className="order-steps__spark" style={{ '--spark-turn': `${i / 8}turn` } as CSSProperties} />
+      ))}
+      <svg className="order-steps__burst-check" viewBox="0 0 16 16" width="16" height="16" focusable="false">
+        <path d="M4 8.5l2.5 2.5L12 5.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" pathLength="1" />
+      </svg>
+    </span>
+  )
+}
+
 /**
  * The live progress tracker (Confirmed, Ready, Collected). The current step's marker breathes and a
  * shimmer runs toward the next step; reaching a step fills its bar and pops its marker once, and
- * Collected draws a check. All of it is decoration: the hidden step sentence above it and the page's
- * live region say what changed. With reduced motion every change is instant.
+ * Collected draws a check. The first time this device sees the order ready, the Ready marker
+ * flashes a drawn check with a small burst and the phone buzzes once (readyCelebration). All of it
+ * is decoration: the hidden step sentence above it and the page's live region say what changed.
+ * With reduced motion every change is instant and nothing flashes.
  */
-function StepTracker({ status }: { status: Order['status'] }) {
+function StepTracker({ orderId, status, settled }: { orderId: string; status: Order['status']; settled: boolean }) {
   const reduce = useReducedMotion()
   const visible = usePageVisible()
   const index = STEPS.findIndex((s) => s.status === status)
@@ -80,6 +100,36 @@ function StepTracker({ status }: { status: Order['status'] }) {
     shown.current = status
     setArrived(status)
   }, [status])
+  // Coming back to the page breathes the current marker again, so a glance shows the order is live;
+  // the arrival pop is not repeated.
+  const [wake, setWake] = useState(0)
+  const wasVisible = useRef(visible)
+  useEffect(() => {
+    if (visible && !wasVisible.current) {
+      setWake((n) => n + 1)
+      setArrived(null)
+    }
+    wasVisible.current = visible
+  }, [visible])
+  // A saved copy may be stale, so only a status the server confirmed is celebrated.
+  const [celebrating, setCelebrating] = useState(false)
+  const claimed = useRef(false)
+  useEffect(() => {
+    if (status === 'ready' && settled && claimReadyCelebration(orderId)) {
+      claimed.current = true
+      vibrateReady()
+    }
+    if (!claimed.current) return
+    claimed.current = false
+    setCelebrating(!reduce)
+  }, [orderId, status, settled, reduce])
+  // Its own effect, so a re-run of the claim above (which answers false the second time) never
+  // cancels the timer that takes the burst away.
+  useEffect(() => {
+    if (!celebrating) return
+    const timer = window.setTimeout(() => setCelebrating(false), CELEBRATE_MS)
+    return () => window.clearTimeout(timer)
+  }, [celebrating])
   const done = status === 'collected'
   const live = !reduce && !done
   const className = [
@@ -99,7 +149,10 @@ function StepTracker({ status }: { status: Order['status'] }) {
             <span className="order-steps__fill" />
           </span>
           <span className="order-steps__label">
-            <span className="order-steps__dot">{i <= index && (i < index || done) && <StepCheck />}</span>
+            <span key={i === index ? wake : undefined} className="order-steps__dot">
+              {i <= index && (i < index || done) && <StepCheck />}
+              {celebrating && s.status === 'ready' && i === index && <ReadyBurst />}
+            </span>
             {s.label}
           </span>
         </li>
@@ -401,18 +454,21 @@ export function OrderView({
       <article className={`order-pass${ended ? ' order-pass--ended' : ''}`}>
         <PassStrip bannerUrl={booth?.bannerUrl} />
         <div className="order-pass__head">
-          {/* Logo, name and booth lead to the storefront: one link stretched over the block. */}
+          {/* The vendor's name leads to the storefront: a link stretched over the name alone, beside
+              the heading rather than in it, so the heading keeps its own name. */}
           <div className="order-pass__id pass-identity">
             <BoothLogo booth={{ code: order.boothCode, logoUrl: booth?.logoUrl ?? '' }} size="lg" className="order-pass__logo" />
             <div className="order-pass__vendor">
-              <h1 className="order-vendor__name">
-                {/* The space stays outside the hidden span, where every name computation keeps it. */}
-                <span className="visually-hidden">Order from</span> {order.boothName}
-                <NameChevron order={order} />
-              </h1>
+              <div className="pass-name">
+                <h1 className="order-vendor__name">
+                  {/* The space stays outside the hidden span, where every name computation keeps it. */}
+                  <span className="visually-hidden">Order from</span> {order.boothName}
+                  <NameChevron order={order} />
+                </h1>
+                <StorefrontLink order={order} />
+              </div>
               <p className="order-vendor__booth">Booth {order.boothCode}</p>
             </div>
-            <StorefrontLink order={order} />
           </div>
           {eventSlug && !boothGone && (
             <Link
@@ -443,7 +499,7 @@ export function OrderView({
               <p className="visually-hidden">
                 Step {stepIndex + 1} of {STEPS.length}: {STEPS[stepIndex].label}
               </p>
-              <StepTracker status={order.status} />
+              <StepTracker orderId={order.id} status={order.status} settled={!provisional} />
             </>
           )}
         </section>

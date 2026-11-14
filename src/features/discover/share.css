@@ -1,0 +1,26 @@
+/* Travels with ShareButton.tsx: the shared snackbar, centred above the tab bar and the sheet's
+   order bar, over every layer (the sheet is 30, the photo viewer 40). */
+.share-toast__snackbar {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
+  left: 50%;
+  z-index: 50;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--space-16));
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: share-toast-in 200ms var(--ease-ios) backwards;
+}
+
+@keyframes share-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-toast__snackbar {
+    animation: none;
+  }
+}

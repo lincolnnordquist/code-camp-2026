@@ -468,6 +468,103 @@
   animation: order-steps-check 400ms 150ms ease-out backwards;
 }
 
+/* With each breath a soft disc swells out of the current marker and fades: the order is being
+   worked on. Filled, not an outline, for the same reason as the halo. */
+.order-steps--live .is-current .order-steps__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--step-color);
+  opacity: 0;
+  animation: order-steps-ripple 2s ease-out 2;
+}
+
+/* Ready, the first time this device sees it (OrderView ReadyBurst): a success disc pops over the
+   marker, a check draws in it, sparks fly out, and it settles back to the marker in 900 ms. */
+.order-steps__burst {
+  position: absolute;
+  inset: -4px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--success-600);
+  color: #ffffff;
+  pointer-events: none;
+  animation: order-steps-burst 900ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.order-steps__burst-check {
+  position: relative;
+}
+
+.order-steps__burst-check path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: order-steps-draw 320ms 160ms ease-out forwards;
+}
+
+.order-steps__spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: var(--radius-full);
+  background: var(--success-600);
+  animation: order-steps-spark 640ms 120ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes order-steps-ripple {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes order-steps-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  45%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.67);
+  }
+}
+
+@keyframes order-steps-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes order-steps-spark {
+  from {
+    opacity: 1;
+    transform: rotate(var(--spark-turn)) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--spark-turn)) translateY(-22px) scale(0.5);
+  }
+}
+
 /* Hidden pages hold their loops, to save battery. */
 .order-steps--paused :is(*, *::before, *::after) {
   animation-play-state: paused;
@@ -596,24 +693,46 @@
   overflow-wrap: break-word;
 }
 
-/* The vendor block as one link (PassParts StorefrontLink): an empty link stretched over the block,
-   with the press tint and the focus ring on the whole block. */
-.pass-identity {
+/* The vendor's name as the link to the storefront (PassParts StorefrontLink): an empty link
+   stretched over the name alone, so the press tint and the focus ring hug the name. It reaches a
+   little past the text, and to 44 px tall at least, for a comfortable touch target. */
+.pass-name {
   position: relative;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .pass-identity-link {
   position: absolute;
-  inset: calc(var(--space-8) * -1);
+  inset: calc(-1 * max(var(--space-4), (44px - 100%) / 2)) calc(-1 * var(--space-8));
   z-index: 1;
-  overflow: hidden;
-  border-radius: var(--radius-md);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The tint and the ring are drawn 8 px inside the 44 px target, 2 px around the name, so they do
+   not reach the booth line right under it. */
+.pass-identity-link:focus-visible {
+  outline: none;
+}
+
+.pass-identity-link::before {
+  content: '';
+  position: absolute;
+  inset: 8px 0;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.pass-identity-link:focus-visible::before {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
 }
 
 .pass-identity-link::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 8px 0;
+  border-radius: var(--radius-sm);
   background: currentColor;
   opacity: 0;
   pointer-events: none;
@@ -1793,11 +1912,13 @@ img.pickup-mode__logo,
 }
 
 .pickup-mode__vendor {
+  margin: 0;
   overflow-wrap: break-word;
   font: var(--type-title-large);
 }
 
 .pickup-mode__booth-code {
+  margin: 0;
   color: var(--text-secondary);
   font: var(--type-body-medium);
 }
@@ -2636,4 +2757,37 @@ img.pickup-mode__logo,
 
 .order-skeleton__card {
   border-radius: var(--radius-lg);
+}
+
+/* The order page's Back (the shell's header button): a 40 px chip in the card tone, the collapsed
+   header's own tone, with the soft shadow of the storefront's Back, its arrow centred in it. The
+   pressed tint stays inside the chip; the 48 px target and the focus ring are the button's own. */
+.app-header:has(~ main .order) .app-header__back {
+  isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-header:has(~ main .order) .app-header__back::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: var(--radius-full);
+  background: var(--card);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+}
+
+.app-header:has(~ main .order) .app-header__back::after {
+  inset: 4px;
+  border-radius: var(--radius-full);
+}
+
+.app-header:has(~ main .order) .app-header__back svg {
+  transform: none;
+}
+
+@media (forced-colors: active) {
+  .app-header:has(~ main .order) .app-header__back::before {
+    border: 1px solid CanvasText;
+  }
 }
