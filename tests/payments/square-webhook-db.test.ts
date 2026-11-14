@@ -19,6 +19,7 @@ import { createSquareProvider } from "../../supabase/functions/_shared/providers
 import type {
   PaymentProvider,
   ProviderPayment,
+  RefundStatus,
 } from "../../supabase/functions/_shared/providers/types";
 
 const SIGNATURE_KEY = "test-signature-key";
@@ -65,7 +66,10 @@ function paidWith(order: { providerOrderId: string; totalCents: number }): Provi
   };
 }
 
-function stubProvider(payment: ProviderPayment): PaymentProvider {
+function stubProvider(
+  payment: ProviderPayment,
+  refundStatus: RefundStatus = "completed",
+): PaymentProvider {
   const unused = () => Promise.reject(new Error("not used"));
   return {
     webhookSignatureHeaderName: square.webhookSignatureHeaderName,
@@ -74,7 +78,13 @@ function stubProvider(payment: ProviderPayment): PaymentProvider {
     getPayment: () => Promise.resolve(payment),
     closeCheckout: unused,
     getOrderState: unused,
-    getRefund: unused,
+    getRefund: () =>
+      Promise.resolve({
+        status: refundStatus,
+        paymentId: payment.id,
+        amountCents: payment.amountCents,
+        currency: payment.currency,
+      }),
     verifyWebhookSignature: square.verifyWebhookSignature,
     parseWebhookEvent: square.parseWebhookEvent,
   };
@@ -105,8 +115,49 @@ function webhookDeps(payment: ProviderPayment) {
   return { deps, emails };
 }
 
+function signed(body: string): Request {
+  const signature = createHmac("sha256", SIGNATURE_KEY)
+    .update(NOTIFICATION_URL + body)
+    .digest("base64");
+  return new Request("http://localhost/square-webhook", {
+    method: "POST",
+    headers: { "x-square-hmacsha256-signature": signature },
+    body,
+  });
+}
+
+function refundMessage(type: string, payment: ProviderPayment, refundId: string): Request {
+  return signed(JSON.stringify({
+    merchant_id: "MERCHANT_TEST",
+    type,
+    event_id: randomUUID(),
+    data: {
+      type: "refund",
+      id: refundId,
+      object: {
+        refund: {
+          id: refundId,
+          payment_id: payment.id,
+          order_id: `SQ_RETURN_${randomUUID()}`,
+          location_id: payment.sellerLocationId,
+          status: "COMPLETED",
+        },
+      },
+    },
+  }));
+}
+
+async function refundStatusOf(orderId: string) {
+  const { data } = await admin
+    .from("order_details")
+    .select("refund_status")
+    .eq("id", orderId)
+    .single();
+  return data!.refund_status as string;
+}
+
 function paymentMessage(type: string, payment: ProviderPayment, status: string): Request {
-  const body = JSON.stringify({
+  return signed(JSON.stringify({
     merchant_id: "MERCHANT_TEST",
     type,
     event_id: randomUUID(),
@@ -122,15 +173,7 @@ function paymentMessage(type: string, payment: ProviderPayment, status: string):
         },
       },
     },
-  });
-  const signature = createHmac("sha256", SIGNATURE_KEY)
-    .update(NOTIFICATION_URL + body)
-    .digest("base64");
-  return new Request("http://localhost/square-webhook", {
-    method: "POST",
-    headers: { "x-square-hmacsha256-signature": signature },
-    body,
-  });
+  }));
 }
 
 async function deliver(deps: SquareWebhookDeps, request: Request) {
@@ -327,4 +370,75 @@ test("a payment message for an expired order leaves it expired and records refun
     { provider_payment_id: paid.id, refund_status: "due" },
   ]);
   assert.deepEqual(emails, []);
+});
+
+test("a completed refund of a confirmed order shows refunded once and leaves the order as it is", async () => {
+  const { boothId, mugId } = await newBooth();
+  const { userId } = await attendee();
+  const order = await pendingCheckout(userId, boothId, mugId);
+  const paid = paidWith(order);
+  const { deps } = webhookDeps(paid);
+  assert.equal(
+    (await deliver(deps, paymentMessage("payment.updated", paid, "COMPLETED"))).body.outcome,
+    "confirmed",
+  );
+  const refundId = `REFUND_${randomUUID()}`;
+
+  const first = await deliver(deps, refundMessage("refund.updated", paid, refundId));
+  const again = await deliver(deps, refundMessage("refund.updated", paid, refundId));
+
+  assert.deepEqual(first, { status: 200, body: { ok: true, outcome: "refunded" } });
+  assert.deepEqual(again, { status: 200, body: { ok: true, outcome: "already_refunded" } });
+  assert.deepEqual(await paymentRows(order.orderId), [
+    { provider_payment_id: paid.id, refund_status: "refunded" },
+  ]);
+  assert.equal(await refundStatusOf(order.orderId), "refunded");
+  assert.equal(await orderStatus(order.orderId), "confirmed");
+});
+
+test("a refund that arrives before its payment is recorded is answered 500, then recorded on redelivery", async () => {
+  const { boothId, mugId } = await newBooth();
+  const { userId } = await attendee();
+  const order = await pendingCheckout(userId, boothId, mugId);
+  const paid = paidWith(order);
+  const { deps } = webhookDeps(paid);
+  const refundId = `REFUND_${randomUUID()}`;
+
+  const early = await deliver(deps, refundMessage("refund.updated", paid, refundId));
+  assert.deepEqual(early, { status: 500, body: { ok: false, reason: "payment_not_found" } });
+  assert.deepEqual(await paymentRows(order.orderId), []);
+
+  await deliver(deps, paymentMessage("payment.updated", paid, "COMPLETED"));
+  const redelivered = await deliver(deps, refundMessage("refund.updated", paid, refundId));
+
+  assert.deepEqual(redelivered, { status: 200, body: { ok: true, outcome: "refunded" } });
+  assert.equal(await refundStatusOf(order.orderId), "refunded");
+});
+
+test("a completed refund of a payment due back on an expired order changes refund due to refunded", async () => {
+  const { boothId, mugId } = await newBooth();
+  const { userId } = await attendee();
+  const order = await pendingCheckout(userId, boothId, mugId);
+  const { error } = await admin
+    .from("orders")
+    .update({ hold_ends_at: new Date(Date.now() - 60_000).toISOString() })
+    .eq("id", order.orderId);
+  assert.equal(error, null, error?.message ?? "");
+  assert.equal(
+    (await call("svc_expire_checkout", {
+      p_order_id: order.orderId,
+      p_provider_order_id: order.providerOrderId,
+    })).changed,
+    true,
+  );
+  const paid = paidWith(order);
+  const { deps } = webhookDeps(paid);
+  await deliver(deps, paymentMessage("payment.updated", paid, "COMPLETED"));
+  assert.equal(await refundStatusOf(order.orderId), "due");
+
+  const reply = await deliver(deps, refundMessage("refund.updated", paid, `REFUND_${randomUUID()}`));
+
+  assert.deepEqual(reply, { status: 200, body: { ok: true, outcome: "refunded" } });
+  assert.equal(await refundStatusOf(order.orderId), "refunded");
+  assert.equal(await orderStatus(order.orderId), "expired");
 });
