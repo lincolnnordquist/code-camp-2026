@@ -12,6 +12,7 @@ import {
   cartTotal,
   clearCart,
   rememberLastOrder,
+  renewRequestId,
   useCart,
   type CartItem,
   type ItemCaps,
@@ -146,6 +147,8 @@ export function CheckoutPage() {
         window.location.assign(result.value.checkoutUrl)
         return
       }
+      // A timeout keeps the request id, so a retry of an order that did go through returns it.
+      if (result) renewRequestId()
       await showRefusal(result ?? { reason: 'network' })
       return
     }
