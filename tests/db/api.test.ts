@@ -518,3 +518,88 @@ test("a booth's orders arrive live for its staff only", async () => {
     await api.signOut();
   }
 }, 120_000);
+
+test("a vendor's own booth loads with its event and products, and only while signed in as a vendor", async () => {
+  await supabase.auth.signOut();
+  const mine = await newBooth({ mode: "reservation", connection: false });
+  const theirs = await newBooth({ mode: "reservation", connection: false });
+
+  // No session at all, then an attendee's anonymous session: neither is a vendor.
+  assert.deepEqual(await api.getMyBooth(), {
+    ok: false,
+    reason: "not_signed_in",
+  });
+  const placed = await api.createReservation(request(mine.boothId, mine.mugId));
+  assert.ok(placed.ok);
+  assert.equal(
+    (await supabase.auth.getSession()).data.session?.user.is_anonymous,
+    true,
+  );
+  assert.deepEqual(await api.getMyBooth(), {
+    ok: false,
+    reason: "not_signed_in",
+  });
+
+  const account = await newStaffAccount(mine.vendorId);
+  const signedIn = await api.signInVendor(account.email, account.password);
+  assert.ok(signedIn.ok);
+
+  const result = await api.getMyBooth();
+  assert.ok(result.ok);
+  const { event, booth, products } = result.value;
+  assert.equal(booth.id, mine.boothId);
+  assert.equal(booth.vendorName, "Test vendor");
+  assert.equal(booth.mode, "reservation");
+  assert.equal(booth.orderingPaused, false);
+  assert.match(booth.logoUrl, /\/storage\/v1\/object\/public\/assets\//);
+  assert.ok(event.id && event.slug && event.venueName);
+  // Only this booth's products, with their stock.
+  assert.deepEqual(
+    products.map((p) => p.id).sort(),
+    [mine.limitedId, mine.mugId].sort(),
+  );
+  assert.ok(!products.some((p) => p.id === theirs.mugId));
+  assert.equal(products.find((p) => p.id === mine.mugId)?.availableQty, 4);
+
+  // It shows the booth as it is now.
+  await api.setOrderingPaused(mine.boothId, true);
+  await api.setProductStock(mine.mugId, 9);
+  const after = await api.getMyBooth();
+  assert.ok(after.ok);
+  assert.equal(after.value.booth.orderingPaused, true);
+  assert.equal(
+    after.value.products.find((p) => p.id === mine.mugId)?.availableQty,
+    9,
+  );
+
+  await api.signOut();
+  assert.deepEqual(await api.getMyBooth(), {
+    ok: false,
+    reason: "not_signed_in",
+  });
+});
+
+test("a signed-in staff member with no booth gets no_booth, and a failure to reach the server is thrown", async () => {
+  await supabase.auth.signOut();
+  const { vendorId, boothId } = await newBooth({
+    mode: "reservation",
+    connection: false,
+  });
+  const account = await newStaffAccount(vendorId);
+  await admin.from("booths").delete().eq("id", boothId);
+
+  // Signed in directly, so that the vendor sign-in does not sign them out again.
+  const direct = await supabase.auth.signInWithPassword({
+    email: account.email,
+    password: account.password,
+  });
+  assert.equal(direct.error, null);
+  assert.deepEqual(await api.getMyBooth(), { ok: false, reason: "no_booth" });
+
+  const down = vi.spyOn(supabase, "from").mockImplementation(() => {
+    throw new Error("offline");
+  });
+  await assert.rejects(api.getMyBooth(), /offline/);
+  down.mockRestore();
+  await supabase.auth.signOut();
+});

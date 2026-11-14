@@ -1,15 +1,26 @@
 import type {
   CancelOrderRefusal,
   CollectRefusal,
+  MyBoothRefusal,
   Order,
   OrderChangeRefusal,
   Result,
   SetStockRefusal,
+  VendorBooth,
   VendorSignInRefusal,
 } from "../types";
 import { supabase } from "./client";
 import { check, refusal, type Reply } from "./errors";
-import { orderFromPayload, type OrderPayload } from "./mappers";
+import {
+  boothFromRow,
+  eventFromRow,
+  orderFromPayload,
+  productFromRow,
+  type BoothRow,
+  type EventRow,
+  type OrderPayload,
+  type ProductRow,
+} from "./mappers";
 import { readOrders } from "./orders";
 
 type OrderReply = Reply & Partial<OrderPayload> & { availableQty?: number };
@@ -32,31 +43,81 @@ export async function signInVendor(
     throw new Error(error.message);
   }
 
+  const boothId = await findMyBoothId();
+  if (!boothId) {
+    await supabase.auth.signOut();
+    return { ok: false, reason: "no_booth" };
+  }
+  return { ok: true, value: { boothId } };
+}
+
+// The id of the booth the signed-in staff member runs. A vendor with several events gets
+// their most recent booth. Null when they have none.
+async function findMyBoothId(): Promise<string | null> {
   const staff = check(
     await supabase
       .from("vendor_staff")
       .select("vendor_id")
       .returns<{ vendor_id: string }[]>(),
   );
-  const booth = staff.length
-    ? check(
-        await supabase
-          .from("booths")
-          .select("id")
-          .in(
-            "vendor_id",
-            staff.map((row) => row.vendor_id),
-          )
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .returns<{ id: string }[]>(),
-      )[0]
-    : undefined;
-  if (!booth) {
-    await supabase.auth.signOut();
-    return { ok: false, reason: "no_booth" };
+  if (staff.length === 0) return null;
+  const booths = check(
+    await supabase
+      .from("booths")
+      .select("id")
+      .in(
+        "vendor_id",
+        staff.map((row) => row.vendor_id),
+      )
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .returns<{ id: string }[]>(),
+  );
+  return booths[0]?.id ?? null;
+}
+
+type MyBoothRow = BoothRow & { events: EventRow };
+
+// The signed-in vendor's own booth, with its event and products. This is also how a screen
+// finds out, after a page refresh, whether a vendor is still signed in: an attendee's
+// anonymous session is not a vendor, so it gets "not_signed_in" too.
+export async function getMyBooth(): Promise<
+  Result<VendorBooth, MyBoothRefusal>
+> {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session || data.session.user.is_anonymous) {
+    return { ok: false, reason: "not_signed_in" };
   }
-  return { ok: true, value: { boothId: booth.id } };
+  const boothId = await findMyBoothId();
+  if (!boothId) return { ok: false, reason: "no_booth" };
+
+  const row = check(
+    await supabase
+      .from("booths")
+      .select(
+        "id, code, mode, ordering_paused, map_x, map_y, pickup_instructions, vendors(name, slogan, logo_path, banner_path), events(id, slug, name, venue_name, currency, floor_plan_url, reservation_hold_minutes)",
+      )
+      .eq("id", boothId)
+      .single<MyBoothRow>(),
+  );
+  const products = check(
+    await supabase
+      .from("products")
+      .select(
+        "id, booth_id, name, category, description, image_path, price_cents, available_qty, max_per_order",
+      )
+      .eq("booth_id", boothId)
+      .order("name")
+      .returns<ProductRow[]>(),
+  );
+  return {
+    ok: true,
+    value: {
+      event: eventFromRow(row.events),
+      booth: boothFromRow(row),
+      products: products.map(productFromRow),
+    },
+  };
 }
 
 export async function signOut(): Promise<void> {

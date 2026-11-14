@@ -121,5 +121,13 @@ export type CollectRefusal =
 export type CancelOrderRefusal = OrderChangeRefusal | "reason_required";
 export type SetStockRefusal = "product_not_found" | "invalid_quantity";
 export type VendorSignInRefusal = "invalid_credentials" | "no_booth";
+
+// The signed-in vendor's own booth: the booth, the event it is at, and its products.
+export type VendorBooth = {
+  event: Event;
+  booth: Booth;
+  products: Product[];
+};
+export type MyBoothRefusal = "not_signed_in" | "no_booth";
 export type ConfirmCheckoutRefusal = "order_not_found" | "payment_not_verified";
 export type StartCheckoutRefusal = OrderRequestRefusal | "checkout_unavailable";

@@ -72,6 +72,8 @@ These functions are the meeting point of the three roles. Screens build against 
 
 Every function that changes data returns either the result or a typed reason for refusal, such as `insufficient_stock` or `ordering_paused`. Screens show the reason; they never guess.
 
+`getMyBooth()` returns the signed-in vendor's own booth as `{ event, booth, products }`, or a refusal: `not_signed_in` (no session, or only an attendee's anonymous session) or `no_booth` (a staff login with no booth). The vendor screens call it on load: it restores a vendor after a page refresh, and gives the stock and pause screens the booth, its event, and its products as they are now. A vendor with booths at several events gets the most recent one.
+
 A failure to reach the server is different: the function throws, and the screen shows its error state. Only an answer from our own functions is returned as a result. `listMyOrders` returns an empty list when the browser has no session, and never signs anyone in; the first `createReservation` or `startCheckout` signs the browser in anonymously.
 
 ### Database functions the browser calls
