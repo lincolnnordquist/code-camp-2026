@@ -6,7 +6,9 @@ import { Badge, Banner, Button, formatMoney, orderLabels } from "../../shared/ui
 import { refusalLabels } from "../../shared/ui/labels";
 import { Skeleton, SkeletonGroup } from "../../shell/Skeleton";
 import { CancelDialog } from "./CancelDialog";
+import { OrderItems } from "./OrderItems";
 import { VendorHeader } from "./VendorHeader";
+import { VendorState } from "./VendorState";
 import { clockTime } from "./queueModel";
 import { useVendor } from "./vendorSession";
 
@@ -31,7 +33,7 @@ function timeLeft(ms: number): string {
 
 export function OrderDetail() {
   const { orderId } = useParams();
-  const { ordersState, reloadOrders, applyOrder } = useVendor();
+  const { ordersState, reloadOrders, applyOrder, boothState } = useVendor();
   const online = useOnlineStatus();
   const now = useNow();
   const [busy, setBusy] = useState<"ready" | "cancel" | null>(null);
@@ -44,10 +46,10 @@ export function OrderDetail() {
     return (
       <>
         <VendorHeader title="Order" back={back} />
-        <SkeletonGroup label="Loading the order..." className="vendor-screen">
-          <Skeleton width="40%" height={24} />
-          <Skeleton width="50%" height={44} />
+        <SkeletonGroup label="Loading the order..." className="vendor-screen vendor-detail">
+          <Skeleton height={176} shape="card" />
           <Skeleton height={120} shape="card" />
+          <Skeleton height={160} shape="card" />
         </SkeletonGroup>
       </>
     );
@@ -56,12 +58,11 @@ export function OrderDetail() {
     return (
       <>
         <VendorHeader title="Order" back={back} />
-        <div className="vendor-screen vendor-state" role="alert">
-          <p className="title-medium">Could not load this order.</p>
-          <Button variant="vendor" onClick={reloadOrders}>
-            Try again
-          </Button>
-        </div>
+        <main className="vendor-screen">
+          <VendorState icon="wifi_off" tone="error" alert title="Could not load this order." body="Check your connection and try again.">
+            <Button onClick={reloadOrders}>Try again</Button>
+          </VendorState>
+        </main>
       </>
     );
   }
@@ -70,17 +71,19 @@ export function OrderDetail() {
     return (
       <>
         <VendorHeader title="Order" back={back} />
-        <div className="vendor-screen vendor-state">
-          <p className="title-medium">{refusalLabels.order_not_found}</p>
-          <Link className="ec-btn ec-btn-md ec-btn-vendor" to="/vendor/orders">
-            Back to orders
-          </Link>
-        </div>
+        <main className="vendor-screen">
+          <VendorState icon="info" title={refusalLabels.order_not_found}>
+            <Link className="ec-btn ec-btn-md ec-btn-filled" to="/vendor/orders">
+              Back to orders
+            </Link>
+          </VendorState>
+        </main>
       </>
     );
   }
 
   const labels = orderLabels(order);
+  const products = boothState.status === "ready" ? boothState.booth.products : [];
   const money = (cents: number) => formatMoney(cents, order.currency);
   const active = order.status === "confirmed" || order.status === "ready";
   // Only an unpaid reservation has a hold to show; a prepaid order is already paid.
@@ -130,13 +133,16 @@ export function OrderDetail() {
     <>
       <VendorHeader title="Order" back={back} />
       <main className="vendor-screen vendor-detail">
-        <section className="vendor-section vendor-section-top">
+        <section className="vendor-pass" aria-labelledby="order-code">
           <div className="vendor-badges">
             <Badge tone={labels.statusBadge.tone}>{labels.statusBadge.label}</Badge>
             {labels.paymentBadge && <Badge tone={labels.paymentBadge.tone}>{labels.paymentBadge.label}</Badge>}
           </div>
-          <h1 className="code">{order.pickupCode}</h1>
-          <p className="body-large">Placed at {clockTime(order.createdAt)}</p>
+          <p className="vendor-pass__label">Pickup code</p>
+          <h1 className="vendor-pass__code" id="order-code">
+            {order.pickupCode}
+          </h1>
+          <p className="vendor-pass__meta">Placed at {clockTime(order.createdAt)}</p>
         </section>
 
         {problem && (
@@ -154,61 +160,43 @@ export function OrderDetail() {
             {money(order.refundedCents)} went back to the customer.
           </Banner>
         )}
-        {order.status === "cancelled" && order.cancelReason && (
-          <dl className="vendor-facts">
-            <div>
-              <dt className="body-small">Reason</dt>
-              <dd className="body-large">{order.cancelReason}</dd>
-            </div>
-          </dl>
-        )}
 
-        <section className="vendor-section">
-          <h2 className="title-medium">Items</h2>
-          <div className="vendor-lines body-large">
-            {order.items.map((item) => (
-              <div key={item.productId}>
-                <span>
-                  {item.quantity} × {item.name}
-                </span>
-                <span>{money(item.quantity * item.unitPriceCents)}</span>
+        {((order.status === "cancelled" && order.cancelReason) || labels.vendorPayment || holdEnd) && (
+          <dl className="vendor-facts">
+            {order.status === "cancelled" && order.cancelReason && (
+              <div>
+                <dt>Reason</dt>
+                <dd>{order.cancelReason}</dd>
               </div>
-            ))}
-          </div>
-          <div className="vendor-total title-medium">
-            <span>Total</span>
-            <span>{money(order.totalCents)}</span>
-          </div>
-        </section>
-
-        {(labels.vendorPayment || holdEnd) && (
-          <dl className="vendor-facts">
+            )}
             {labels.vendorPayment && (
               <div>
-                <dt className="body-small">Payment</dt>
-                <dd className="body-large">{labels.vendorPayment}</dd>
+                <dt>Payment</dt>
+                <dd>{labels.vendorPayment}</dd>
               </div>
             )}
             {holdEnd && (
               <div>
-                <dt className="body-small">Held until</dt>
-                <dd className="body-large vendor-hold">
+                <dt>Held until</dt>
+                <dd className="vendor-hold">
                   <time dateTime={holdEnd}>{clockTime(holdEnd)}</time>
-                  <span className="timer">{Date.parse(holdEnd) > now ? timeLeft(Date.parse(holdEnd) - now) : "Hold ended"}</span>
+                  <span className="vendor-timer">{Date.parse(holdEnd) > now ? timeLeft(Date.parse(holdEnd) - now) : "Hold ended"}</span>
                 </dd>
               </div>
             )}
           </dl>
         )}
 
+        <OrderItems order={order} products={products} />
+
         {active && (
           <div className="vendor-actions">
-            {offline && <p className="body-small">You are offline. Connect to change this order.</p>}
+            {offline && <p className="vendor-actions__note">You are offline. Connect to change this order.</p>}
             {order.status === "confirmed" &&
               (busy === "ready" ? (
-                <Button variant="vendor" loadingLabel="Marking ready" />
+                <Button loadingLabel="Marking ready" />
               ) : (
-                <Button variant="vendor" disabled={offline} onClick={markReady}>
+                <Button disabled={offline} onClick={markReady}>
                   Mark ready
                 </Button>
               ))}
