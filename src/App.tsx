@@ -621,11 +621,34 @@ function Shell({ children }: { children: ReactNode }) {
   )
 }
 
+// The vendor area has its own frame (header, nav and offline banner), so it renders outside the attendee shell.
+const VendorApp = lazy(() => import('./features/vendor/VendorApp'))
+
+function Root() {
+  const { pathname } = useLocation()
+  if (pathname === '/vendor' || pathname.startsWith('/vendor/')) {
+    return (
+      <Suspense fallback={<ScreenLoading label="Loading the vendor app..." />}>
+        <VendorApp />
+      </Suspense>
+    )
+  }
+  return <AttendeeApp />
+}
+
 export default function App() {
   usePreloadRoutes()
   return (
     // Route updates commit synchronously, so a view transition captures the new screen, not the old one twice.
     <BrowserRouter useTransitions={false}>
+      <Root />
+    </BrowserRouter>
+  )
+}
+
+function AttendeeApp() {
+  return (
+    <>
       <Shell>
         <Routes>
           <Route path="/" element={<Navigate to={`/e/${DEMO_EVENT_SLUG}`} replace />} />
@@ -701,6 +724,6 @@ export default function App() {
           />
         </Routes>
       </Shell>
-    </BrowserRouter>
+    </>
   )
 }
