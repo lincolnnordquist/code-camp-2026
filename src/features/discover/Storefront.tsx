@@ -1,8 +1,10 @@
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { Link, useLocation, useNavigationType, useParams, useSearchParams } from 'react-router-dom'
-import { formatMoney } from '../../shared/ui/labels'
-import { boothBadgeClass, boothBadgeLabel, isPaused } from './boothLabel'
+import { Banner } from '../../shared/ui/Banner'
+import { Icon } from '../../shared/ui/Icon'
+import { formatMoney, pausedBoothBadge, shopTypeLabels } from '../../shared/ui/labels'
+import { isPaused } from './boothLabel'
 import { StorefrontSkeleton } from './DiscoverSkeletons'
 import { BoothLogo } from '../../shared/ui/BoothLogo'
 import { ProductImage } from '../../shared/ui/ProductImage'
@@ -21,6 +23,8 @@ import './storefront.css'
 
 /** The storefront's category filter, named as on the event home. */
 const CATEGORY_PARAM = 'category'
+const TAB_ID = 'storefront-tab'
+const PANEL_ID = 'storefront-products'
 
 export interface StorefrontProps {
   /**
@@ -42,7 +46,8 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
   // The shelf rises in once per session per booth, the first time its products render (shell, index.css).
   const productsEntrance = useFirstEntrance(`storefront:${boothId}:products`, state.status === 'ready')
   const sheetLink = useProductSheetLink()
-  const signRef = useRef<HTMLDivElement>(null)
+  const signRef = useRef<HTMLDListElement>(null)
+  const tabsRef = useRef<HTMLDivElement>(null)
   // Shown once the booth sign has scrolled under the app header; it sits on that header's bottom edge.
   const [bar, setBar] = useState({ shown: false, top: 0 })
   const ready = state.status === 'ready'
@@ -115,6 +120,27 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
 
   const changeFilters = (f: ProductFilters) => setParams(writeFilters(params, f), { replace: true, state: location.state })
 
+  const tabs: Array<string | null> = [null, ...categories]
+  const hasTabs = categories.length > 1
+  const shownTab = tabs.indexOf(shownCategory)
+  const onTabKey = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+    e.preventDefault()
+    const next = (index + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
+    pickCategory(tabs[next])
+    tabsRef.current?.querySelector<HTMLElement>(`#${TAB_ID}-${next}`)?.focus()
+  }
+
+  // How the booth takes orders, in the label module's words; a paused booth never reads as taking them (FR-05).
+  const shopType = isPaused(booth) ? (
+    <span className="storefront__paused">
+      <Icon name="pause_circle" size={16} />
+      {pausedBoothBadge.label}
+    </span>
+  ) : (
+    shopTypeLabels[booth.mode].label
+  )
+
   return (
     // The banner leads the page, so it asks the shell for the header that floats over media (App.tsx).
     <div className="storefront" data-header="over-media">
@@ -131,13 +157,11 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
               Find it on the map<span className="visually-hidden">, Booth {booth.code}</span>
             </span>
           </Link>
-          <span className={boothBadgeClass(booth)}>{boothBadgeLabel(booth)}</span>
+          <span className="storefront__bar-type">{shopType}</span>
         </div>
       </div>
 
-      {/* The booth's identity, as the designer's storefront draws it (StorefrontReserve): the banner, the
-          round logo overlapping it, the name and slogan, then booth, mode and map. Both pictures are
-          decorative beside the name. */}
+      {/* The banner and the logo are decorative beside the name. */}
       <header className="storefront__header">
         <div className="storefront__banner">
           {booth.bannerUrl && booth.bannerUrl !== failedBanner && (
@@ -159,33 +183,58 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
               onError={() => setFailedBanner(booth.bannerUrl)}
             />
           )}
-        </div>
-        <span className="storefront__logo">
-          <BoothLogo booth={booth} size="lg" />
-        </span>
-        <h1>{booth.vendorName}</h1>
-        {booth.slogan && <p className="storefront__tagline">{booth.slogan}</p>}
-        <div className="storefront__badges" ref={signRef}>
-          <span className="storefront__code">Booth {booth.code}</span>
-          <span className={boothBadgeClass(booth)}>{boothBadgeLabel(booth)}</span>
           <ShareButton
             className="storefront__share"
+            label={`Share ${booth.vendorName}`}
             data={() => ({
               title: booth.vendorName,
               text: `${booth.vendorName}, Booth ${booth.code} at ${catalog.event.name}`,
               url: storefrontShareUrl(window.location.origin, eventSlug, booth.id),
             })}
           >
-            <ShareIcon />
-            Share<span className="visually-hidden"> {booth.vendorName}</span>
+            <ShareIcon size={22} />
           </ShareButton>
-          <Link className="storefront__map" to={mapHref}>
-            Map<span className="visually-hidden"> to Booth {booth.code}</span>
-          </Link>
         </div>
+        <div className="storefront__identity">
+          <span className="storefront__logo">
+            <BoothLogo booth={booth} size="lg" />
+          </span>
+          <div className="storefront__name">
+            <h1>{booth.vendorName}</h1>
+            {booth.slogan && <p className="storefront__tagline">{booth.slogan}</p>}
+          </div>
+        </div>
+        <dl className="storefront__facts" ref={signRef}>
+          <div>
+            <dt>Booth</dt>
+            <dd>{booth.code}</dd>
+          </div>
+          <div>
+            <dt>Shop type</dt>
+            <dd>{shopType}</dd>
+          </div>
+          <div>
+            <dt>Map</dt>
+            <dd>
+              <Link className="storefront__map" to={mapHref}>
+                Find it<span className="visually-hidden"> on the map, Booth {booth.code}</span>
+                <Icon name="chevron_right" size={20} />
+              </Link>
+            </dd>
+          </div>
+        </dl>
       </header>
 
       <SavedCopyNote show={state.fromCache} onRetry={() => void reload()} />
+
+      {/* The vendor's own words only; a booth that has written none shows no note. */}
+      {booth.pickupInstructions && (
+        <div className="storefront__pickup">
+          <Banner tone="neutral" icon="shopping_bag">
+            <span>{booth.pickupInstructions}</span>
+          </Banner>
+        </div>
+      )}
 
       {isPaused(booth) && (
         <div className="storefront__notice" role="status">
@@ -200,35 +249,36 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
       )}
 
       {products.length > 0 && (
-        <div className="chips storefront__chips">
-          <span className="chips__lead" ref={filtersChipRef}>
-            <FiltersChip filters={filters} expanded={filtersOpen} onOpen={() => setFiltersOpen(true)} />
-          </span>
-          {categories.length > 1 && (
-            <div className="chips__group" role="group" aria-label="Categories">
-              {[null, ...categories].map((c) => {
+        <div className="storefront__tabs-row">
+          {/* A booth with one category has no tabs; the row still carries Filters at its end. */}
+          <div className="storefront__tabs" ref={tabsRef} {...(hasTabs && { role: 'tablist', 'aria-label': 'Category' })}>
+            {hasTabs &&
+              tabs.map((c, i) => {
                 const selected = c === shownCategory
+                const count = c === null ? products.length : products.filter((p) => p.category === c).length
                 return (
                   <button
                     key={c ?? 'all'}
                     type="button"
-                    className="chip"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      pickCategory(c)
-                    }}
+                    role="tab"
+                    id={`${TAB_ID}-${i}`}
+                    className="storefront__tab"
+                    aria-selected={selected}
+                    aria-controls={PANEL_ID}
+                    aria-label={`${c ?? 'All'}, ${count} ${count === 1 ? 'product' : 'products'}`}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => pickCategory(c)}
+                    onKeyDown={(e) => onTabKey(e, i)}
                   >
-                    {selected && (
-                      <svg className="chip__check" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-                        <path d="M5 12.5l4.5 4.5L19 7.5" />
-                      </svg>
-                    )}
-                    {c ?? 'All'}
+                    <span className="storefront__tab-label">{c ?? 'All'}</span>
+                    <span className="storefront__tab-count">{count}</span>
                   </button>
                 )
               })}
-            </div>
-          )}
+          </div>
+          <span className="storefront__filters" ref={filtersChipRef}>
+            <FiltersChip filters={filters} expanded={filtersOpen} onOpen={() => setFiltersOpen(true)} />
+          </span>
         </div>
       )}
 
@@ -261,7 +311,12 @@ export function Storefront({ renderOrderControl }: StorefrontProps) {
           <p>Nothing on the table yet. Stop by the booth to see what they have.</p>
         </div>
       ) : (
-        <ul className="product-grid storefront__grid" role="list" {...productsEntrance}>
+        <ul
+          className="product-grid storefront__grid"
+          role="list"
+          {...productsEntrance}
+          {...(hasTabs && { id: PANEL_ID, 'aria-labelledby': `${TAB_ID}-${shownTab}` })}
+        >
           {shown.map((product) => (
             <li key={product.id} id={product.id} className="product-grid__item">
               <Link className="product-card" {...sheetLink(product.id)}>

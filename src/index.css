@@ -807,6 +807,14 @@ main.main--under-header {
   }
 }
 
+/* The cart and checkout dock their one action at the bottom until the two-column layout (order.css,
+   60rem), so the tab bar would sit over it below that width. */
+@media (max-width: 59.99rem) {
+  .bottom-bars--flow .tab-bar {
+    display: none;
+  }
+}
+
 /* The aisle sign: a sharp-cornered dark plate with tall condensed lettering.
    Used for every booth code. Interactive plates keep the 44 px target. */
 .booth-plate {

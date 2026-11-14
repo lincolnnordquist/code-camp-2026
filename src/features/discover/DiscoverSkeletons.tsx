@@ -6,7 +6,7 @@ const CARD_COUNT = 4
 const TILE_COUNT = 6
 const BOOTH_CARD_COUNT = 3
 
-/** A product card: the square photo, the name and price under it, and on a storefront the Add button. */
+/** A product card: the photo, the name and price under it, and on a storefront the description line. */
 function ProductCardSkeleton({ storefront = false }: { storefront?: boolean }) {
   return (
     <li>
@@ -18,11 +18,6 @@ function ProductCardSkeleton({ storefront = false }: { storefront?: boolean }) {
           <Skeleton width="40%" height={24} />
         </span>
       </span>
-      {storefront && (
-        <span className="product-card__order">
-          <Skeleton shape="pill" height={40} className="skeleton--button" />
-        </span>
-      )}
     </li>
   )
 }
@@ -87,24 +82,21 @@ export function EventHomeSkeleton() {
   )
 }
 
-/** A storefront on its way: the banner with the logo over its edge, the name, the slogan, the booth row, then its products. */
+/** A storefront on its way: the banner, the logo beside the name and slogan, the facts row, then its products. */
 export function StorefrontSkeleton() {
   return (
     <SkeletonGroup label="Loading the booth..." className="storefront">
       {/* The same over-media header as the loaded storefront, so nothing shifts when it arrives. */}
       <div className="storefront__header" data-header="over-media">
         <Skeleton shape="control" className="storefront__banner" />
-        <span className="storefront__logo">
-          <Skeleton shape="circle" width={64} height={64} />
-        </span>
-        <Skeleton width="65%" height={32} />
-        <Skeleton width="55%" height={20} />
-        <div className="storefront__badges">
-          <Skeleton width={64} height={20} />
-          <Skeleton shape="pill" width={120} height={24} />
-          <Skeleton shape="pill" height={44} className="skeleton--action" />
-          <Skeleton shape="pill" height={44} className="skeleton--action" />
+        <div className="storefront__identity">
+          <span className="storefront__logo" />
+          <div className="storefront__name storefront__name--loading">
+            <Skeleton width="65%" height={28} />
+            <Skeleton width="50%" height={20} />
+          </div>
         </div>
+        <Skeleton width="100%" height={42} />
       </div>
       <ProductGridSkeleton className="storefront__grid" storefront />
     </SkeletonGroup>

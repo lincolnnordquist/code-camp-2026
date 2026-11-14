@@ -1,5 +1,6 @@
 export { Badge, type BadgeTone } from "./Badge";
 export { Banner, type BannerTone } from "./Banner";
+export { BoothPlate } from "./BoothPlate";
 export { Button, type ButtonVariant } from "./Button";
 export { CartBar } from "./CartBar";
 export { CodeEntry } from "./CodeEntry";

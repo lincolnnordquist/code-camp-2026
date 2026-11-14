@@ -21,7 +21,6 @@ import { EventHome } from './features/discover/EventHome'
 import './features/order/order.css'
 import { AddToCart } from './features/order/AddToCart'
 import { CartLink } from './features/order/CartLink'
-import { useCart } from './features/order/cartStore'
 import { OpenOrderCount } from './features/order/OpenOrderCount'
 import { provideOrderEventSlug } from './features/order/orderExtras'
 import { MyOrdersSkeleton, OrderSkeleton } from './features/order/OrderSkeletons'
@@ -562,7 +561,7 @@ function Shell({ children }: { children: ReactNode }) {
   const goBack = useGoBack()
   const hasBack = hasBackFrom(pathname, search)
   const inlineBack = hasInlineBack(pathname, search)
-  const routeTitle = headerTitleOf(pathname, useCart()?.boothMode)
+  const routeTitle = headerTitleOf(pathname)
   useSwipeBack(mainRef, hasBack, () => goBack('swipe'))
   const pullIndicatorRef = useRef<HTMLDivElement>(null)
   const pull = usePullToRefresh(mainRef, pullIndicatorRef)
@@ -612,10 +611,10 @@ function Shell({ children }: { children: ReactNode }) {
         </ScreenErrorBoundary>
       </main>
       {/* Sticky at the end of the page, so it sits on the screen's bottom edge and the page reserves its real height. */}
-      <div className="bottom-bars">
+      {/* The cart and checkout are a focused flow: on a phone the tab bar is hidden there (index.css). */}
+      <div className={`bottom-bars${isCartFlow(pathname) ? ' bottom-bars--flow' : ''}`}>
         <CartLink />
-        {/* The cart and checkout are a focused flow, as drawn: header Back, no tab bar. */}
-        {!isCartFlow(pathname) && <TabBar />}
+        <TabBar />
       </div>
     </>
   )

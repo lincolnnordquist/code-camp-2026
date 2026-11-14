@@ -65,13 +65,12 @@ export function hasInlineBack(path: string, search = ''): boolean {
 
 /**
  * The header's own title for screens whose h1 states something else (the order's status, the
- * cart's vendor); else null. Checkout is named for what its button does, which depends on how the
- * cart's booth takes payment.
+ * cart's vendor); else null.
  */
-export function headerTitleOf(path: string, cartMode?: string): string | null {
+export function headerTitleOf(path: string): string | null {
   if (/^\/(orders\/[^/]+|o\/[^/]+)$/.test(path)) return 'Order'
   if (/^\/e\/[^/]+\/cart$/.test(path)) return 'Cart'
-  if (/^\/e\/[^/]+\/cart\/checkout$/.test(path)) return cartMode === 'prepay' ? 'Checkout' : 'Reserve'
+  if (/^\/e\/[^/]+\/cart\/checkout$/.test(path)) return 'Checkout'
   return null
 }
 

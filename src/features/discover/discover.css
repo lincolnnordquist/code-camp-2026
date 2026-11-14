@@ -38,7 +38,7 @@
 }
 
 .stock-line--warning {
-  color: var(--warning-800);
+  color: var(--warning-900);
 }
 
 .stock-line--error {
@@ -708,10 +708,6 @@ html[data-input='pointer'] :is([data-product-card], .chip, .recent__remove, .cat
 
 .product-card__body .skeleton + .skeleton {
   margin-top: var(--space-8);
-}
-
-.product-card__order .skeleton--button {
-  margin: 4px 0;
 }
 
 /* The floor plan: structure only. map.css owns its colours, type and the map screen. */

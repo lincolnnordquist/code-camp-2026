@@ -2,8 +2,10 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createReservation, getEventCatalog, startCheckout } from '../../shared/api'
 import { useOnlineStatus } from '../../shared/live'
-import { formatMoney, refusalLabels } from '../../shared/ui/labels'
-import { BoothLogo } from '../../shared/ui/BoothLogo'
+import { lastEventCatalog, requestEventCatalog } from '../../shell/catalogRequest'
+import { Banner } from '../../shared/ui/Banner'
+import { formatMoney, orderLabels, refusalLabels } from '../../shared/ui/labels'
+import { BoothIdentity } from './BoothIdentity'
 import { EmptyCart } from './CartPage'
 import {
   applyCaps,
@@ -21,8 +23,10 @@ import { rememberCheckoutUrl } from './checkoutLinks'
 import { useFirstEntrance } from '../../shell/useFirstEntrance'
 import { announceIn } from './announce'
 import { withDeadline } from './deadline'
+import { holdLength } from './holdLength'
 import { cacheOrders } from './orderCache'
 import type { Refusal } from './orderStatus'
+import { rememberEmail, savedEmail } from './savedEmail'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -76,7 +80,23 @@ export function CheckoutPage() {
   const cart = useCart()
   const online = useOnlineStatus()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [remembered] = useState(savedEmail)
+  const [email, setEmail] = useState(remembered)
+  const cartSlug = cart?.eventSlug ?? null
+  // The hold's length is the event's setting, which the cart does not carry; the notice names it once the catalog is read.
+  const [holdMinutes, setHoldMinutes] = useState<number | null>(() => (cartSlug ? (lastEventCatalog(cartSlug)?.event.reservationHoldMinutes ?? null) : null))
+  useEffect(() => {
+    if (!cartSlug) return
+    let active = true
+    requestEventCatalog(cartSlug)
+      .then((r) => {
+        if (active && r.ok) setHoldMinutes(r.value.event.reservationHoldMinutes)
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [cartSlug])
   const [emailTouched, setEmailTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [refusal, setRefusal] = useState<Refusal | null>(null)
@@ -115,6 +135,15 @@ export function CheckoutPage() {
   const showEmailError = !emailValid && ((emailTouched && !emailEmpty) || submitAttempted)
   const isPrepay = cart.boothMode === 'prepay'
   const total = formatMoney(cartTotal(cart), cart.currency)
+  // The label module's wording for a prepaid order that is not paid yet.
+  const payWithSquare = orderLabels({
+    type: 'prepaid',
+    status: 'pending_payment',
+    refundStatus: 'none',
+    refundedCents: 0,
+    totalCents: cartTotal(cart),
+    currency: cart.currency,
+  }).attendeePayment
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -140,6 +169,7 @@ export function CheckoutPage() {
     if (isPrepay) {
       const result = await withDeadline(startCheckout(input), SUBMIT_TIMEOUT_MS)
       if (result?.ok) {
+        rememberEmail(input.email)
         clearCart()
         rememberLastOrder(result.value.order.id)
         rememberCheckoutUrl(result.value.order.id, result.value.checkoutUrl)
@@ -155,6 +185,7 @@ export function CheckoutPage() {
     const result = await withDeadline(createReservation(input), SUBMIT_TIMEOUT_MS)
     if (result?.ok) {
       setSubmitting(false)
+      rememberEmail(input.email)
       // The order page opens from this copy at once, instead of flashing a loading state.
       cacheOrders([result.value])
       clearCart()
@@ -279,96 +310,118 @@ export function CheckoutPage() {
           </div>
         )}
 
-        {/* The order page's vendor row: logo slot, vendor name, booth code. */}
-        <div className="order-vendor">
-          {/* Carts saved before the logo was recorded have none, and show the code tile. */}
-          <BoothLogo booth={{ code: cart.boothCode, logoUrl: cart.logoUrl ?? '' }} />
-          <div className="order-vendor__text">
-            <h1 className="order-vendor__name" ref={headingRef} tabIndex={-1}>
-              {/* The space stays outside the hidden span, where every name computation keeps it. */}
-              <span className="visually-hidden">{isPrepay ? 'Check out with' : 'Reserve from'}</span> {cart.vendorName}
-            </h1>
-            <p className="order-vendor__booth">Booth {cart.boothCode}</p>
-          </div>
-        </div>
+        <BoothIdentity cart={cart} lead={isPrepay ? 'Check out with' : 'Reserve from'} headingRef={headingRef} />
 
-        <section className="order-items checkout__summary" aria-labelledby="checkout-items-title">
-          <h2 id="checkout-items-title">Items</h2>
-          <ul role="list" {...itemsEntrance}>
-            {cart.items.map((i) => (
-              <li key={i.productId}>
-                <span>
-                  {i.qty} × {i.name}
-                </span>
-                <span className="price">{formatMoney(i.qty * i.priceCents, cart.currency)}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="order-items__total">
-            <span>Total</span>
-            <span>{total}</span>
-          </p>
-        </section>
-
-        {/* The hold's length is not part of the cart, so the prepay sentence does not name one. */}
-        <p className="cart__payment">
-          {isPrepay
-            ? "You pay on Square's page. Your items are held while you pay."
-            : `Pay ${total} at the booth when you pick up.`}
-        </p>
-
-        <form id="reserve-form" className="reserve-form" onSubmit={(e) => void submit(e)} noValidate>
-          {/* The design system's outlined text field: the label sits in the outline's top edge. */}
-          <div className={`text-field${showEmailError ? ' text-field--error' : ''}`}>
-            <label className="text-field__label" htmlFor="email">
-              Email
-            </label>
-            <input
-              className="text-field__input"
-              ref={emailRef}
-              id="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => setEmailTouched(true)}
-              aria-required="true"
-              aria-invalid={showEmailError}
-              aria-describedby={showEmailError ? 'email-error email-help' : 'email-help'}
-            />
-            {showEmailError && (
-              <p id="email-error" className="text-field__support text-field__error">
-                {emailEmpty ? 'Enter your email address' : 'Enter a full email address, like name@example.com.'}
+        <div className="cart__columns">
+          <div className="checkout__main">
+            <section className="order-items checkout__summary" aria-labelledby="checkout-items-title">
+              <h2 id="checkout-items-title">Items</h2>
+              <ul role="list" {...itemsEntrance}>
+                {cart.items.map((i) => (
+                  <li key={i.productId}>
+                    <span>
+                      {i.qty} × {i.name}
+                    </span>
+                    <span className="price">{formatMoney(i.qty * i.priceCents, cart.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="order-items__total">
+                <span>Total</span>
+                <span>{total}</span>
               </p>
-            )}
-            <p id="email-help" className="text-field__support">
-              Required. Your order link is sent here.
-            </p>
+            </section>
+
+            <form id="reserve-form" className="reserve-form" onSubmit={(e) => void submit(e)} noValidate>
+              {/* The design system's outlined text field: the label sits in the outline's top edge. */}
+              <div className={`text-field${showEmailError ? ' text-field--error' : ''}`}>
+                <label className="text-field__label" htmlFor="email">
+                  Email
+                </label>
+                <input
+                  className="text-field__input"
+                  ref={emailRef}
+                  id="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setEmailTouched(true)}
+                  aria-required="true"
+                  aria-invalid={showEmailError}
+                  aria-describedby={showEmailError ? 'email-error email-help' : 'email-help'}
+                />
+                {showEmailError && (
+                  <p id="email-error" className="text-field__support text-field__error">
+                    {emailEmpty ? 'Enter your email address' : 'Enter a full email address, like name@example.com.'}
+                  </p>
+                )}
+                <p id="email-help" className="text-field__support">
+                  {remembered !== '' && email.trim() === remembered ? 'Saved on this device. Your order link is sent here.' : 'Your order link is sent here.'}
+                </p>
+              </div>
+              {/* Kept mounted, so writing into it is announced. */}
+              <p className="visually-hidden" aria-live="polite" ref={emailAlertRef} />
+            </form>
           </div>
-          {/* Kept mounted, so writing into it is announced. */}
-          <p className="visually-hidden" aria-live="polite" ref={emailAlertRef} />
-        </form>
-        {/* The one action, docked at the bottom like a native flow's. Outside the form so the whole
-            page, not the form, is what it sticks within: inside it, a form starting below the fold
-            held the dock down over the email field and past the screen's bottom (QA D7). The
-            button still submits the form (form="reserve-form"), Enter in the field included. */}
-        <div className="cart__dock">
-          {/* aria-disabled instead of disabled, so focus stays on the button when the device goes offline; submit() refuses then. */}
-          <button
-            type="submit"
-            form="reserve-form"
-            className="order-button order-button--filled"
-            aria-disabled={submitting || !online}
-            aria-describedby={online ? undefined : 'cart-offline'}
-          >
-            {isPrepay ? (submitting ? 'Opening payment...' : 'Pay with Square') : submitting ? 'Reserving...' : 'Reserve'}
-          </button>
-          {!online && (
-            <p id="cart-offline" className="reserve-form__note">
-              {isPrepay ? "You're offline. Pay when you're back online." : "You're offline. Reserve when you're back online."}
+
+          {/* A side panel on a wide screen; on a phone the notice sits above the email and the action docks. */}
+          <div className="cart__summary">
+            <h2 className="cart__summary-title">Summary</h2>
+            <ul className="cart__summary-lines" role="list">
+              {cart.items.map((i) => (
+                <li key={i.productId}>
+                  <span>
+                    {i.qty} × {i.name}
+                  </span>
+                  <span className="price">{formatMoney(i.qty * i.priceCents, cart.currency)}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="cart__total">
+              <span>Total</span>
+              <span>{total}</span>
             </p>
-          )}
+
+            {isPrepay ? (
+              // The checkout hold's length is not part of the cart, so the sentence does not name one.
+              <p className="cart__payment">You pay on Square's page. Your items are held while you pay.</p>
+            ) : (
+              <Banner tone="neutral" icon="schedule">
+                <span>
+                  {holdMinutes !== null && (
+                    <>
+                      We'll hold these for <strong>{holdLength(holdMinutes)}</strong>.{' '}
+                    </>
+                  )}
+                  Pay {total} at the booth when you pick up.
+                </span>
+              </Banner>
+            )}
+
+            {/* The one action, docked at the bottom like a native flow's. Outside the form so the whole
+                page, not the form, is what it sticks within: inside it, a form starting below the fold
+                held the dock down over the email field and past the screen's bottom (QA D7). The
+                button still submits the form (form="reserve-form"), Enter in the field included. */}
+            <div className="cart__dock">
+              {/* aria-disabled instead of disabled, so focus stays on the button when the device goes offline; submit() refuses then. */}
+              <button
+                type="submit"
+                form="reserve-form"
+                className="order-button order-button--filled"
+                aria-disabled={submitting || !online}
+                aria-describedby={online ? undefined : 'cart-offline'}
+              >
+                {isPrepay ? (submitting ? 'Opening payment...' : payWithSquare) : submitting ? 'Reserving...' : `Reserve · ${total}`}
+              </button>
+              {!online && (
+                <p id="cart-offline" className="reserve-form__note">
+                  {isPrepay ? "You're offline. Pay when you're back online." : "You're offline. Reserve when you're back online."}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </>

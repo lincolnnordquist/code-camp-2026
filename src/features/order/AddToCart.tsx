@@ -86,7 +86,7 @@ function ReplaceCartDialog({
 
 function CardIcon({ kind }: { kind: 'add' | 'added' }) {
   return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
       <path
         d={kind === 'add' ? 'M12 5v14M5 12h14' : 'M5 12.5l4.5 4.5L19 7.5'}
         fill="none"
@@ -100,9 +100,9 @@ function CardIcon({ kind }: { kind: 'add' | 'added' }) {
 }
 
 /**
- * The order control for one product. On a storefront card ('card', design:
- * StorefrontReserve, StorefrontAdded) it is one compact button: "Add", then a
- * tonal "Added" that adds another, until the limit. In the product sheet
+ * The order control for one product. On a storefront card ('card') it is one
+ * round icon button over the photo: a plus, then a filled check that adds
+ * another, until the limit. In the product sheet
  * ('sheet') it is one full "Add to cart" button; once the product is in the
  * cart, a stepper for its line beside a filled "View cart (n)". Adding is local
  * to this device and immediate, so there is no "Adding" state to show.
@@ -189,10 +189,10 @@ export function AddToCart({
     const added = inCart > 0 && !atMax
     return (
       <>
-        {/* The button is the 48 px target; the 40 px pill inside it is what shows (NFR-06). */}
-        {/* One label naming what a press does next, and starting with the visible word (WCAG 2.5.3):
-            "Add Patch to cart", "Added, add another Patch, 1 in cart", "Limit reached for Patch, 2 in
-            cart". An aria-label, because a hidden span's spacing differs between name computations. */}
+        {/* The button is the 48 px target; the 40 px circle inside it is what shows (NFR-06). */}
+        {/* One label naming what a press does next: "Add Patch to cart", "Added, add another Patch,
+            1 in cart", "Limit reached for Patch, 2 in cart". An aria-label, because a hidden span's
+            spacing differs between name computations. */}
         <button
           ref={openerRef}
           type="button"
@@ -209,8 +209,7 @@ export function AddToCart({
           onClick={onAdd}
         >
           <span className="add-card__pill">
-            {!atMax && <CardIcon kind={added ? 'added' : 'add'} />}
-            {atMax ? 'Limit reached' : added ? 'Added' : 'Add'}
+            <CardIcon kind={inCart > 0 ? 'added' : 'add'} />
           </span>
         </button>
         {!online && (
