@@ -658,7 +658,7 @@ describe('storefront banner', () => {
 describe('product photo gallery', () => {
   const withAngles = () => {
     const catalog = makeCatalog()
-    const hoodie = catalog.products.find((p) => p.id === 'p-hoodie')! as Product & { images?: unknown }
+    const hoodie = catalog.products.find((p) => p.id === 'p-hoodie')! as Omit<Product, 'images'> & { images?: unknown }
     hoodie.imageUrl = '/hoodie.webp'
     hoodie.images = [{ url: '/hoodie-back.webp', label: 'back' }, '/hoodie-detail.webp']
     localStorage.setItem(`catalog.v4.${SLUG}`, JSON.stringify(catalog))

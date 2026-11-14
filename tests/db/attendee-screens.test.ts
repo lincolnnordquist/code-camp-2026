@@ -52,10 +52,12 @@ test("every image path in the seed is served from the public storage bucket", as
   const { data: vendors } = await admin
     .from("vendors")
     .select("logo_path, banner_path");
-  const { data: products } = await admin.from("products").select("image_path");
+  const { data: products } = await admin
+    .from("products")
+    .select("image_path, image_paths");
   const paths = [
     ...(vendors ?? []).flatMap((v) => [v.logo_path, v.banner_path]),
-    ...(products ?? []).map((p) => p.image_path),
+    ...(products ?? []).flatMap((p) => [p.image_path, ...p.image_paths]),
   ];
   assert.ok(paths.length > 0);
   for (const path of new Set(paths as string[])) {

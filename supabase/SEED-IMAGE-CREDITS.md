@@ -30,6 +30,18 @@ the canvas, centred on 800 x 800 and saved as WebP (quality 82). `night-city-pri
 | `products/scout-regiment-figures/survey-corps-shaker-keychain.webp` | Survey Corps Shaker Keychain | Tokyo Otaku Mode ("Attack on Titan Break of Dawn Acrylic Charm Collection", Kadokawa) | https://otakumode.com/shop/625e10613a1031002a5b7f15/Attack-on-Titan-Break-of-Dawn-Acrylic-Charm-Collection | https://resize.cdn.otakumode.com/full/shop/product/6af80291f3a047c4bd1bb157679ef8f3.jpg |
 | `products/inkwell-artist-alley/star-wars-sketch-card.webp` | Star Wars Artist Sketch Card | Steel City Collectibles (an official 2009 Topps Star Wars Clone Wars Widevision sketch card by Brent Engstrom) | https://www.steelcitycollectibles.com/i/brent-engstrom-2009-topps-star-wars-clone-wars-widevision-greedo-sketch-card-1-1 | https://www.steelcitycollectibles.com/storage/img/uploads/products/full/1295384.jpg |
 
+### Extra gallery photos
+
+Further official views from the same product pages, made into tiles the same way. Same
+demo-use-only limits.
+
+| File | View | Product page | Image URL |
+| --- | --- | --- | --- |
+| `products/soft-kaiju-plush/tiny-mothra-plush-2.webp` | Back of the Mothra plush | https://www.hottopic.com/product/godzilla-mothera-plush/37170437.html | https://cdn.media.amplience.net/i/hottopic/37170436_av1?fmt=jpg&w=1200 |
+| `products/soft-kaiju-plush/emotional-support-godzilla-2.webp` | Back of the Sleepy Godzilla plush | https://www.hottopic.com/product/godzilla-sleepy-godzilla-plush/36361057.html | https://cdn.media.amplience.net/i/hottopic/36361056_av1?fmt=jpg&w=1200 |
+| `products/wall-rose-goods/plot-armor-shield-2.webp` | Shield beside its retail box | https://hasbropulse.com/product/marvel-legends-series-captain-america-shield/F07645L22 | https://cdn.media.amplience.net/i/hasbropulse/F07645L22_combo_24_2000px_300DPI?fmt=jpg&w=1200 |
+| `products/wall-rose-goods/plot-armor-shield-3.webp` | Box back showing the shield's straps | https://hasbropulse.com/product/marvel-legends-series-captain-america-shield/F07645L22 | https://cdn.media.amplience.net/i/hasbropulse/F07645L22_back_24?fmt=jpg&w=1200 |
+
 ## Vendor logos and banners
 
 The files under `seed-assets/vendors/` are simple SVG marks and gradients made for the demo vendors (initials

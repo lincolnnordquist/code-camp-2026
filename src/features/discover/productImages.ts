@@ -8,8 +8,9 @@ export interface ProductPhoto {
 }
 
 /**
- * The shared contract carries one `imageUrl` per product. Until it carries more, extra angles come from an optional `images` list beside it, which a host app may provide:
- * each entry a URL or `{ url, label, fallback }`. Anything malformed is skipped.
+ * Extra angles come from the product's optional `images` list: the shared API gives every photo's
+ * URL there, the main one first. A host app may instead give `{ url, label, fallback }` entries.
+ * Anything malformed is skipped.
  */
 type WithImages = Product & { images?: unknown }
 

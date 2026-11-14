@@ -172,6 +172,7 @@ export type ProductRow = {
   category: string;
   description: string;
   image_path: string;
+  image_paths: string[];
   price_cents: number;
   available_qty: number;
   max_per_order: number;
@@ -185,6 +186,9 @@ export function productFromRow(row: ProductRow): Product {
     category: row.category,
     description: row.description,
     imageUrl: publicAssetUrl(row.image_path),
+    ...(row.image_paths.length > 0 && {
+      images: [row.image_path, ...row.image_paths].map(publicAssetUrl),
+    }),
     priceCents: row.price_cents,
     availableQty: row.available_qty,
     maxPerOrder: row.max_per_order,
