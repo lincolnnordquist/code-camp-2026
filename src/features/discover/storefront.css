@@ -1106,3 +1106,138 @@
     max-height: calc(100dvh - env(safe-area-inset-top, 0px) - var(--space-24) - 5.5rem);
   }
 }
+
+/* Shop-style brand page: the logo lifts off the banner on a page-tone ring with a soft shadow, the
+   name takes the headline role, and Share and Map become a row of tonal pill buttons under the booth
+   and its mode, each half the width (they used to be text links squeezed onto the booth's line). */
+.storefront__logo {
+  box-shadow: 0 0 0 4px var(--page), var(--shadow-faint);
+}
+
+.storefront__header h1 {
+  font: 800 30px/36px var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.storefront__tagline {
+  margin-top: 2px;
+  font: var(--type-body-large);
+}
+
+.storefront__badges {
+  gap: var(--space-8);
+  font: var(--type-label-large);
+}
+
+/* A zero-height full-width item: the pills wrap onto their own line after the booth and mode. */
+.storefront__badges::before {
+  content: '';
+  flex-basis: 100%;
+  order: 1;
+  height: 0;
+}
+
+.storefront__badges .storefront__share,
+.storefront__badges .storefront__map {
+  flex: 1 1 0;
+  order: 2;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  margin: var(--space-4) 0 0;
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-full);
+  background: var(--quiet-action);
+  color: var(--on-quiet-action);
+}
+
+.storefront__badges .storefront__map::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  /* The map glyph the tab bar uses, as a mask so it takes the button's text colour. */
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linejoin='round'%3E%3Cpath d='M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linejoin='round'%3E%3Cpath d='M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+@media (min-width: 45rem) {
+  .storefront__badges .storefront__share,
+  .storefront__badges .storefront__map {
+    flex: 0 0 auto;
+    min-width: 140px;
+  }
+
+  .storefront__header h1 {
+    font-size: 36px;
+    line-height: 44px;
+  }
+}
+
+/* The shelf starts a little further from the identity block, so the brand reads as its own band. */
+.storefront__chips {
+  margin-top: var(--space-8);
+}
+
+/* Shop-style product sheet: the photo on the untinted grey tile, taller, meeting the sheet's top
+   edge; the name in confident display type with the price bold under it; the vendor card a quiet grey
+   group on white; the dock unchanged in role (the one primary action). */
+.sheet {
+  background: var(--page);
+}
+
+.sheet__media .product-image--large {
+  max-height: 52dvh;
+  background: var(--surface-photo);
+}
+
+.sheet__body {
+  gap: var(--space-8);
+  padding: var(--space-24) var(--space-16) var(--space-16);
+}
+
+.sheet__title {
+  font: 800 28px/34px var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+.sheet__price {
+  font: 700 22px/28px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__desc {
+  margin-top: var(--space-8);
+  color: var(--text-secondary);
+}
+
+.sheet__where {
+  margin-top: var(--space-24);
+  border-radius: var(--radius-lg);
+  background: var(--surface-photo);
+}
+
+.sheet__dock {
+  background: color-mix(in oklch, var(--page) var(--bar-opacity, 82%), transparent);
+}
+
+@media (min-width: 45rem) {
+  .sheet__title {
+    font-size: 32px;
+    line-height: 40px;
+  }
+}
+
+/* The Share and Map pills' places while the storefront loads. */
+.storefront__badges .skeleton--action {
+  flex: 1 1 0;
+  order: 2;
+  margin-top: var(--space-4);
+}
+
+@media (min-width: 45rem) {
+  .storefront__badges .skeleton--action {
+    flex: 0 0 140px;
+  }
+}
+

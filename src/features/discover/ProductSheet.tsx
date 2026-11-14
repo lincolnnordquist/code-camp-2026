@@ -193,7 +193,9 @@ function ProductSheet({ catalog, product, booth, renderOrderControl, onStorefron
       // Leaving the page ("Find on map") hands focus to that page's heading instead.
       if (window.location.pathname !== openedOn) return
       // Back to the card of the product shown last; one not in the current list falls back to the opener.
+      // A product can show in more than one Home shelf, so the card that opened the sheet wins.
       const card =
+        (opener?.isConnected && opener.dataset.productCard === shownId.current ? opener : null) ??
         Array.from(document.querySelectorAll<HTMLElement>('[data-product-card]')).find(
           (el) => el.dataset.productCard === shownId.current,
         ) ?? null

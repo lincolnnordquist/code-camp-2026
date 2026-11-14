@@ -556,10 +556,11 @@ describe('search through the event home (FR-04)', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search products, booths or vendors' }), { target: { value } })
   }
 
-  it('browses by category and products only: Booths and Map live in their own tabs', async () => {
+  it('browses by category, shelves read from the catalog, then all products: Booths and Map live in their own tabs', async () => {
     await renderEventHome()
     const sections = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
-    expect(sections).toEqual(['Browse by category', 'All products'])
+    // The fixture's low-stock products fill an Almost gone shelf; no other shelf reaches three products.
+    expect(sections).toEqual(['Browse by category', 'Almost gone', 'All products'])
     expect(screen.queryByRole('link', { name: /see all/i })).toBeNull()
     expect(screen.queryByRole('link', { name: /map of the hall/i })).toBeNull()
     expect(screen.getByRole('searchbox', { name: 'Search products, booths or vendors' })).toBeTruthy()
@@ -676,6 +677,17 @@ describe('search through the event home (FR-04)', () => {
   }
   const url = () => screen.getByTestId('url').textContent
   const browserBack = () => fireEvent.click(screen.getByRole('button', { name: 'Browser back' }))
+
+  // The fixture's products are all $10, so the $10 to $25 band stands in for the shelf's Under $10 link.
+  it('a See all with only a price filter (no query or category) opens the results, and Back leaves them', async () => {
+    await renderEventHomeWithHistory(`/e/${SLUG}?price=10-25`)
+    const results = screen.getByRole('region', { name: 'Search results' })
+    const prices = Array.from(results.querySelectorAll('.result__price'), (el) => Number(el.textContent?.replace(/[^\d.]/g, '')))
+    expect(prices.length).toBeGreaterThan(0)
+    for (const price of prices) expect(price).toBe(10)
+    browserBack()
+    expect(url()).toBe('/before')
+  })
 
   it('a category tile pushes ?category=, and Back returns to the unfiltered home', async () => {
     await renderEventHomeWithHistory()
