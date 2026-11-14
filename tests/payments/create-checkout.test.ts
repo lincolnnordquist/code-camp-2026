@@ -85,6 +85,9 @@ function setup(options: Setup = {}) {
     getOrderState: unused,
     getRefund: unused,
     verifyWebhookSignature: unused,
+    parseWebhookEvent: () => {
+      throw new Error("not used");
+    },
   };
   const secrets = options.secrets ??
     { SQUARE_ACCESS_TOKEN_VENDOR_A: "seller-token" };

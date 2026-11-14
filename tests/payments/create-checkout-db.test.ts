@@ -41,6 +41,9 @@ function depsWith(
       getOrderState: unused,
       getRefund: unused,
       verifyWebhookSignature: unused,
+      parseWebhookEvent: () => {
+        throw new Error("not used");
+      },
     },
     readSecret: (name) =>
       name === "SQUARE_ACCESS_TOKEN_TEST" ? "seller-token" : undefined,

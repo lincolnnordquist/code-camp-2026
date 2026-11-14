@@ -63,6 +63,9 @@ function depsFor(
       getOrderState: unused,
       getRefund: unused,
       verifyWebhookSignature: unused,
+      parseWebhookEvent: () => {
+        throw new Error("not used");
+      },
       ...provider,
     },
     readSecret: (name) =>

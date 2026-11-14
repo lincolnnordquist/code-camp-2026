@@ -71,6 +71,9 @@ function depsWith(payment: ProviderPayment | null) {
     getOrderState: unused,
     getRefund: unused,
     verifyWebhookSignature: unused,
+    parseWebhookEvent: () => {
+      throw new Error("not used");
+    },
   };
   const deps: ConfirmCheckoutDeps = {
     async getUserId(accessToken) {

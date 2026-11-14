@@ -6,6 +6,7 @@ import {
   type ProviderFailure,
   type RefundStatus,
   type SellerConnection,
+  type WebhookEvent,
 } from "./types.ts";
 
 export type SquareEnvironment = "sandbox" | "production";
@@ -62,6 +63,41 @@ type PaymentReply = {
 type RefundReply = {
   refund?: { status?: string; payment_id?: string; amount_money?: SquareMoney };
 };
+
+type WebhookBody = {
+  type?: unknown;
+  data?: {
+    object?: {
+      payment?: { order_id?: unknown; status?: unknown };
+    };
+  };
+} | null;
+
+function nonEmpty(value: unknown): value is string {
+  return typeof value === "string" && value !== "";
+}
+
+function parseWebhookEvent(rawBody: string): WebhookEvent {
+  let body: WebhookBody;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return { kind: "malformed" };
+  }
+  const type = body?.type;
+  if (type === "payment.created" || type === "payment.updated") {
+    const payment = body?.data?.object?.payment;
+    if (!nonEmpty(payment?.order_id)) return { kind: "malformed" };
+    return {
+      kind: "payment",
+      providerOrderId: payment.order_id,
+      reportedCompleted: payment.status === "COMPLETED",
+    };
+  }
+  return typeof type === "string"
+    ? { kind: "other", type }
+    : { kind: "malformed" };
+}
 
 function failureReason(httpStatus: number, code: string): ProviderFailure {
   if (code === "INVALID_EMAIL_ADDRESS") return "invalid_buyer_email";
@@ -275,5 +311,7 @@ export function createSquareProvider(
         encoder.encode(input.notificationUrl + input.rawBody),
       );
     },
+
+    parseWebhookEvent,
   };
 }

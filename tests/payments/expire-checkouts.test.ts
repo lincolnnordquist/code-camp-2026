@@ -96,6 +96,9 @@ function setup(
     },
     getRefund: unused,
     verifyWebhookSignature: unused,
+    parseWebhookEvent: () => {
+      throw new Error("not used");
+    },
   };
   const deps: ExpireCheckoutsDeps = {
     serviceKey: SERVICE_KEY,
