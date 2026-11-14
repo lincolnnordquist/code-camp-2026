@@ -14,8 +14,8 @@ import { addRecentSearch, clearRecentSearches, readRecentSearches, removeRecentS
 import { categoriesOf, descriptionSnippet, groupHitsByBooth, highlightParts, searchBooths, searchCatalog, topCategories, type SearchHit } from './search'
 import { BoothListRow } from './BoothListRow'
 import { SavedCopyNote } from './SavedCopyNote'
-import { StockBadge } from './StockBadge'
-import { stockState } from './stockState'
+import { StockLine } from './StockLine'
+import { soldOutLast, stockState } from './stockState'
 import { CatalogError } from './CatalogError'
 import { useCatalog } from './useCatalog'
 import { applyFilters, narrowingLabels, NO_FILTERS, readFilters, writeFilters, type ProductFilters } from './filters'
@@ -481,7 +481,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
                 {formatMoney(product.priceCents, catalog.event.currency)}
               </span>
               {stockState(product.availableQty) && <span className="visually-hidden">, </span>}
-              <StockBadge qty={product.availableQty} />
+              <StockLine qty={product.availableQty} />
             </span>
           </span>
         </Link>
@@ -797,7 +797,7 @@ function EventHomeLoaded({ catalog, fromCache, onRetry, renderOrderControl }: Lo
           <section className="home-section" aria-labelledby="home-products">
             <h2 id="home-products">All products</h2>
             <ul className="product-grid" role="list" {...productsEntrance}>
-              {catalog.products.map((product, i) => {
+              {soldOutLast(catalog.products).map((product, i) => {
                 const booth = boothsById.get(product.boothId)
                 if (!booth) return null
                 return (

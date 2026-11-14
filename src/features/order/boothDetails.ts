@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { lastCatalogProduct, lastEventCatalog, requestEventCatalog } from '../../shell/catalogRequest'
-import type { Booth, Order, Product } from '../../shared/types'
+import type { Booth, Event, Order, Product } from '../../shared/types'
 import { orderEventSlug } from './orderExtras'
 
 /** What the order page shows about a booth beyond the order's own booth code and name. */
@@ -104,4 +104,14 @@ export function useBoothGone(order: Order): boolean {
 export function useCatalogProduct(productId: string): Product | null {
   // A catalog already on this page gives the photo at once, so the thumbnail does not wait for the refresh.
   return useSyncExternalStore(subscribe, () => products)[productId] ?? lastCatalogProduct(productId)
+}
+
+/** The order's event, once its catalog has been read on this page load; else null. */
+export function useOrderEvent(order: Order | undefined): Event | null {
+  useSyncExternalStore(subscribe, () => details)
+  const slug = order ? orderEventSlug(order) : null
+  useEffect(() => {
+    if (slug) loadEvent(slug)
+  }, [slug])
+  return slug ? (lastEventCatalog(slug)?.event ?? null) : null
 }

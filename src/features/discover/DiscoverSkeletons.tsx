@@ -4,7 +4,7 @@ import { Skeleton, SkeletonGroup, SkeletonText } from '../../shell/Skeleton'
 const CARD_COUNT = 4
 /** Two rows of three on a phone, one row wider. */
 const TILE_COUNT = 6
-const BOOTH_ROW_COUNT = 6
+const BOOTH_CARD_COUNT = 3
 
 /** A product card: the square photo, the name and price under it, and on a storefront the Add button. */
 function ProductCardSkeleton({ storefront = false }: { storefront?: boolean }) {
@@ -111,20 +111,27 @@ export function StorefrontSkeleton() {
   )
 }
 
-/** The booth directory on its way: the heading, then cards of logo, name, code, slogan and mode. */
+/** The booths on their way, in the store cards' shape: the shop-type words, then cards with a banner, a name and a product row. */
 export function BoothsSkeleton() {
   return (
     <SkeletonGroup label="Loading the booths..." className="booths-page">
-      <Skeleton width="40%" height={36} className="skeleton--title" />
-      <ul className="directory" aria-hidden="true">
-        {Array.from({ length: BOOTH_ROW_COUNT }, (_, i) => (
+      <div className="shop-switcher" aria-hidden="true">
+        <Skeleton width={56} height={36} />
+        <Skeleton width={200} height={36} />
+      </div>
+      <ul className="store-cards" aria-hidden="true">
+        {Array.from({ length: BOOTH_CARD_COUNT }, (_, i) => (
           <li key={i}>
-            <span className="directory__row">
-              <Skeleton shape="circle" width={40} height={40} />
-              <span className="directory__text">
-                <Skeleton width="60%" height={24} />
-                <Skeleton width="80%" height={20} />
-                <Skeleton shape="pill" width={112} height={24} />
+            <span className="store-card">
+              <Skeleton shape="card" width="100%" height={112} className="store-card__banner" />
+              <span className="store-card__text">
+                <Skeleton width="55%" height={24} />
+                <Skeleton width="75%" height={20} />
+              </span>
+              <span className="store-card__products store-card__products--3">
+                {Array.from({ length: 3 }, (_, j) => (
+                  <Skeleton key={j} shape="card" width="100%" height={96} />
+                ))}
               </span>
             </span>
           </li>

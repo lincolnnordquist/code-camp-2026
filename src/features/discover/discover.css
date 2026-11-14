@@ -21,7 +21,6 @@
 }
 
 /* Badges: 24 high, Label medium. Stock is a status; a booth's mode is not, so it is outlined. */
-.stock-badge,
 :is(.discover, .storefront, .booths-page, .sheet) .mode {
   display: inline-flex;
   align-items: center;
@@ -32,14 +31,18 @@
   font: var(--type-label-medium);
 }
 
-.stock-badge--warning {
-  background: var(--warning-100);
+/* The FR-05 stock state as text: amber while few are left, red when sold out. */
+.stock-line {
+  min-height: 16px;
+  font: var(--type-label-medium);
+}
+
+.stock-line--warning {
   color: var(--warning-800);
 }
 
-.stock-badge--error {
-  background: var(--error-100);
-  color: var(--error-800);
+.stock-line--error {
+  color: var(--error-700);
 }
 
 /* Scoped: the map's booth card draws its own mode badge (map.css). */
@@ -419,14 +422,238 @@
   stroke-linejoin: round;
 }
 
-.booths-page h1 {
-  margin: var(--space-8) 0 var(--space-16);
+.booths-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
 }
 
-.booths-page .note {
-  margin: 0 0 var(--space-16);
+/* The shop types as large words: one row that scrolls sideways on a phone (BoothsPage.tsx glides the
+   selected word to its left edge), wrapping on a wide screen. */
+.shop-switcher {
+  position: relative;
+  display: flex;
+  gap: var(--space-24);
+  margin: 0 calc(-1 * var(--space-16));
+  padding: 0 var(--space-16);
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+
+.shop-switcher::-webkit-scrollbar {
+  display: none;
+}
+
+.shop-switcher__tab {
+  display: inline-flex;
+  flex: none;
+  align-items: flex-start;
+  min-height: var(--touch-target);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--neutral-600);
+  cursor: pointer;
+  transition: color 200ms;
+}
+
+.shop-switcher__tab[aria-selected='true'] {
+  color: var(--text);
+}
+
+.shop-switcher__word {
+  letter-spacing: -0.03em;
+}
+
+.shop-switcher__count {
+  padding-top: var(--space-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-subtitle {
+  margin: calc(-1 * var(--space-8)) 0 0;
   color: var(--text-secondary);
-  font: var(--type-body-medium);
+}
+
+.shop-panel__empty {
+  margin: var(--space-24) 0;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.store-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  touch-action: pan-y;
+}
+
+.store-cards > li {
+  display: flex;
+}
+
+.store-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.store-card__banner {
+  position: relative;
+  display: block;
+  height: 112px;
+  background: var(--neutral-200);
+}
+
+.store-card__banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.store-card__plate {
+  position: absolute;
+  top: var(--space-12);
+  right: var(--space-12);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-sm);
+  background: var(--neutral-950);
+  color: #fff;
+}
+
+/* Half over the banner, ringed in the card colour so it reads as cut out of it. */
+.store-card .store-card__logo {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 var(--space-16);
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--card);
+}
+
+.store-card__text {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-8) var(--space-16) 0;
+}
+
+.store-card__slogan {
+  color: var(--text-secondary);
+}
+
+.store-card__paused {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  color: var(--warning-900);
+}
+
+/* margin-top: auto lines the product rows up across a row of cards on a wide screen. */
+.store-card__products {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: auto;
+  padding: var(--space-12) var(--space-16) var(--space-16);
+}
+
+.store-card__products--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.store-card__products--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.store-card__tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.store-card__photo {
+  display: block;
+  height: 96px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.store-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.store-card__price {
+  font-variant-numeric: tabular-nums;
+}
+
+.store-card__see {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  height: 96px;
+  padding: var(--space-12);
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--primary-800);
+}
+
+/* The height of a price line, so a See booth tile lines up with the product tiles beside it. */
+.store-card__spacer {
+  height: 20px;
+}
+
+@media (min-width: 40rem) {
+  .shop-switcher {
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .shop-subtitle {
+    font: var(--type-body-large);
+  }
+
+  .store-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .store-card__banner {
+    height: 140px;
+  }
+
+  .store-card .store-card__logo {
+    width: 56px;
+    height: 56px;
+    margin-top: -28px;
+  }
+}
+
+@media (min-width: 52rem) {
+  .store-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 /* The saved-copy note (SavedCopyNote.tsx) under a screen's title; the home places its own in the hero. */
@@ -889,18 +1116,32 @@ button.floor-map__booth::after {
   filter: none;
 }
 
+/* Price, name, booth and stock, each line the same height on every card: the name keeps room for
+   two lines, the booth line ends in an ellipsis. */
 .product-card__body {
-  gap: 2px;
+  gap: var(--space-4);
 }
 
 .product-card__name {
-  min-height: 40px;
-  font: 600 15px/20px var(--font-text);
+  min-height: 48px;
+  font: var(--type-body-large);
 }
 
 .product-card__price {
-  font: 700 16px/24px var(--font-display);
+  font: var(--type-title-medium);
   font-variant-numeric: tabular-nums;
+}
+
+/* The home card shows its price first; screen readers still hear the name first. */
+.product-card--home .product-card__price {
+  order: -1;
+}
+
+.product-card__booth {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .product-card__booth,
@@ -908,25 +1149,9 @@ button.floor-map__booth::after {
   color: var(--text-secondary);
 }
 
-/* The stock chip moves onto the photo's foot (the DOM order, and so the spoken order, is unchanged):
-   the card is a size container, so the chip sits 8 above the 4:5 photo's bottom-left corner. */
-.product-card .stock-badge {
-  position: absolute;
-  top: calc(125cqw - 24px - var(--space-8));
-  left: var(--space-8);
-  min-height: 24px;
-  max-width: calc(100% - 2 * var(--space-8));
-  padding: 2px var(--space-8);
-  font: var(--type-label-small);
-}
-
-/* Sold out reads at a glance: the photo steps back (the chip says why, so colour is not the only cue). */
-.product-card:has(.stock-badge--error) .product-image__photo.is-loaded {
-  opacity: 0.45;
-}
-
-.product-card:has(.stock-badge--error) .product-card__price {
-  color: var(--text-secondary);
+/* Sold out reads at a glance: the photo steps back, and the stock line says why. */
+.product-card:has(.stock-line--error) .product-image__photo.is-loaded {
+  opacity: 0.5;
 }
 
 /* Quick, quiet motion: the photo eases up a touch on hover and the tile dips on press, 150 to 250 ms

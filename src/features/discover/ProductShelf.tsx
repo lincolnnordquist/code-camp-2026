@@ -3,34 +3,28 @@ import type { Booth, Product } from '../../shared/types'
 import { formatMoney } from '../../shared/ui/labels'
 import { ProductImage } from '../../shared/ui/ProductImage'
 import { useProductSheetLink } from './productSheetLink'
-import { StockBadge } from './StockBadge'
+import { StockLine } from './StockLine'
 import { stockState } from './stockState'
 import type { Shelf } from './shelves'
 
-/** The home's product card: photo, name, price with its stock state (drawn over the photo), booth. */
+/** The home's product card: photo, price, name, booth, then the stock line, each line the same height on every card. */
 export function HomeProductCard({ product, booth, currency, priority = false }: { product: Product; booth: Booth; currency: string; priority?: boolean }) {
   const sheetLink = useProductSheetLink()
   return (
-    <Link className="product-card" {...sheetLink(product.id)}>
+    <Link className="product-card product-card--home" {...sheetLink(product.id)}>
       <ProductImage product={product} size="large" priority={priority} />
       <span className="product-card__body">
         <span className="product-card__name">{product.name}</span>
-        <span className="product-card__row">
-          <span className="product-card__price">
-            <span className="visually-hidden">, </span>
-            {formatMoney(product.priceCents, currency)}
-          </span>
-          {stockState(product.availableQty) && (
-            <>
-              <span className="visually-hidden">, </span>
-              <StockBadge qty={product.availableQty} />
-            </>
-          )}
+        <span className="product-card__price">
+          <span className="visually-hidden">, </span>
+          {formatMoney(product.priceCents, currency)}
         </span>
         <span className="product-card__booth">
           <span className="visually-hidden">, </span>
-          {booth.vendorName}
+          Booth {booth.code} · {booth.vendorName}
         </span>
+        {stockState(product.availableQty) && <span className="visually-hidden">, </span>}
+        <StockLine qty={product.availableQty} reserve />
       </span>
     </Link>
   )
